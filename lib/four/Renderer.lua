@@ -1,6 +1,7 @@
 --[[--
-  # four.Renderer
-  Renders the renderables of a 3D space with a given backend renderer
+  h1. four.Renderer
+
+  Renders renderables object from a camera viewpoint.
 --]]--
 
 -- Module definition
@@ -16,13 +17,13 @@ local V2 = four.V2
 local V4 = four.V4
 local Buffer = four.Buffer
 
--- ## Renderer backends
+-- h2. Renderer backends
 
 lib.GL32 = 1
 lib.GLES = 2
 lib.DEFAULT = lib.GL32
 
--- ## Constructor
+-- h2. Constructor
 
 function lib:set(def) 
   for k, v in pairs(def) do 
@@ -30,6 +31,10 @@ function lib:set(def)
   end
 end
 
+-- Returns a new renderer. Initialization keys:
+-- @backend@, the renderer backend (defaults to @GL32@)
+-- @size@, the viewport size
+-- @log_fun@, the renderer logging function (defaults to @print@)
 function lib.new(def)
   local self = 
     {  backend = lib.DEFAULT,   -- Backend selection
@@ -47,9 +52,8 @@ end
 function lib:setBackend()
     if self.backend == lib.GL32 then self.r = four.RendererGL32(self)
     elseif self.backend == lib.GLES then
-      error ("GLES Renderer unimplemented") 
+      error ("GLES backend renderer unimplemented") 
     end
-  
 end
 
 -- Backend initialization
@@ -88,22 +92,17 @@ end
 
 -- ## Render function
 
-function lib:isRenderable(o, cam)
-  local visible = o.visible == nil or o.visible 
+function lib:isRenderable(cam, o)
   local effect = cam.effect_override or o.effect or cam.effect_default
-  return visible and o.geometry and effect
+  return o.geometry and effect
 end
 
--- TODO remove space, remove visible, swap arguments
-function lib:render(space, cam)
+function lib:render(cam, objs)
   self:_init ()
-
-  for _, o in ipairs(space:objs()) do  
-    if self:isRenderable(o, cam) and not space.cull(o, cam) and not cam.cull(o)
-    then
-      self.r:renderQueueAdd(o, cam)
+  for _, o in ipairs(objs) do  
+    if self:isRenderable(cam, o) and not cam.cull(o) then
+      self.r:renderQueueAdd(cam, o)
     end
   end
-
   self.r:renderQueueFlush(cam)
 end

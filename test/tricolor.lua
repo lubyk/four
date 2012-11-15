@@ -1,6 +1,6 @@
 require 'lubyk'
 
--- Draws a tri-colored triangle
+-- Draws a tri-colored triangle.
 
 local V2 = four.V2
 local Effect = four.Effect 
@@ -25,7 +25,7 @@ function triangle () -- A triangle inside clip space
 
   return four.Geometry { primitive = four.Geometry.TRIANGLE, 
                          indices = is, data = {cs, vs},
-                         semantics = { vertex = 2,  color2 = 1} }
+                         semantics = { vertex = 2,  color = 1} }
 end
 
 local effect = Effect
@@ -52,7 +52,6 @@ local effect = Effect
 
 local obj = { geometry = triangle (), effect = effect }
 local camera = four.Camera {}
-local space = four.Space { objs = {obj} } 
 
 -- Render
 
@@ -60,7 +59,7 @@ local w, h = 600, 400
 local renderer = four.Renderer { size = V2(w, h) }
 local win = mimas.GLWindow ()
 function win:resizeGL(w, h) renderer.size = V2(w, h) end
-function win:paintGL() renderer:render(space, camera) end
+function win:paintGL() renderer:render(camera, {obj}) end
 function win:initializeGL() renderer:logInfo() end  
 
 -- Mimas TODO above initializer doesn't seem to work.

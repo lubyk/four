@@ -321,7 +321,7 @@ function lib:initFramebuffer(cam)
   gl.lo.glClear(cbits)
 end
 
--- Generic renderer implementation
+-- Renderer interface implementation
 
 function lib:init()
   self:getGlInfo()
@@ -332,9 +332,9 @@ end
 
 function lib:getInfo() return self.info end
 function lib:getCaps() return self.caps end
-function lib:getLimits() return self.caps end
+function lib:getLimits() return self.limits end
 
-function lib:renderQueueAdd(o, cam)
+function lib:renderQueueAdd(cam, o)
   self:geometryAllocate(o.geometry)
 
   local effect = cam.effect_override or o.effect or cam.effect_default
