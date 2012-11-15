@@ -24,8 +24,7 @@ function triangle () -- A triangle inside clip space
   is:push3D(0, 1, 2)         
 
   return four.Geometry { primitive = four.Geometry.TRIANGLE, 
-                         indices = is, data = {cs, vs},
-                         semantics = { vertex = 2,  color = 1} }
+                         index = is, data = { vertex = vs, color = cs}}
 end
 
 local effect = Effect
@@ -34,19 +33,19 @@ local effect = Effect
     [[
        in vec3 vertex;
        in vec4 color;
-       out vec4 c;
+       out vec4 interpolated_color;
        void main()
        {
          gl_Position = vec4(vertex, 1.0);
-         c = color;
+         interpolated_color = color;
        }
     ]],
   
   fragment_shader = 
     [[
-       in vec4 c;
+       in vec4 interpolated_color;
        out vec4 color;
-       void main() { color = c; }
+       void main() { color = interpolated_color; }
     ]]
 }
 

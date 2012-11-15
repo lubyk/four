@@ -22,8 +22,7 @@ function fullscreen() -- Two triangles
   is:push3D(2, 1, 3)         
 
   return four.Geometry { primitive = four.Geometry.TRIANGLE, 
-                         indices = is, data = {vs},
-                         semantics = { vertex = 1 } }
+                         index = is, data = {vertex = vs} }
 end
 
 local effect = Effect
@@ -112,4 +111,5 @@ win:showFullScreen(true)
 local step = 1/60
 timer = lk.Timer(step * 1000, function() time = time + 0.05 win:update() end)
 timer:start()
+
 run ()

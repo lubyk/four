@@ -1,8 +1,9 @@
 --[[--
   h1. four.Geometry
 
-  A geometry object is the atomic geometrical rendering unit.  It
-  defines a stream of vertex data for the vertex shader.
+  A geometry object is the atomic geometrical rendering unit. It
+  defines the stream of vertex data for the vertex shader and the
+  stream of primitives for the geometry shader.
 --]]--
 
 -- Module definition
@@ -16,7 +17,7 @@ local Buffer = four.Buffer
 local V3 = four.V3
 
 -- h2. Primitive constants
--- Defines how the vertex stream is interpreted.
+-- Defines how the vertex stream is interpreted
 
 lib.POINTS = 1
 lib.LINE_STRIP = 2
@@ -32,88 +33,69 @@ lib.TRIANGLES_ADJACENCY = 11
 
 -- h2. Constructor
 
-local next_id = 0
-
-function lib:set(def) for k, v in pairs(def) do self[k] = v end end
+-- @Geometry(def)@ is a new geometry object. @def@ keys:
+-- * @primitive@, the geometrical primitive (defaults to @Geometry.TRIANGLES@).
+-- * @data@, table of named @Buffer@s all of the same size defining per vertex
+--   data. Table key names are used to bind to the corresponding vertex shader 
+--   inputs.
+-- * @index@, @Buffer@ of ints (any dim), indexing into @data@ to define the 
+--   actual sequence of primitives. *WARNING* indices are zero-based.
+-- * @immutable@, if @true@, @data@ and @index@ are disposed after 
+--   the first render.
 function lib.new(def)
   local self = 
-    {  id = next_id,
-       name = "",
-
-       -- Vertex stream definition.
-       -- Per vertex data is stored in the `data` field. The `indices`
-       -- define the actual stream of vertex data by indexing into `data`.
-       -- `primitive` defines how the stream should be interpreted.
-       primitive = lib.TRIANGLES,
-       indices = {}, -- Buffer of ints (any dim), indexing into data.
-                     -- WARNING/TODO zero-based we cannot do anything here 
-                     -- (or not)
-       data = {}, -- Array of Buffers, all of the same size, defining
-                  -- per vertex data.    
-       semantics = {  -- Indexes into data, anything can be defined here.
-         vertex = 1,
-         normal = nil, 
-         color = nil,
-         uvs = {},
-       },
-       bound_radius = nil,       
-
-       immutable = true, -- Geometry is immutable, the renderer will call 
-                         -- self:disposeBuffers(), once it has the data.
-       dirty = false, -- Geometry is mutable and was touched. The renderer
+    { primitive = lib.TRIANGLES,
+      data = {},
+      index = {},
+      name = "",
+      bound_radius = nil,
+      immutable = true,
+      dirty = false } -- Geometry is mutable and was touched. The renderer
                       -- sets this to false once it got the new data.
+    setmetatable(self, lib)
+    if def then self:set(def) end
+    return self
+end
 
-       -- TODO keep that in sync with indices, we need it after it 
-       -- was disposed
-       _indices_count = 0,
-       _indices_scalar_type = Buffer.UNSIGNED_INT,
-
-    }
-  next_id = next_id + 1
-  setmetatable(self, lib)
-  if def then self:set(def) end
-  return self
+function lib:set(def) for k, v in pairs(def) do self[k] = v end 
+  if def.primitive then self.primitive = def.primitive end
+  if def.data then self.data = def.data end  
+  if def.index then self.index = def.index end
+  if def.immutable then self.immutable = def.immutable end
 end
 
 -- h2. Geometry operations
 
--- Disposes the geometry's indices and vertex data.
+-- @disposeBuffers()@ sets @self.index@ to @nil@ and @self.data@ to 
+-- @{}@. The renderer calls this function if @self.immutable@ is @true@.
 function lib:disposeBuffers() 
-  -- TODO introduce a real accessor for indices don't do that here
-  self._indices_count = self.indices:length ()
-  self._indices_scalar_type = self.indices.scalar_type
-  self.indices = nil 
   self.data = {}
+  self.index = nil
 end
 
--- Computes the radius of the bounding sphere containing all the vertex data. 
--- If self.semantics.vertices is nil the radius is zero.
+-- @computeBoundsRadius()@ computes the radius of the bounding sphere 
+-- containing all the 3D points of @self.data.vertex@ and stores it in 
+-- @self.bound_radius@. If @data.vertex@ is @nil@ the radius is zero.
 function lib:computeBoundRadius ()
-  -- self.data.vertices 
-  local vindex = self.semantics.vertices 
-  if (not vindex) then self.bound_radius = nil return end
-
-  local function maxNorm2 (max, x, y, z)
-    local norm2 = x * x + y * y + z * z
-    if norm2 > max then return norm2 else return max end
+  local verts = self.data.vertex
+  if not verts then self.bound_radius = 0 else
+    local function maxNorm2 (max, x, y, z)
+      local norm2 = x * x + y * y + z * z
+      if norm2 > max then return norm2 else return max end
+    end
+    self.bound_radius = math.sqrt(verts:fold3(maxNorm2, 0))
   end
-  
-  self.bound_radius = math.sqrt(self.data[vindex]:fold3(maxNorm2, 0))
 end
 
--- Computes vertex normals for TRIANGLE primitive
+-- @computeVertexNormals()@ computes per vertex normals for all 
+-- the 3D points of @data.vertex@ and stores them in @self.data.normal@.
+-- *WARNING* works only with @Geometry.TRIANGLE@ primitive.
 function lib:computeVertexNormals () error ("TODO") end
-
-function lib:indicesCount() return self._indices_count end
-function lib:indicesScalarType() return self._indices_scalar_type end
 
 -- h2. Predefined geometries
 
-
--- TODO Cube
-
--- Cuboid(V3(w, h, d)) is a cuboid centered on the origin with the given
--- extents. 
+-- @Cuboid(V3(w, h, d))@ is a cuboid centered on the origin with the given
+-- extents.
 function lib.Cuboid(extents)
   
   local x, y, z = V3.tuple(0.5 * extents)
@@ -145,7 +127,9 @@ function lib.Cuboid(extents)
   is:push3D(4, 7, 6)
 
   return lib.new ({ primitive = lib.TRIANGLES, 
-                    indices = is, data = { vs },
-                    semantics = { vertex = 1 },
+                    data = { vertex = {vs} }, index = is, 
                     extents = extents })
 end
+
+-- @Cube(s)@ is a cube with side length @s@ centered on the origin.
+function lib.Cube(s) return Cuboid(V3(s, s, s)) end

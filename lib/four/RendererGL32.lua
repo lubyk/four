@@ -1,8 +1,8 @@
 --[[--
-  # four.RendererGL32
-  OpenGL 3.2 / GLSL 1.5 core renderer.
+  h1. four.RendererGL32
+  OpenGL 3.2 / GLSL 1.5 core renderer backend.
   
-  NOTE. Do not use directly use via Renderer.lua.
+  *NOTE* Do not use directly, use via @Renderer@.
 --]]--
 
 -- Module definition 
@@ -14,14 +14,15 @@ setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end })
 
 local ffi = require 'ffi'
 local gl = four.gl
--- local lo = four.gl.lo
+local lo = four.gl.lo
 local Buffer = four.Buffer
 local Effect = four.Effect
 local V2 = four.V2
 local V4 = four.V4
 
--- Constructor
+-- h2. Constructor
 
+-- @RendererGL32(super)@ is a new GL32 renderer, @super@ is a @Renderer@ object.
 function lib.new(super)
   local self = 
     {  super = super,
@@ -32,50 +33,59 @@ function lib.new(super)
        caps = {},
        
        -- GL state internal to the renderer
-       geometries = {}, -- Maps Geometry.id to the following table
+       geometries = {}, -- Weakly maps Geometry object to the following table
                         -- { vao = id     -- the vertex array buffer id
                         --   bufs = ids } -- array of buffer objects id 
-       effects = {},    -- Maps Effects.ids to their shader program id
+       effects = {},    -- Weakly maps Effects to their shader program id
        queue = {}       -- Maps gl programs ids to lists of renderables
     }
+    setmetatable(self.geometries, { __mode = "k" })
+    setmetatable(self.effects, { __mode = "k"})
     setmetatable(self, lib)
     return self
 end
 
-local typeGLenum = -- Warning keep in sync with Buffer.scalar_type values
-  { gl.lo.GL_FLOAT,
-    gl.lo.GL_DOUBLE,
-    gl.lo.GL_INT,
-    gl.lo.GL_UNSIGNED_INT }
+local typeGLenum = -- TODO remove keep in sync with Buffer.scalar_type values
+  { lo.GL_FLOAT,
+    lo.GL_DOUBLE,
+    lo.GL_INT,
+    lo.GL_UNSIGNED_INT }
 
-local modeGLenum = -- Warning keep in sync with Geometry.primitive values
-{ gl.lo.GL_POINTS,
-  gl.lo.GL_LINE_STRIP,
-  gl.lo.GL_LINE_LOOP,
-  gl.lo.GL_LINES,
-  gl.lo.GL_LINE_STRIP_ADJACENCY,
-  gl.lo.GL_LINES_ADJACENCY,
-  gl.lo.GL_TRIANGLE_STRIP,
-  gl.lo.GL_TRIANGLE_FAN,
-  gl.lo.GL_TRIANGLES,
-  gl.lo.GL_TRIANGLE_STRIP_ADJACENCY,
-  gl.lo.GL_TRIANGLES_ADJACENCY,
---  gl.lo.GL_PATCHES 
+local modeGLenum = -- TODO remove keep in sync with Geometry.primitive values
+{ lo.GL_POINTS,
+  lo.GL_LINE_STRIP,
+  lo.GL_LINE_LOOP,
+  lo.GL_LINES,
+  lo.GL_LINE_STRIP_ADJACENCY,
+  lo.GL_LINES_ADJACENCY,
+  lo.GL_TRIANGLE_STRIP,
+  lo.GL_TRIANGLE_FAN,
+  lo.GL_TRIANGLES,
+  lo.GL_TRIANGLE_STRIP_ADJACENCY,
+  lo.GL_TRIANGLES_ADJACENCY,
+--  lo.GL_PATCHES 
 }
 
-local function err_max_vertex_attribs(g)
-  return string.format("Geometry %d: too much data per vertex for renderer",
-                       g.id)
+function lib:err_max_vertex_attribs(g)
+  local n = g.name or "" 
+  return string.format("Geometry %s: too much data per vertex (max is %d)",
+                       n, self.limits.max_vertex_attribs)
+end
+
+function lib:warn_unused_geom_attrib(g, att)
+  local n = g.name or ""
+  return string.format("Geometry %s: `%s` per vertex data unused by shader",
+                       n, att)
 end
 
 local function err_gl(e)
-  if e == gl.lo.GL_NO_ERROR then return "no error" 
-  elseif e == gl.lo.GL_INVALID_ENUM then return "invalid enum"
-  elseif e == gl.lo.GL_INVALID_VALUE then return "invalid value"
-  elseif e == gl.lo.GL_INVALID_OPERATION then return "invalid operation"
-  elseif e == gl.lo.GL_INVALID_FRAMEBUFFER_OPERATION then 
+  if e == lo.GL_NO_ERROR then return "no error" 
+  elseif e == lo.GL_INVALID_ENUM then return "invalid enum"
+  elseif e == lo.GL_INVALID_VALUE then return "invalid value"
+  elseif e == lo.GL_INVALID_OPERATION then return "invalid operation"
+  elseif e == lo.GL_INVALID_FRAMEBUFFER_OPERATION then 
     return "invalid framebuffer operation"
-  elseif e == gl.lo.GL_OUT_OF_MEMORY then 
+  elseif e == lo.GL_OUT_OF_MEMORY then 
     return "out of memory"
   else
     return string.format("unknown error %d", e)
@@ -85,38 +95,38 @@ end
 function lib:log(s) self.super:log(s) end
 function lib:dlog(s) if self.super.debug then self.super:log(s) end end
 function lib:logGlError()
-  local e = gl.lo.glGetError ()
-  if e ~= gl.lo.GL_NO_ERROR then self:log("GL error: " .. err_gl(e)) end
+  local e = lo.glGetError ()
+  if e ~= lo.GL_NO_ERROR then self:log("GL error: " .. err_gl(e)) end
 end
 
 function lib:initGlState()  
-  gl.lo.glDepthFunc(gl.lo.GL_LEQUAL)
-  gl.lo.glEnable(gl.lo.GL_DEPTH_TEST)
+  lo.glDepthFunc(lo.GL_LEQUAL)
+  lo.glEnable(lo.GL_DEPTH_TEST)
 
 --  lk.log("TODO enable backface culling")
---  gl.lo.glFrontFace(gl.lo.GL_CCW)
---  gl.lo.glCullFace (gl.lo.GL_BACK)
---  gl.lo.glEnable(gl.lo.GL_CULL_FACE)
+--  lo.glFrontFace(lo.GL_CCW)
+--  lo.glCullFace (lo.GL_BACK)
+--  lo.glEnable(lo.GL_CULL_FACE)
   
-  gl.lo.glBlendEquation(gl.lo.GL_FUNC_ADD)
-  gl.lo.glBlendFunc(gl.lo.GL_SRC_ALPHA, gl.lo.GL_ONE_MINUS_SRC_ALPHA)
-  gl.lo.glEnable(gl.lo.GL_BLEND)
+  lo.glBlendEquation(lo.GL_FUNC_ADD)
+  lo.glBlendFunc(lo.GL_SRC_ALPHA, lo.GL_ONE_MINUS_SRC_ALPHA)
+  lo.glEnable(lo.GL_BLEND)
 end
 
 function lib:getGlInfo()
   local get = gl.hi.glGetString
-  self.info.vendor = get(gl.lo.GL_VENDOR)
-  self.info.renderer = get(gl.lo.GL_RENDERER)
-  self.info.version = get(gl.lo.GL_VERSION)
-  self.info.shading_language_version = get(gl.lo.GL_SHADING_LANGUAGE_VERSION)
+  self.info.vendor = get(lo.GL_VENDOR)
+  self.info.renderer = get(lo.GL_RENDERER)
+  self.info.version = get(lo.GL_VERSION)
+  self.info.shading_language_version = get(lo.GL_SHADING_LANGUAGE_VERSION)
   -- TODO segfaults 
-  -- self._info.extensions = gl.hi.glGetString(gl.lo.GL_EXTENSIONS)
+  -- self._info.extensions = gl.hi.glGetString(lo.GL_EXTENSIONS)
 end
 
 function lib:getGlCaps() self.caps = {} end
 function lib:getGlLimits()
   local geti = gl.hi.glGetIntegerv
-  self.limits.max_vertex_attribs = geti(gl.lo.GL_MAX_VERTEX_ATTRIBS)
+  self.limits.max_vertex_attribs = geti(lo.GL_MAX_VERTEX_ATTRIBS)
 end
 
 function lib:bufferDataParams(buffer)
@@ -137,72 +147,93 @@ function lib:bufferDataParams(buffer)
   else assert(false) end
 end
 
-function lib:geometryAllocate(geom)
-  local state = self.geometries[geom.id]
-  if state and (geom.immutable or not geom.dirty) then return end
-  if state then self:geometryDispose(state) end
+function lib:geometryStateAllocate(g)
+  local function releaseState(state)
+    gl.hi.glDeleteVertexArray(state.vao)
+    gl.hi.glDeleteBuffer(state.index) -- index buffer
+    for _, id in pairs(state.data) do gl.hi.glDeleteBuffer(id) end
+  end
 
-  state = { bufs = {}}
+  local state = self.geometries[g]
+  if state and (g.immutable or not g.dirty) then return end
+
+  state = { index_length = g.index:length (),
+            index_scalar_type = typeGLenum[g.index.scalar_type],
+            index = nil,    -- g.index buffer object id
+            data = {},      -- maps g.data keys to buffer object ids
+            data_loc = {}}  -- maps g.data keys to binding index
 
   -- Allocate and bind vertex array object
   state.vao = gl.hi.glGenVertexArray ()
-  gl.lo.glBindVertexArray(state.vao)
+  lo.glBindVertexArray(state.vao)
 
   -- Allocate and bind index buffer
-  local ints, gltype, bytes, data = self:bufferDataParams(geom.indices)
-  state.bufs[0] = gl.hi.glGenBuffer()
-  gl.lo.glBindBuffer(gl.lo.GL_ELEMENT_ARRAY_BUFFER, state.bufs[0])
-  gl.lo.glBufferData(gl.lo.GL_ELEMENT_ARRAY_BUFFER, bytes, data, 
-                     gl.lo.GL_STATIC_DRAW)
-  
-  -- For each vertex data in geom's buffers
-  for i, buffer in ipairs(geom.data) do
-    if i > self.limits.max_vertex_attribs then 
-      self:dlog(err_max_vertex_attribs(g))
+  local ints, gltype, bytes, data = self:bufferDataParams(g.index)
+  state.index = gl.hi.glGenBuffer()
+  lo.glBindBuffer(lo.GL_ELEMENT_ARRAY_BUFFER, state.index)
+  lo.glBufferData(lo.GL_ELEMENT_ARRAY_BUFFER, bytes, data,
+                  lo.GL_STATIC_DRAW)
+  assert(lo.glGetError() == 0)  
+  -- For each vertex data in g's buffers
+  local i = 0
+  for k, buffer in pairs(g.data) do
+    if i == self.limits.max_vertex_attribs then 
+      self:dlog(self:err_max_vertex_attribs(g))
       break
     end
 
     ints, gltype, bytes, data = self:bufferDataParams(buffer)
     
     -- Allocate and bind vertex buffer
-    state.bufs[i] = gl.hi.glGenBuffer()
-    gl.lo.glBindBuffer(gl.lo.GL_ARRAY_BUFFER, state.bufs[i])
-    gl.lo.glBufferData(gl.lo.GL_ARRAY_BUFFER, bytes, data, gl.lo.GL_STATIC_DRAW)
+    local buf_id = gl.hi.glGenBuffer()
+    state.data[k] = buf_id
+    state.data_loc[k] = i
+    lo.glBindBuffer(lo.GL_ARRAY_BUFFER, buf_id)
+    lo.glBufferData(lo.GL_ARRAY_BUFFER, bytes, data, lo.GL_STATIC_DRAW)
 
     -- Set as vertex array
-    gl.lo.glEnableVertexAttribArray(i - 1)
-    if ints then 
-      gl.lo.glVertexAttribIPointer(i - 1, buffer.dim, gltype, 0, nil)
+    lo.glEnableVertexAttribArray(i)
+    if ints then
+      lo.glVertexAttribIPointer(i, buffer.dim, gltype, 0, nil)
     else
-      gl.lo.glVertexAttribPointer(i - 1, buffer.dim, gltype, 
-                                  buffer.normalize,
-                                  0, nil)
+      lo.glVertexAttribPointer(i, buffer.dim, gltype, buffer.normalize, 0, nil)
     end
+    i = i + 1
   end
 
   -- Important, unbind *first* the vao and then the buffers
-  gl.lo.glBindBuffer(gl.lo.GL_ARRAY_BUFFER, 0)
-  gl.lo.glBindVertexArray(0);
-  gl.lo.glBindBuffer(gl.lo.GL_ELEMENT_ARRAY_BUFFER, 0)
+  lo.glBindBuffer(lo.GL_ARRAY_BUFFER, 0)
+  lo.glBindVertexArray(0);
+  lo.glBindBuffer(lo.GL_ELEMENT_ARRAY_BUFFER, 0)
 
-  self.geometries[geom.id] = state
-  if (geom.immutable) then geom:disposeBuffers() end
-  geom.dirty = false
-  -- TODO geom's finalizer should call _glGeometryDispose
+  setmetatable(state, { __gc = releaseState })
+  self.geometries[g] = state
+  if (g.immutable) then g:disposeBuffers() end
+  g.dirty = false
 end 
 
-function lib:geometryDispose(state)
-  gl.hi.glDeleteVertexArray(state.vao)
-  gl.hi.glDeleteBuffer(state.bufs[0]) -- index buffer
-  for _, id in ipairs(state.bufs) do gl.hi.glDeleteBuffer(state.id) end
-  state = { bufs = {}}
+function lib:geometryStateBind(pid, gstate)
+  assert(lo.glGetError() == 0)  
+  lo.glBindVertexArray(gstate.vao)
+  for attr, loc in pairs(gstate.data_loc) do
+    lo.glBindAttribLocation(pid, loc, attr)
+  end
+  assert(lo.glGetError() == 0)  
+
+  -- TODO for now we need to relink the shader due to 
+  -- attrib binding we could try to see if in the same
+  -- layout holds for successive objects    
+  self:linkProgram(pid)
+  lo.glUseProgram(pid)
+  assert(lo.glGetError() == 0)  
 end
 
+
 function lib:compileShader(src, type)
-  local s = gl.lo.glCreateShader(type)
+  local s = lo.glCreateShader(type)
   gl.hi.glShaderSource(s, src)
-  gl.lo.glCompileShader(s)
-  if gl.hi.glGetShaderiv(s, gl.lo.GL_COMPILE_STATUS) == 0 or self.super.debug 
+  lo.glCompileShader(s)
+  if gl.hi.glGetShaderiv(s, lo.GL_COMPILE_STATUS) == 0 or self.super.debug 
   then
     local msg = gl.hi.glGetShaderInfoLog(s)
     if msg ~= "" then self:log(msg) end
@@ -211,61 +242,62 @@ function lib:compileShader(src, type)
 end
 
 function lib:linkProgram(pid)
-  gl.lo.glLinkProgram(pid)
-  if gl.hi.glGetProgramiv(pid, gl.lo.GL_LINK_STATUS) == 0 or self.super.debug 
+  lo.glLinkProgram(pid)
+  if gl.hi.glGetProgramiv(pid, lo.GL_LINK_STATUS) == 0 or self.super.debug 
   then
     local msg = gl.hi.glGetProgramInfoLog(pid)
     if msg ~= "" then self:log(msg) end
   end
 end
 
+
 function lib:effectBindUniforms(pid, effect)
   for k, u in pairs(effect.uniforms) do 
     local v = u.v
-    local loc = gl.lo.glGetUniformLocation(pid, k)
+    local loc = lo.glGetUniformLocation(pid, k)
     if u.dim == 1 then
       if u.typ == Effect.ft or u.typ == Effect.bt then 
 --        lk.log(v[1])
-        gl.lo.glUniform1f(loc, v[1])
+        lo.glUniform1f(loc, v[1])
       elseif u.typ == Effect.it then 
-        gl.lo.glUniform1i(loc, v[1])
+        lo.glUniform1i(loc, v[1])
       elseif u.typ == Effect.ut then 
-        gl.lo.glUniform1ui(loc, v[1])
+        lo.glUniform1ui(loc, v[1])
       else assert(false) end
     elseif u.dim == 2 then
       if u.typ == Effect.ft or u.typ == Effect.bt then 
 --        lk.log("RES", v[1], v[2])
-        gl.lo.glUniform2f(loc, v[1], v[2])
+        lo.glUniform2f(loc, v[1], v[2])
       elseif u.typ == Effect.it then 
-        gl.lo.glUniform2i(loc, v[1], v[2])
+        lo.glUniform2i(loc, v[1], v[2])
       elseif u.typ == Effect.ut then 
-        gl.lo.glUniform2ui(loc, v[1], v[2])
+        lo.glUniform2ui(loc, v[1], v[2])
       else assert(false) end
     elseif u.dim == 3 then
       if u.typ == Effect.ft or u.typ == Effect.bt then 
-        gl.lo.glUniform3f(loc, v[1], v[2], v[3])
+        lo.glUniform3f(loc, v[1], v[2], v[3])
       elseif u.typ == Effect.it then 
-        gl.lo.glUniform3i(loc, v[1], v[2], v[3])
+        lo.glUniform3i(loc, v[1], v[2], v[3])
       elseif u.typ == Effect.ut then 
-        gl.lo.glUniform3ui(loc, v[1], v[2], v[3])
+        lo.glUniform3ui(loc, v[1], v[2], v[3])
       else assert(false) end
     elseif u.dim == 4 then
       if u.typ == Effect.ft or u.typ == Effect.bt then 
-        gl.lo.glUniform4f(loc, v[1], v[2], v[3], v[4])
+        lo.glUniform4f(loc, v[1], v[2], v[3], v[4])
       elseif u.typ == Effect.it then 
-        gl.lo.glUniform4i(loc, v[1], v[2], v[3], v[4])
+        lo.glUniform4i(loc, v[1], v[2], v[3], v[4])
       elseif u.typ == Effect.ut then 
-        gl.lo.glUniform4ui(loc, v[1], v[2], v[3], v[4])
+        lo.glUniform4ui(loc, v[1], v[2], v[3], v[4])
       else assert(false) end
     elseif u.dim == 16 then
       local m = ffi.new("GLfloat[?]", 16, v)
-      gl.lo.glUniformMatrix4fv(loc, 16, false, m)
+      lo.glUniformMatrix4fv(loc, 16, false, m)
     else assert(false)
     end
   end
 end
 
-function lib:effectAllocate(effect)
+function lib:effectStateAllocate(effect)
   local pid = self.effects[effect.id]
   if pid then return pid end
 
@@ -273,28 +305,28 @@ function lib:effectAllocate(effect)
   local gsrc = effect:geometryShader()
   local fsrc = effect:fragmentShader()
 
-  local vid = self:compileShader(vsrc, gl.lo.GL_VERTEX_SHADER)
-  local gid = gsrc and self:compileShader(gsrc, gl.lo.GL_GEOMETRY_SHADER)
-  local fid = self:compileShader(fsrc, gl.lo.GL_FRAGMENT_SHADER)
+  local vid = self:compileShader(vsrc, lo.GL_VERTEX_SHADER)
+  local gid = gsrc and self:compileShader(gsrc, lo.GL_GEOMETRY_SHADER)
+  local fid = self:compileShader(fsrc, lo.GL_FRAGMENT_SHADER)
 
-  pid = gl.lo.glCreateProgram()
-  gl.lo.glAttachShader(pid, vid); gl.lo.glDeleteShader(vid)
-  if gs then gl.lo.glAttachShader(p, gs); gl.lo.glDeleteShader(gid) end
-  gl.lo.glAttachShader(pid, fid); gl.lo.glDeleteShader(fid)
+  pid = lo.glCreateProgram() -- TODO error handling
+  lo.glAttachShader(pid, vid); lo.glDeleteShader(vid)
+  if gs then lo.glAttachShader(p, gs); lo.glDeleteShader(gid) end
+  lo.glAttachShader(pid, fid); lo.glDeleteShader(fid)
   self:linkProgram(pid)
   self.effects[effect.id] = pid
   -- TODO Effect's finalizer should dispose program
   return pid 
 end
 
-function lib:effectDispose(pid) gl.lo.glDeleteProgram(pid) end
+function lib:effectDispose(pid) lo.glDeleteProgram(pid) end
 
 function lib:initFramebuffer(cam)
   -- Setup viewport 
   local wsize = self.super.size 
   local x, y = V2.tuple(V2.mul(cam.viewport.origin, wsize))
   local w, h = V2.tuple(V2.mul(cam.viewport.size, wsize))
-  gl.lo.glViewport(x, y, w, h) 
+  lo.glViewport(x, y, w, h) 
 
   -- Clear buffers 
   local cbits = 0 
@@ -304,21 +336,21 @@ function lib:initFramebuffer(cam)
 
   if color then 
     local r, g, b, a = V4.tuple(color)
-    gl.lo.glClearColor(r, g, b, a)
-    cbits = cbits + gl.lo.GL_COLOR_BUFFER_BIT 
+    lo.glClearColor(r, g, b, a)
+    cbits = cbits + lo.GL_COLOR_BUFFER_BIT 
   end
 
   if depth then
-    gl.lo.glClearDepth(depth)
-    cbits = cbits + gl.lo.GL_DEPTH_BUFFER_BIT
+    lo.glClearDepth(depth)
+    cbits = cbits + lo.GL_DEPTH_BUFFER_BIT
   end
 
   if stencil then 
-    gl.lo.glClearStencil(stencil)
-    cbits = cbits + gl.lo.GL_STENCIL_BUFFER_BIT
+    lo.glClearStencil(stencil)
+    cbits = cbits + lo.GL_STENCIL_BUFFER_BIT
   end
   
-  gl.lo.glClear(cbits)
+  lo.glClear(cbits)
 end
 
 -- Renderer interface implementation
@@ -335,37 +367,32 @@ function lib:getCaps() return self.caps end
 function lib:getLimits() return self.limits end
 
 function lib:renderQueueAdd(cam, o)
-  self:geometryAllocate(o.geometry)
-
+  self:geometryStateAllocate(o.geometry)
   local effect = cam.effect_override or o.effect or cam.effect_default
-  local pid = self:effectAllocate(o.effect)        
+  local pid = self:effectStateAllocate(o.effect)        
   if pid then
     self.queue[pid] = self.queue[pid] or {} 
     table.insert(self.queue[pid], o)          
   end
 end
 
+
 function lib:renderQueueFlush(cam)
   self:initFramebuffer(cam)
   for pid, batch in pairs(self.queue) do
+    lo.glUseProgram(pid)
     for _, o in ipairs(batch) do
-      local geom = o.geometry
+      local g = o.geometry
+      local gstate = self.geometries[g]
       local effect = o.effect or cam.effect_default
-      local vao = self.geometries[geom.id].vao
-      gl.lo.glBindVertexArray(vao)
-      for attr, i in pairs(o.geometry.semantics) do
-        gl.lo.glBindAttribLocation(pid, i - 1, attr)
-      end
-      -- TODO for now we need to relink the shader due to 
-      -- attrib binding we could try to see if in the same
-      -- layout holds for successive objects    
-      self:linkProgram(pid)
-      gl.lo.glUseProgram(pid)
+
+      self:geometryStateBind(pid, gstate)
       self:effectBindUniforms(pid, effect)
-      
-      gl.lo.glDrawElements(modeGLenum[geom.primitive], geom:indicesCount(),
-                           typeGLenum[geom:indicesScalarType()], nil)
-      gl.lo.glBindVertexArray(0)
+      assert(lo.glGetError() == 0)  
+      lo.glDrawElements(modeGLenum[g.primitive], gstate.index_length, 
+                           gstate.index_scalar_type, nil)
+      assert(lo.glGetError() == 0)  
+      lo.glBindVertexArray(0)
     end
   end
 

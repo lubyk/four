@@ -1,13 +1,12 @@
 --[[--
   h1. four.Renderer
 
-  Renders renderables object from a camera viewpoint.
+  Renders renderables object with a camera.
 --]]--
 
 -- Module definition
 
 local ffi = require 'ffi'
-local gl = four.gl
 local lib = { type = 'four.Renderer' }
 lib.__index = lib
 four.Renderer = lib
@@ -25,31 +24,31 @@ lib.DEFAULT = lib.GL32
 
 -- h2. Constructor
 
-function lib:set(def) 
-  for k, v in pairs(def) do 
-    if k ~= "r" and k ~= "initialized" then self[k] = v end
-  end
-end
-
--- Returns a new renderer. Initialization keys:
--- @backend@, the renderer backend (defaults to @GL32@)
--- @size@, the viewport size
--- @log_fun@, the renderer logging function (defaults to @print@)
+-- @Renderer(def)@ is a new renderer. @def@ may define these keys:
+-- * @backend@, the renderer backend (defaults to @GL32@).
+-- * @size@, a @V2@ defining the viewport size.
+-- * @log_fun@, the renderer logging function (defaults to @print@).
 function lib.new(def)
   local self = 
-    {  backend = lib.DEFAULT,   -- Backend selection
-       size = V2(600, 400),     -- Viewport size
+    {  backend = lib.DEFAULT,   
+       size = V2(600, 400),     
+       log_fun = print,         
        debug = true,            -- More logging/diagnostics
-       log_fun = print,         -- Custom renderer log function
        r = nil,                 -- Backend renderer object (private)
        initialized = false }    -- true when backend was initalized
     setmetatable(self, lib)
     if def then self:set(def) end
-    self:setBackend()
+    self:_setBackend()
     return self
 end
 
-function lib:setBackend()
+function lib:set(def) 
+  if def.backend then self.backend = def.backend end
+  if def.size then self.size = size end
+  if def.log_fun then self.log_fun = log_fun end
+end
+
+function lib:_setBackend()
     if self.backend == lib.GL32 then self.r = four.RendererGL32(self)
     elseif self.backend == lib.GLES then
       error ("GLES backend renderer unimplemented") 
@@ -90,13 +89,15 @@ function lib:logInfo(verbose)
   end
 end
 
--- ## Render function
+-- h2. Rendering objects 
 
+-- @renderable(cam, o)@ is @true@ if @o@ can be rendered with @cam@.
 function lib:isRenderable(cam, o)
   local effect = cam.effect_override or o.effect or cam.effect_default
   return o.geometry and effect
 end
 
+-- @render(cam, objs)@ renders the renderables in @objs@ with @cam@.
 function lib:render(cam, objs)
   self:_init ()
   for _, o in ipairs(objs) do  
