@@ -33,23 +33,27 @@ lib.TRIANGLES_ADJACENCY = 11
 
 -- h2. Constructor
 
--- @Geometry(def)@ is a new geometry object. @def@ keys:
--- * @primitive@, the geometrical primitive (defaults to @Geometry.TRIANGLES@).
--- * @data@, table of named @Buffer@s all of the same size defining per vertex
---   data. Table key names are used to bind to the corresponding vertex shader 
---   inputs.
--- * @index@, @Buffer@ of ints (any dim), indexing into @data@ to define the 
---   actual sequence of primitives. *WARNING* indices are zero-based.
--- * @immutable@, if @true@, @data@ and @index@ are disposed after 
---   the first render.
+--[[-- 
+  @Geometry(def)@ is a new geometry object. @def@ keys:
+  * @primitive@, the geometrical primitive (defaults to @Geometry.TRIANGLES@).
+  * @data@, table of named @Buffer@s all of the same size defining per vertex
+    data. Table key names are used to bind to the corresponding vertex shader 
+    inputs.
+  * @index@, @Buffer@ of ints (any dim), indexing into @data@ to define the 
+    actual sequence of primitives. *WARNING* indices are zero-based.
+  * @immutable@, if @true@, @data@ and @index@ are disposed after 
+    the first render (defaults to true).
+  * @name@, a user defined way of naming the geometry (may be used by
+    the renderer to report errors about the object).
+--]]--
 function lib.new(def)
   local self = 
     { primitive = lib.TRIANGLES,
       data = {},
       index = {},
+      immutable = true,
       name = "",
       bound_radius = nil,
-      immutable = true,
       dirty = false } -- Geometry is mutable and was touched. The renderer
                       -- sets this to false once it got the new data.
     setmetatable(self, lib)
@@ -57,7 +61,7 @@ function lib.new(def)
     return self
 end
 
-function lib:set(def) for k, v in pairs(def) do self[k] = v end 
+function lib:set(def)
   if def.primitive then self.primitive = def.primitive end
   if def.data then self.data = def.data end  
   if def.index then self.index = def.index end
@@ -73,9 +77,11 @@ function lib:disposeBuffers()
   self.index = nil
 end
 
--- @computeBoundsRadius()@ computes the radius of the bounding sphere 
--- containing all the 3D points of @self.data.vertex@ and stores it in 
--- @self.bound_radius@. If @data.vertex@ is @nil@ the radius is zero.
+--[[-- 
+  @computeBoundsRadius()@ computes the radius of the bounding sphere 
+  containing all the 3D points of @self.data.vertex@ and stores it in 
+  @self.bound_radius@. If @data.vertex@ is @nil@ the radius is zero.
+--]]--
 function lib:computeBoundRadius ()
   local verts = self.data.vertex
   if not verts then self.bound_radius = 0 else
@@ -87,15 +93,19 @@ function lib:computeBoundRadius ()
   end
 end
 
--- @computeVertexNormals()@ computes per vertex normals for all 
--- the 3D points of @data.vertex@ and stores them in @self.data.normal@.
--- *WARNING* works only with @Geometry.TRIANGLE@ primitive.
+--[[--
+  @computeVertexNormals()@ computes per vertex normals for all 
+  the 3D points of @self.data.vertex@ and stores them in @self.data.normal@.
+  *WARNING* works only with @Geometry.TRIANGLE@ primitive.
+--]]--
 function lib:computeVertexNormals () error ("TODO") end
 
 -- h2. Predefined geometries
 
--- @Cuboid(V3(w, h, d))@ is a cuboid centered on the origin with the given
--- extents.
+--[[--
+  @Cuboid(V3(w, h, d))@ is a cuboid centered on the origin with the given
+  extents.
+--]]--
 function lib.Cuboid(extents)
   
   local x, y, z = V3.tuple(0.5 * extents)
@@ -126,7 +136,7 @@ function lib.Cuboid(extents)
   is:push3D(4, 5, 7)
   is:push3D(4, 7, 6)
 
-  return lib.new ({ primitive = lib.TRIANGLES, 
+  return lib.new ({ name = "four.cuboid", primitive = lib.TRIANGLES, 
                     data = { vertex = {vs} }, index = is, 
                     extents = extents })
 end

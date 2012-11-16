@@ -24,15 +24,20 @@ lib.DEFAULT = lib.GL32
 
 -- h2. Constructor
 
--- @Renderer(def)@ is a new renderer. @def@ may define these keys:
--- * @backend@, the renderer backend (defaults to @GL32@).
--- * @size@, a @V2@ defining the viewport size.
--- * @log_fun@, the renderer logging function (defaults to @print@).
+--[[--
+  @Renderer(def)@ is a new renderer. @def@ keys:
+  * @backend@, the renderer backend (defaults to @GL32@).
+  * @size@, a @V2@ defining the viewport size (defaults to V2(480,270).
+  * @log_fun@, the renderer logging function (defaults to @print@).
+  * @error_line_pattern@, a string used to parse GPU compiler logs,
+    TODO find something generic
+--]]-- 
 function lib.new(def)
   local self = 
     {  backend = lib.DEFAULT,   
-       size = V2(600, 400),     
+       size = V2(480, 270),     
        log_fun = print,         
+       error_line_pattern = "([^:]+):([^:]+):([^:]+):(.*)",
        debug = true,            -- More logging/diagnostics
        r = nil,                 -- Backend renderer object (private)
        initialized = false }    -- true when backend was initalized

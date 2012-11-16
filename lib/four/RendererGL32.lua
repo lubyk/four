@@ -16,6 +16,7 @@ local ffi = require 'ffi'
 local gl = four.gl
 local lo = four.gl.lo
 local Buffer = four.Buffer
+local Geometry = four.Geometry
 local Effect = four.Effect
 local V2 = four.V2
 local V4 = four.V4
@@ -26,16 +27,8 @@ local V4 = four.V4
 function lib.new(super)
   local self = 
     {  super = super,
-       -- Renderer info
-       info = { vendor = "", renderer = "", version = "",
-                shading_language_version = "", extensions = "" },
        limits = { max_vertex_attribs = 0 },
-       caps = {},
-       
-       -- GL state internal to the renderer
-       geometries = {}, -- Weakly maps Geometry object to the following table
-                        -- { vao = id     -- the vertex array buffer id
-                        --   bufs = ids } -- array of buffer objects id 
+       geometries = {}, -- Weakly maps Geometry object to gl geometry state
        effects = {},    -- Weakly maps Effects to their shader program id
        queue = {}       -- Maps gl programs ids to lists of renderables
     }
@@ -45,26 +38,24 @@ function lib.new(super)
     return self
 end
 
-local typeGLenum = -- TODO remove keep in sync with Buffer.scalar_type values
-  { lo.GL_FLOAT,
-    lo.GL_DOUBLE,
-    lo.GL_INT,
-    lo.GL_UNSIGNED_INT }
+local typeGLenum =
+  { [Buffer.FLOAT] = lo.GL_FLOAT,
+    [Buffer.DOUBLE] = lo.GL_DOUBLE,
+    [Buffer.INT] = lo.GL_INT,
+    [Buffer.UNSIGNED_INT] = lo.GL_UNSIGNED_INT }
 
-local modeGLenum = -- TODO remove keep in sync with Geometry.primitive values
-{ lo.GL_POINTS,
-  lo.GL_LINE_STRIP,
-  lo.GL_LINE_LOOP,
-  lo.GL_LINES,
-  lo.GL_LINE_STRIP_ADJACENCY,
-  lo.GL_LINES_ADJACENCY,
-  lo.GL_TRIANGLE_STRIP,
-  lo.GL_TRIANGLE_FAN,
-  lo.GL_TRIANGLES,
-  lo.GL_TRIANGLE_STRIP_ADJACENCY,
-  lo.GL_TRIANGLES_ADJACENCY,
---  lo.GL_PATCHES 
-}
+local modeGLenum =
+  { [Geometry.POINTS] = lo.GL_POINTS,
+    [Geometry.LINE_STRIP] = lo.GL_LINE_STRIP,
+    [Geometry.LINE_LOOP] = lo.GL_LINE_LOOP,
+    [Geometry.LINES] = lo.GL_LINES,
+    [Geometry.LINE_STRIP_ADJACENCY] = lo.GL_LINE_STRIP_ADJACENCY,
+    [Geometry.LINES_ADJACENCY] = lo.GL_LINES_ADJACENCY,
+    [Geometry.TRIANGLE_STRIP] = lo.GL_TRIANGLE_STRIP,
+    [Geometry.TRIANGLE_FAN] = lo.GL_TRIANGLE_FAN,
+    [Geometry.TRIANGLES] = lo.GL_TRIANGLES,
+    [Geometry.TRIANGLE_STRIP_ADJACENCY] = lo.GL_TRIANGLE_STRIP_ADJACENCY,
+    [Geometry.TRIANGLES_ADJACENCY] = lo.GL_TRIANGLES_ADJACENCY }
 
 function lib:err_max_vertex_attribs(g)
   local n = g.name or "" 
@@ -113,17 +104,6 @@ function lib:initGlState()
   lo.glEnable(lo.GL_BLEND)
 end
 
-function lib:getGlInfo()
-  local get = gl.hi.glGetString
-  self.info.vendor = get(lo.GL_VENDOR)
-  self.info.renderer = get(lo.GL_RENDERER)
-  self.info.version = get(lo.GL_VERSION)
-  self.info.shading_language_version = get(lo.GL_SHADING_LANGUAGE_VERSION)
-  -- TODO segfaults 
-  -- self._info.extensions = gl.hi.glGetString(lo.GL_EXTENSIONS)
-end
-
-function lib:getGlCaps() self.caps = {} end
 function lib:getGlLimits()
   local geti = gl.hi.glGetIntegerv
   self.limits.max_vertex_attribs = geti(lo.GL_MAX_VERTEX_ATTRIBS)
@@ -155,13 +135,15 @@ function lib:geometryStateAllocate(g)
   end
 
   local state = self.geometries[g]
-  if state and (g.immutable or not g.dirty) then return end
+  if state and (g.immutable or not g.dirty) then return state end
 
-  state = { index_length = g.index:length (),
+  state = { primitive = modeGLenum[g.primitive],
+            index_length = g.index:length (),
             index_scalar_type = typeGLenum[g.index.scalar_type],
             index = nil,    -- g.index buffer object id
             data = {},      -- maps g.data keys to buffer object ids
             data_loc = {}}  -- maps g.data keys to binding index
+  setmetatable(state, { __gc = releaseState })
 
   -- Allocate and bind vertex array object
   state.vao = gl.hi.glGenVertexArray ()
@@ -173,7 +155,7 @@ function lib:geometryStateAllocate(g)
   lo.glBindBuffer(lo.GL_ELEMENT_ARRAY_BUFFER, state.index)
   lo.glBufferData(lo.GL_ELEMENT_ARRAY_BUFFER, bytes, data,
                   lo.GL_STATIC_DRAW)
-  assert(lo.glGetError() == 0)  
+
   -- For each vertex data in g's buffers
   local i = 0
   for k, buffer in pairs(g.data) do
@@ -206,37 +188,48 @@ function lib:geometryStateAllocate(g)
   lo.glBindVertexArray(0);
   lo.glBindBuffer(lo.GL_ELEMENT_ARRAY_BUFFER, 0)
 
-  setmetatable(state, { __gc = releaseState })
   self.geometries[g] = state
   if (g.immutable) then g:disposeBuffers() end
   g.dirty = false
+  return state
 end 
 
-function lib:geometryStateBind(pid, gstate)
-  assert(lo.glGetError() == 0)  
+function lib:geometryStateBind(estate, gstate)
   lo.glBindVertexArray(gstate.vao)
   for attr, loc in pairs(gstate.data_loc) do
-    lo.glBindAttribLocation(pid, loc, attr)
+    lo.glBindAttribLocation(estate.program, loc, attr)
   end
-  assert(lo.glGetError() == 0)  
 
-  -- TODO for now we need to relink the shader due to 
-  -- attrib binding we could try to see if in the same
-  -- layout holds for successive objects    
-  self:linkProgram(pid)
-  lo.glUseProgram(pid)
-  assert(lo.glGetError() == 0)  
+  -- NOTE for now we need to relink the shader due to attrib
+  -- binding. 1) we could try to see if in the same layout holds for
+  -- successive objects 2) we could try to get rid of vao and bind all
+  -- the attrib arrays directly it's unclear what is fastest.
+  self:linkProgram(estate.program)
+  lo.glUseProgram(estate.program)
 end
 
+function lib:rewriteShaderInfoLog(src, log)
+  local lines = lk.split(log,'\n')
+  for i, l in ipairs(lines) do
+    local function rewrite(t, f, l, msg)
+      local line = tonumber(l) + src.line - 2
+      if line then
+        lines[i] = string.format("%s: %s:%d: %s", t, src.file, line, msg)
+      end
+    end
+    string.gsub(l, self.super.error_line_pattern, rewrite)
+  end
+  return table.concat(lines,'\n')
+end
 
 function lib:compileShader(src, type)
   local s = lo.glCreateShader(type)
-  gl.hi.glShaderSource(s, src)
+  gl.hi.glShaderSource(s, src.src)
   lo.glCompileShader(s)
   if gl.hi.glGetShaderiv(s, lo.GL_COMPILE_STATUS) == 0 or self.super.debug 
   then
     local msg = gl.hi.glGetShaderInfoLog(s)
-    if msg ~= "" then self:log(msg) end
+    if msg ~= "" then self:log(self:rewriteShaderInfoLog(src, msg)) end
   end
   return s
 end
@@ -250,14 +243,12 @@ function lib:linkProgram(pid)
   end
 end
 
-
-function lib:effectBindUniforms(pid, effect)
-  for k, u in pairs(effect.uniforms) do 
+function lib:effectBindUniforms(estate, effect)
+  for k, u in pairs(effect:getUniforms()) do 
     local v = u.v
-    local loc = lo.glGetUniformLocation(pid, k)
+    local loc = lo.glGetUniformLocation(estate.program, k)
     if u.dim == 1 then
       if u.typ == Effect.ft or u.typ == Effect.bt then 
---        lk.log(v[1])
         lo.glUniform1f(loc, v[1])
       elseif u.typ == Effect.it then 
         lo.glUniform1i(loc, v[1])
@@ -266,7 +257,6 @@ function lib:effectBindUniforms(pid, effect)
       else assert(false) end
     elseif u.dim == 2 then
       if u.typ == Effect.ft or u.typ == Effect.bt then 
---        lk.log("RES", v[1], v[2])
         lo.glUniform2f(loc, v[1], v[2])
       elseif u.typ == Effect.it then 
         lo.glUniform2i(loc, v[1], v[2])
@@ -298,28 +288,29 @@ function lib:effectBindUniforms(pid, effect)
 end
 
 function lib:effectStateAllocate(effect)
-  local pid = self.effects[effect.id]
-  if pid then return pid end
+  local function releaseState(state) lo.glDeleteProgram(state.program) end
+  local state = self.effects[effect] 
+  if state then return state end
 
-  local vsrc = effect:vertexShader() 
-  local gsrc = effect:geometryShader()
-  local fsrc = effect:fragmentShader()
+  local state = { program = lo.glCreateProgram() }
+  setmetatable(state, { __gc = releaseState })
+
+  local vsrc = effect:vertexShaderSource() 
+  local gsrc = effect:geometryShaderSource()
+  local fsrc = effect:fragmentShaderSource()
 
   local vid = self:compileShader(vsrc, lo.GL_VERTEX_SHADER)
   local gid = gsrc and self:compileShader(gsrc, lo.GL_GEOMETRY_SHADER)
   local fid = self:compileShader(fsrc, lo.GL_FRAGMENT_SHADER)
 
-  pid = lo.glCreateProgram() -- TODO error handling
-  lo.glAttachShader(pid, vid); lo.glDeleteShader(vid)
-  if gs then lo.glAttachShader(p, gs); lo.glDeleteShader(gid) end
-  lo.glAttachShader(pid, fid); lo.glDeleteShader(fid)
-  self:linkProgram(pid)
-  self.effects[effect.id] = pid
-  -- TODO Effect's finalizer should dispose program
-  return pid 
-end
+  lo.glAttachShader(state.program, vid); lo.glDeleteShader(vid)
+  if gs then lo.glAttachShader(state.program, gs); lo.glDeleteShader(gid) end
+  lo.glAttachShader(state.program, fid); lo.glDeleteShader(fid)
 
-function lib:effectDispose(pid) lo.glDeleteProgram(pid) end
+  self:linkProgram(state.program)
+  self.effects[effect] = state
+  return state
+end
 
 function lib:initFramebuffer(cam)
   -- Setup viewport 
@@ -356,42 +347,46 @@ end
 -- Renderer interface implementation
 
 function lib:init()
-  self:getGlInfo()
-  self:getGlLimits()
-  self:getGlCaps()
   self:initGlState()
+  self:getGlLimits()
 end
 
-function lib:getInfo() return self.info end
-function lib:getCaps() return self.caps end
-function lib:getLimits() return self.limits end
-
-function lib:renderQueueAdd(cam, o)
-  self:geometryStateAllocate(o.geometry)
-  local effect = cam.effect_override or o.effect or cam.effect_default
-  local pid = self:effectStateAllocate(o.effect)        
-  if pid then
-    self.queue[pid] = self.queue[pid] or {} 
-    table.insert(self.queue[pid], o)          
-  end
+function lib:getInfo()
+  local get = gl.hi.glGetString
+  return { vendor = get(lo.GL_VENDOR),
+           renderer = get(lo.GL_RENDERER),
+           version = get(lo.GL_VERSION),
+           shading_language_version = get(lo.GL_SHADING_LANGUAGE_VERSION)
+           -- TODO segfaults 
+           -- self.extensions = gl.hi.glGetString(lo.GL_EXTENSIONS)
+         }
 end
 
+function lib:getCaps() return {} end 
+function lib:getLimits() return self.limits end 
+function lib:renderQueueAdd(cam, o) 
+  local effect = cam.effect_override or o.effect or cam.effect_default 
+  local estate = self:effectStateAllocate(effect) 
+  local gstate = self:geometryStateAllocate(o.geometry) 
+  self.queue[effect] = self.queue[effect] or {} 
+  table.insert(self.queue[effect], gstate) 
+end
 
 function lib:renderQueueFlush(cam)
   self:initFramebuffer(cam)
-  for pid, batch in pairs(self.queue) do
-    lo.glUseProgram(pid)
-    for _, o in ipairs(batch) do
-      local g = o.geometry
-      local gstate = self.geometries[g]
-      local effect = o.effect or cam.effect_default
+  for effect, batch in pairs(self.queue) do
+    local estate = self.effects[effect]
+    lo.glUseProgram(estate.program)
+    for _, gstate in ipairs(batch) do
+      self:geometryStateBind(estate, gstate)
+      
+      -- TODO here again we could bind uniforms only once 
+      -- for the effect but the program relinking done in geometryStateBind
+      -- forces us to rebind the uniforms, optimize that.
+      self:effectBindUniforms(estate, effect)
 
-      self:geometryStateBind(pid, gstate)
-      self:effectBindUniforms(pid, effect)
-      assert(lo.glGetError() == 0)  
-      lo.glDrawElements(modeGLenum[g.primitive], gstate.index_length, 
-                           gstate.index_scalar_type, nil)
-      assert(lo.glGetError() == 0)  
+      lo.glDrawElements(gstate.primitive, gstate.index_length, 
+                        gstate.index_scalar_type, nil)
       lo.glBindVertexArray(0)
     end
   end

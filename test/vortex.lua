@@ -28,15 +28,15 @@ end
 local effect = Effect
 {
   uniforms = 
-    { resolution = Effect.U(V2.zero()),
-      time = Effect.U(0) },
+    { resolution = V2.zero(),
+      time = 0 },
 
-  vertex_shader = [[ 
+  vertex = Effect.Shader [[
     in vec3 vertex;
     void main() { gl_Position = vec4(vertex, 1.0); }
   ]],  
 
-  fragment_shader = [[ 
+  fragment = Effect.Shader [[
     out vec4 color;
     void main() 
     {
@@ -74,24 +74,24 @@ local camera = four.Camera {}
 -- Render
 
 local time = 0
-local w, h = 600, 400
+local w, h = 640, 360
 local renderer = four.Renderer { size = V2(w, h) }
 local win = mimas.GLWindow()
 
 function win:resizeGL(w, h) 
   local size = V2(w, h)
   renderer.size = size 
-  effect.uniforms.resolution = Effect.U(size)
+  effect.uniforms.resolution = size
 end
 
 function win:paintGL()
   renderer:render(camera, {obj})  
-  effect.uniforms.time = Effect.U(time)
+  effect.uniforms.time = time 
 end
 
 function win:initializeGL() 
   renderer:logInfo() 
-  effect.uniforms.resolution = Effect.U(V2(w, h))
+  effect.uniforms.resolution = V2(w, h)
 end  
 
 function win:keyboard(key, down, utf8, modifiers)
@@ -104,7 +104,7 @@ function win:keyboard(key, down, utf8, modifiers)
   end
 end
 
-win:move(800, 50)
+win:move(650, 50)
 win:resize(w, h)
 win:showFullScreen(true)
 

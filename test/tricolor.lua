@@ -29,24 +29,22 @@ end
 
 local effect = Effect
 {
-  vertex_shader = 
-    [[
-       in vec3 vertex;
-       in vec4 color;
-       out vec4 interpolated_color;
-       void main()
-       {
-         gl_Position = vec4(vertex, 1.0);
-         interpolated_color = color;
-       }
+  vertex = Effect.Shader [[
+    in vec3 vertex;
+    in vec4 color;
+    out vec4 interpolated_color;
+    void main()
+    {
+      gl_Position = vec4(vertex, 1.0);
+      interpolated_color = color;
+    }
     ]],
   
-  fragment_shader = 
-    [[
-       in vec4 interpolated_color;
-       out vec4 color;
-       void main() { color = interpolated_color; }
-    ]]
+  fragment = Effect.Shader [[
+    in vec4 interpolated_color;
+    out vec4 color;
+    void main() { color = interpolated_color; }
+  ]]
 }
 
 local obj = { geometry = triangle (), effect = effect }
