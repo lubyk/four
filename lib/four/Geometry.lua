@@ -138,7 +138,7 @@ function lib.Cuboid(extents)
   is:push3D(4, 7, 6)
 
   return lib.new ({ name = "four.cuboid", primitive = lib.TRIANGLES, 
-                    data = { vertex = {vs} }, index = is, 
+                    data = { vertex = vs }, index = is, 
                     extents = extents })
 end
 

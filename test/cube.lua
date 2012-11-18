@@ -4,11 +4,29 @@ local V2 = four.V2
 local V3 = four.V3
 local Color = four.Color
 local Transform = four.Transform
+local Effect = four.Effect
+
+local effect = Effect
+{
+  uniforms = 
+    { model_to_clip = Effect.modelToClip,
+      model_color = Color.red () },
+
+  vertex = Effect.Shader [[
+    in vec3 vertex;
+    void main() { gl_Position = model_to_clip * vec4(vertex, 1.0); }
+  ]],  
+
+  fragment = Effect.Shader [[
+    out vec4 color;
+    void main() { color = model_color; }
+  ]]
+}
 
 local cube = 
-  { transform = Transform{ pos = V3(0, 0, 0) },
-    geometry = four.Geometry.Cube(1),
-    effect = four.Effect.FlatShading(Color.red) }
+  { transform = Transform { pos = V3(0, 0, 0) },
+    geometry = four.Geometry.Cube(0.5),
+    effect = effect }
 
 local camera = four.Camera ({ transform = Transform { pos = V3(0, 0, 5) } })
 
@@ -29,6 +47,7 @@ end
 
 win:move(650, 50)
 win:resize(w, h)
+win:show()
 run()
 
 

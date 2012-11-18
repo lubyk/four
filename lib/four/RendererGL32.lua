@@ -20,6 +20,7 @@ local Geometry = four.Geometry
 local Effect = four.Effect
 local V2 = four.V2
 local V4 = four.V4
+local M4 = four.M4
 
 -- h2. Constructor
 
@@ -30,7 +31,9 @@ function lib.new(super)
        limits = { max_vertex_attribs = 0 },
        geometries = {}, -- Weakly maps Geometry object to gl geometry state
        effects = {},    -- Weakly maps Effects to their shader program id
-       queue = {}       -- Maps gl programs ids to lists of renderables
+       queue = {},      -- Maps gl programs ids to lists of renderables
+       world_to_camera = nil,
+       camera_to_clip = nil,
     }
     setmetatable(self.geometries, { __mode = "k" })
     setmetatable(self.effects, { __mode = "k"})
@@ -243,10 +246,24 @@ function lib:linkProgram(pid)
   end
 end
 
-function lib:effectBindUniforms(estate, effect)
+function lib:getPredefinedTransform(u, m2w)
+  if u.transform == Effect.model_to_world then return m2w
+  elseif u.transform == Effect.world_to_camera then return self.world_to_camera
+  elseif u.transform == Effect.camera_to_clip then return self.camera_to_clip
+  elseif u.transform == Effect.model_to_camera then 
+    return self.world_to_camera * m2w 
+  elseif u.transform == Effect.model_to_clip then 
+    return self.camera_to_clip * self.world_to_camera * m2w
+  elseif u.transform == Effect.normals_model_to_camera then
+    return M4.transpose(M4.inv(self.world_to_camera * m2w))
+  end
+end
+
+function lib:effectBindUniforms(m2w, estate, effect)
   for k, u in pairs(effect:getUniforms()) do 
     local v = u.v
     local loc = lo.glGetUniformLocation(estate.program, k)
+    if u.transform then v = self:getPredefinedTransform(u, m2w) end
     if u.dim == 1 then
       if u.typ == Effect.ft or u.typ == Effect.bt then 
         lo.glUniform1f(loc, v[1])
@@ -281,7 +298,7 @@ function lib:effectBindUniforms(estate, effect)
       else assert(false) end
     elseif u.dim == 16 then
       local m = ffi.new("GLfloat[?]", 16, v)
-      lo.glUniformMatrix4fv(loc, 16, false, m)
+      lo.glUniformMatrix4fv(loc, 1, lo.GL_FALSE, m)
     else assert(false)
     end
   end
@@ -344,6 +361,11 @@ function lib:initFramebuffer(cam)
   lo.glClear(cbits)
 end
 
+function lib:setupTransforms(cam)
+  self.world_to_camera = M4.inv(cam.transform.matrix)
+  self.camera_to_clip = cam.projection_matrix
+end
+
 -- Renderer interface implementation
 
 function lib:init()
@@ -369,21 +391,25 @@ function lib:renderQueueAdd(cam, o)
   local estate = self:effectStateAllocate(effect) 
   local gstate = self:geometryStateAllocate(o.geometry) 
   self.queue[effect] = self.queue[effect] or {} 
-  table.insert(self.queue[effect], gstate) 
+  table.insert(self.queue[effect], o) 
 end
 
 function lib:renderQueueFlush(cam)
   self:initFramebuffer(cam)
+  self:setupTransforms(cam)
+  
   for effect, batch in pairs(self.queue) do
     local estate = self.effects[effect]
     lo.glUseProgram(estate.program)
-    for _, gstate in ipairs(batch) do
+    for _, o in ipairs(batch) do
+      local gstate = self.geometries[o.geometry]
+      local m2w = o.transform and o.transform.matrix or M4.id ()
       self:geometryStateBind(estate, gstate)
       
       -- TODO here again we could bind uniforms only once 
       -- for the effect but the program relinking done in geometryStateBind
       -- forces us to rebind the uniforms, optimize that.
-      self:effectBindUniforms(estate, effect)
+      self:effectBindUniforms(m2w, estate, effect)
 
       lo.glDrawElements(gstate.primitive, gstate.index_length, 
                         gstate.index_scalar_type, nil)

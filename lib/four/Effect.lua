@@ -75,6 +75,21 @@ lib.it = 2
 lib.ut = 3
 lib.ft = 4
 
+lib.model_to_world = 1
+lib.world_to_camera = 2
+lib.camera_to_clip = 3
+lib.model_to_camera = 4
+lib.model_to_clip = 5
+lib.normals_model_to_camera = 6
+
+lib.modelToWorld = { dim = 16, typ = lib.ft, transform = lib.model_to_world }
+lib.worldToCamera = { dim = 16, typ = lib.ft, transform = lib.world_to_camera }
+lib.cameraToClip = { dim = 16, typ = lib.ft, transform = lib.camera_to_clip }
+lib.modelToCamera = { dim = 16, typ = lib.ft, transform = lib.model_to_camera }
+lib.modelToClip = { dim = 16, typ = lib.ft, transform = lib.model_to_clip }
+lib.normalModelToCamera = { dim = 16, typ = lib.ft, 
+                             transform = lib.normals_model_to_camera }
+
 function lib.U(o) -- TODO int request
   local ot = type(o)
   if ot == "boolean" then return { dim = 1, typ = lib.bt, v = { o and 1 or 0 } }
@@ -93,10 +108,12 @@ function lib.U(o) -- TODO int request
 end
 
 function fromUniform(u) -- removes the uniform typing information 
-  if u.dim == 1 then 
-    if u.typ == lib.bt then return u.v[1] == 0
-    else return u.v[1] end
-  else return u.v end
+  if u.transform then return "Depends on camera and renderable transform" else
+    if u.dim == 1 then 
+      if u.typ == lib.bt then return u.v[1] == 0
+      else return u.v[1] end
+    else return u.v end
+  end
 end
 
 local uniformTableMeta = 
@@ -115,7 +132,7 @@ local uniformTableMeta =
 function toUniformTable(t)
   local us = { _table = {}}
   setmetatable(us, uniformTableMeta)
-  for k, v in pairs(t) do us[k] = lib.U(v) end
+  for k, v in pairs(t) do us[k] = v end
   return us
 end
 

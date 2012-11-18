@@ -19,7 +19,7 @@ local M4 = four.M4
 -- Transform decomposition/matrix synchronization
 
 local function syncMatrix(tv) 
-  tv.matrix = M4.rigidqScale(t.pos, t.rot, t.scale) 
+  tv.matrix = M4.rigidqScale(tv.pos, tv.rot, tv.scale) 
 end
 
 local function syncDecomp(tv)
@@ -84,7 +84,7 @@ function lib.new(def)
     { tv = { pos = V3.zero (),
              rot = Quat.id (),
              scale = V3(1, 1, 1),
-             matrix = M4.id,
+             matrix = M4.id (),
              dirty_decomp = false,
              dirty_matrix = false,
              deps = {}}            -- Weakly references dependents. 

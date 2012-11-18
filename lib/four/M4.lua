@@ -311,7 +311,7 @@ function lib.rigidScale(d, axis, theta, scale)
   return r
 end
 
-function lib.rigidqScale(d, q, scale)
+function lib.rigidqScale(d, q, s)
   local r = lib.rigidq(d, q) 
   r[1] = r[1] * s[1] -- scale col 1
   r[2] = r[2] * s[1]  

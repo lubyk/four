@@ -10,6 +10,7 @@ lib.__index = lib
 four.Camera = lib
 setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end })
 
+local V2 = four.V2
 local V3 = four.V3
 local M4 = four.M4
 local Quat = four.Quat
@@ -26,7 +27,7 @@ lib.PERSPECTIVE = 2
   @Camera(def)@ is a new camera object. @def@ keys:
   * @transform@, defines the location and orientation of the camera.
   * @projection@, the kind of projection to use.
-  * @range@, defines the near and far clip plane. Clip planes
+  * @zrange@, defines the near and far clip plane. Clip planes
     are perpendicular to the camera direction and are defined
     relative to the camera position. 
   * @field_of_view@, 
@@ -36,10 +37,9 @@ function lib.new(def)
   local self =
     { transform = four.Transform (), 
       projection = lib.PERSPECTIVE,
-      range = V2(0.1, 1000)
+      range = V2(0.1, 1000),
       
       -- Projection
-      projection = lib.PERPSECTIVE,
       size = nil, -- viewport size for orthographic
 
       clip_near = 0, -- closest distance were drawing occurs
@@ -62,6 +62,8 @@ function lib.new(def)
       effect_default = nil,  -- Use this effect for renderables without one.
       
       _dirty_projection = true,
+
+      projection_matrix = M4.id ()
     }
     setmetatable(self, lib)
     if (def) then self:set(def) end
@@ -70,6 +72,8 @@ end
 
 
 function lib:set(def) for k, v in pairs(def) do self[k] = v end end
+
+
 
 
 
