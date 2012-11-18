@@ -41,9 +41,9 @@ setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
 function lib.new(def)
   local self = 
     { version = "150",
-      vertex = { src =  "void main(void) {}"},
+      vertex = lib.Shader [[void main(void) {}]],
       geometry = nil, -- optional
-      fragment = { src = "void main(void) {}"},
+      fragment = lib.Shader [[void main(void) {}]],
       _uniforms = { _table = {} },
       _preamble = nil, }
   setmetatable(self, lib)

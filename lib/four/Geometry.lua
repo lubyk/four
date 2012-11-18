@@ -50,7 +50,7 @@ function lib.new(def)
   local self = 
     { primitive = lib.TRIANGLES,
       data = {},
-      index = {},
+      index = nil,
       immutable = true,
       name = "",
       bound_radius = nil,
@@ -64,7 +64,8 @@ end
 function lib:set(def)
   if def.primitive then self.primitive = def.primitive end
   if def.data then self.data = def.data end  
-  if def.index then self.index = def.index end
+  if def.index then self.index = def.index
+  else error ("index is a required Geometry initialization key") end
   if def.immutable then self.immutable = def.immutable end
 end
 
@@ -142,4 +143,4 @@ function lib.Cuboid(extents)
 end
 
 -- @Cube(s)@ is a cube with side length @s@ centered on the origin.
-function lib.Cube(s) return Cuboid(V3(s, s, s)) end
+function lib.Cube(s) return lib.Cuboid(V3(s, s, s)) end

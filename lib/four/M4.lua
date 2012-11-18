@@ -207,8 +207,8 @@ end
 
 function lib.getMove(m) return V3(m[13], m[14], m[15]) end
 
-
--- rotates 3D space to map the *unit* vector `u` on the *unit* vector `v`
+-- @rotMap(u, v)@ rotates 3D space to map the *unit* vector @u@ on the 
+-- *unit* vector @v@
 function lib.rotMap(u, v) 
   local n = V3.cross(u, v)
   local e = V3.dot(u, v)
@@ -268,6 +268,13 @@ function lib.scale(s)
             0   , 0   , 0   , 1)
 end
 
+function lib.getScale(m) 
+  return V3(math.sqrt(m[1] * m[1] + m[2] * m[2] + m[3] * m[3]),
+            math.sqrt(m[5] * m[5] + m[6] * m[6] + m[7] * m[7]),
+            math.sqrt(m[9] * m[9] + m[10] * m[10] + m[11] * m[11]))
+end
+
+
 -- `rigid(d, axis, theta)` is the rigid body transformation of 3D space
 -- that rotates by `axis`,`angle` and then translate by `d`
 function lib.rigid(d, axis, theta) 
@@ -316,6 +323,14 @@ function lib.rigidqScale(d, q, scale)
   r[10] = r[10] * s[3]
   r[11] = r[11] * s[3]
   return r
+end
+
+--[[--
+  @lookAt(eye, pos, up)@ is an orientation matrix looking from @eye@ toward
+  @pos@ with @up@ vector. 
+--]]--
+function lib.lookAt(eye, pos, up)
+  
 end
 
 -- ## 4D space transformation
