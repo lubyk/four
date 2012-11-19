@@ -29,7 +29,7 @@ local function syncDecomp(tv)
   tv.scale = M4.getScale(m)
 end
 
-local function notify(tr, tv) for _, d in tv.deps do d(tr) end end
+local function notify(tr, tv) for _, d in ipairs(tv.deps) do d(tr) end end
 
 local is_decomp_key = { pos = true, rot = true, scale = true } 
 function lib.__index(t, k) 
@@ -46,7 +46,7 @@ function lib.__index(t, k)
 end
 
 function lib.__newindex(t, k, v)
-  if is_decomp_key(k) then 
+  if is_decomp_key[k] then 
     local tv = t.tv
     if tv.dirty_decomp then syncDecomp(tv) end -- other decomps.
     tv[k] = v

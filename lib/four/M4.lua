@@ -136,10 +136,10 @@ function lib.smul(s, b) -- scalar multiplication
 end
 
 function lib.transpose(a) 
-  return M4(m[1], m[5], m[ 9], m[13],
-            m[2], m[6], m[10], m[14],
-            m[3], m[7], m[11], m[15],
-            m[4], m[8], m[12], m[16])
+  return M4(a[1], a[5], a[ 9], a[13],
+            a[2], a[6], a[10], a[14],
+            a[3], a[7], a[11], a[15],
+            a[4], a[8], a[12], a[16])
 end
 
 function lib.trace(a) return a[1] + a[6] + a[11] + a[16] end
@@ -332,6 +332,42 @@ end
 function lib.lookAt(eye, pos, up)
   
 end
+
+-- h2. Projection
+
+--[[--
+  @ortho(l, r, b, t, n, f)@ maps the axis aligned box with corners
+  @(l, b, -n)@ and @(r, t, -f)@ to the axis aligned cube with corners 
+  (-1, -1, -1) and @(1, 1, 1)@.
+--]]--
+function lib.ortho(l, r, b, t, n, f)
+  local inv_rl = 1 / (r - l)
+  local inv_tb = 1 / (t - b)
+  local inv_fn = 1 / (f - n)
+  return M4(2 * inv_rl,          0,           0, -(r + l) * inv_rl,
+                     0, 2 * inv_tb,           0, -(t + b) * inv_tb,
+                     0,          0, -2 * inv_fn, -(f + n) * inv_fn,
+                     0,          0,           0,                1.0)
+end
+
+--[[--
+  @persp(l, r, b, t, n, f)@ maps the frustum with top of 
+  the underlying pyramid at the origin, near plane rectangle
+  corners [(l, b, -n)], [(r, t, -n) and far plane at @-far@ to 
+  the axis aligned cube with corners (-1, -1, -1) and @(1, 1, 1)@.
+--]]--
+function lib.persp(l, r, b, t, n, f)
+  local inv_rl = 1 / (r - l)
+  local inv_tb = 1 / (t - b)
+  local inv_fn = 1 / (f - n)
+  local n2 = 2 * n
+  return M4(n2 * inv_rl,           0,  (r + l) * inv_rl,                  0,
+                      0, n2 * inv_tb,  (t + b) * inv_tb,                  0,
+                      0,           0, -(f + n) * inv_fn, -(n2 * f) * inv_fn,
+                      0,           0,                -1,                  0)
+
+end 
+
 
 -- ## 4D space transformation
 

@@ -99,7 +99,31 @@ end
   the 3D points of @self.data.vertex@ and stores them in @self.data.normal@.
   *WARNING* works only with @Geometry.TRIANGLE@ primitive.
 --]]--
-function lib:computeVertexNormals () error ("TODO") end
+function lib:computeVertexNormals ()
+  local vertex = self.data.vertex 
+  local index = self.index
+  local tri_count = index:length() / 3
+  local v_count = vertex:length()
+  local ns = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
+
+  for i = 1, vertex:length(), 1 do ns:set3D(i, 0, 0, 0) end
+  for i = 1, tri_count, 1 do
+    local b = (i - 1) * 3
+    local vi1 = index:get1D(b + 1) + 1
+    local vi2 = index:get1D(b + 2) + 1
+    local vi3 = index:get1D(b + 3) + 1
+    local v1 = vertex:getV3(vi1)
+    local v2 = vertex:getV3(vi2)
+    local v3 = vertex:getV3(vi3)
+    local n = V3.cross((v2 - v1), (v3 - v1))
+    ns:setV3(vi1, ns:getV3(vi1) + n)
+    ns:setV3(vi2, ns:getV3(vi2) + n)
+    ns:setV3(vi3, ns:getV3(vi3) + n)
+  end
+
+  for i = 1, ns:length(), 1 do ns:setV3(i, V3.unit (ns:getV3(i))) end
+  self.data.normal = ns
+end
 
 -- h2. Predefined geometries
 
@@ -114,28 +138,28 @@ function lib.Cuboid(extents)
   local is = Buffer { dim = 1, scalar_type = Buffer.UNSIGNED_INT }
   
   -- Vertices
-  vs:push3D(-x, -y, -z)
-  vs:push3D( x, -y, -z)
-  vs:push3D(-x,  y, -z)
-  vs:push3D( x,  y, -z)
   vs:push3D(-x, -y,  z)
   vs:push3D( x, -y,  z)
-  vs:push3D(-x,  y,  z)  
+  vs:push3D(-x,  y,  z)
   vs:push3D( x,  y,  z)
+  vs:push3D(-x, -y, -z)
+  vs:push3D( x, -y, -z)
+  vs:push3D(-x,  y, -z)  
+  vs:push3D( x,  y, -z)
 
   -- Faces (triangles), TODO seems wrong orientation
-  is:push3D(0, 2, 3)
-  is:push3D(0, 3, 1)
-  is:push3D(0, 1, 5)
-  is:push3D(0, 5, 4)
-  is:push3D(0, 4, 6)
-  is:push3D(0, 6, 2)
-  is:push3D(1, 3, 7)
-  is:push3D(1, 7, 5)
-  is:push3D(2, 6, 7)
-  is:push3D(2, 7, 3)
-  is:push3D(4, 5, 7)
-  is:push3D(4, 7, 6)
+  is:push3D(0, 3, 2)
+  is:push3D(0, 1, 3)
+  is:push3D(0, 5, 1)
+  is:push3D(0, 4, 5)
+  is:push3D(0, 6, 4)
+  is:push3D(0, 2, 6)
+  is:push3D(1, 7, 3)
+  is:push3D(1, 5, 7)
+  is:push3D(2, 7, 6)
+  is:push3D(2, 3, 7)
+  is:push3D(4, 7, 5)
+  is:push3D(4, 6, 7)
 
   return lib.new ({ name = "four.cuboid", primitive = lib.TRIANGLES, 
                     data = { vertex = vs }, index = is, 

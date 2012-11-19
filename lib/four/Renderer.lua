@@ -98,7 +98,7 @@ end
 
 -- @renderable(cam, o)@ is @true@ if @o@ can be rendered with @cam@.
 function lib:isRenderable(cam, o)
-  local effect = cam.effect_override or o.effect or cam.effect_default
+  local effect = cam.effect_override or o.effect
   return o.geometry and effect
 end
 

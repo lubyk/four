@@ -28,7 +28,7 @@ end
 local effect = Effect
 {
   uniforms = 
-    { resolution = V2.zero(),
+    { resolution = Effect.cameraResolution,
       time = 0 },
 
   vertex = Effect.Shader [[
@@ -79,9 +79,8 @@ local renderer = four.Renderer { size = V2(w, h) }
 local win = mimas.GLWindow()
 
 function win:resizeGL(w, h) 
-  local size = V2(w, h)
-  renderer.size = size 
-  effect.uniforms.resolution = size
+  renderer.size = V2(w, h)
+  camera.aspect = w / h
 end
 
 function win:paintGL()
@@ -89,10 +88,7 @@ function win:paintGL()
   effect.uniforms.time = time 
 end
 
-function win:initializeGL() 
-  renderer:logInfo() 
-  effect.uniforms.resolution = V2(w, h)
-end  
+function win:initializeGL()  renderer:logInfo() end  
 
 function win:keyboard(key, down, utf8, modifiers)
   if down then
@@ -106,7 +102,7 @@ end
 
 win:move(650, 50)
 win:resize(w, h)
-win:showFullScreen(true)
+win:showFullScreen(false)
 
 local step = 1/60
 timer = lk.Timer(step * 1000, function() time = time + 0.05 win:update() end)

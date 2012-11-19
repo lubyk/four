@@ -24,6 +24,7 @@ local V3 = lib.V3
 
 -- ## Converters
 
+function lib.ofV2(v, z) return V3(v[1], v[2], z) end
 function lib.tuple(v) return v[1], v[2], v[3] end
 function lib.tostring(v) 
   return string.format("(%g %g %g)", v[1], v[2], v[3])

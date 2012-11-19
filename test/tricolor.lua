@@ -12,8 +12,8 @@ function triangle () -- A triangle inside clip space
   
   -- Vertices
   vs:push3D(-0.8, -0.8, 0.0)  
-  vs:push3D( 0.0,  0.8, 0.0)
   vs:push3D( 0.8, -0.8, 0.0)
+  vs:push3D( 0.0,  0.8, 0.0)
 
   -- Colors
   cs:pushV4(four.Color.red ())   
@@ -30,12 +30,12 @@ end
 local effect = Effect
 {
   vertex = Effect.Shader [[
-    in vec3 vertex;
+    in vec4 vertex;
     in vec4 color;
     out vec4 interpolated_color;
     void main()
     {
-      gl_Position = vec4(vertex, 1.0);
+      gl_Position = vertex;
       interpolated_color = color;
     }
     ]],
@@ -48,7 +48,7 @@ local effect = Effect
 }
 
 local obj = { geometry = triangle (), effect = effect }
-local camera = four.Camera {}
+local camera = four.Camera ()
 
 -- Render
 

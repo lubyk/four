@@ -34,6 +34,8 @@ function lib.new(super)
        queue = {},      -- Maps gl programs ids to lists of renderables
        world_to_camera = nil,
        camera_to_clip = nil,
+       camera_viewport_origin = nil,
+       camera_resolution = nil
     }
     setmetatable(self.geometries, { __mode = "k" })
     setmetatable(self.effects, { __mode = "k"})
@@ -97,7 +99,7 @@ function lib:initGlState()
   lo.glDepthFunc(lo.GL_LEQUAL)
   lo.glEnable(lo.GL_DEPTH_TEST)
 
---  lk.log("TODO enable backface culling")
+  --  lk.log("TODO enable backface culling")
 --  lo.glFrontFace(lo.GL_CCW)
 --  lo.glCullFace (lo.GL_BACK)
 --  lo.glEnable(lo.GL_CULL_FACE)
@@ -246,16 +248,18 @@ function lib:linkProgram(pid)
   end
 end
 
-function lib:getPredefinedTransform(u, m2w)
-  if u.transform == Effect.model_to_world then return m2w
-  elseif u.transform == Effect.world_to_camera then return self.world_to_camera
-  elseif u.transform == Effect.camera_to_clip then return self.camera_to_clip
-  elseif u.transform == Effect.model_to_camera then 
+function lib:getSpecialUniform(u, m2w)
+  if u.special == Effect.model_to_world then return m2w
+  elseif u.special == Effect.world_to_camera then return self.world_to_camera
+  elseif u.special == Effect.camera_to_clip then return self.camera_to_clip
+  elseif u.special == Effect.model_to_camera then 
     return self.world_to_camera * m2w 
-  elseif u.transform == Effect.model_to_clip then 
+  elseif u.special == Effect.model_to_clip then 
     return self.camera_to_clip * self.world_to_camera * m2w
-  elseif u.transform == Effect.normals_model_to_camera then
+  elseif u.special == Effect.normals_model_to_camera then
     return M4.transpose(M4.inv(self.world_to_camera * m2w))
+  elseif u.special == Effect.camera_resolution then 
+    return self.camera_resolution
   end
 end
 
@@ -263,7 +267,7 @@ function lib:effectBindUniforms(m2w, estate, effect)
   for k, u in pairs(effect:getUniforms()) do 
     local v = u.v
     local loc = lo.glGetUniformLocation(estate.program, k)
-    if u.transform then v = self:getPredefinedTransform(u, m2w) end
+    if u.special then v = self:getSpecialUniform(u, m2w) end
     if u.dim == 1 then
       if u.typ == Effect.ft or u.typ == Effect.bt then 
         lo.glUniform1f(loc, v[1])
@@ -321,9 +325,9 @@ function lib:effectStateAllocate(effect)
   local fid = self:compileShader(fsrc, lo.GL_FRAGMENT_SHADER)
 
   lo.glAttachShader(state.program, vid); lo.glDeleteShader(vid)
-  if gs then lo.glAttachShader(state.program, gs); lo.glDeleteShader(gid) end
+  if gid then lo.glAttachShader(state.program, gid); lo.glDeleteShader(gid) end
   lo.glAttachShader(state.program, fid); lo.glDeleteShader(fid)
-
+  
   self:linkProgram(state.program)
   self.effects[effect] = state
   return state
@@ -332,8 +336,8 @@ end
 function lib:initFramebuffer(cam)
   -- Setup viewport 
   local wsize = self.super.size 
-  local x, y = V2.tuple(V2.mul(cam.viewport.origin, wsize))
-  local w, h = V2.tuple(V2.mul(cam.viewport.size, wsize))
+  local x, y = V2.tuple(self.camera_viewport_origin)
+  local w, h = V2.tuple(self.camera_resolution)
   lo.glViewport(x, y, w, h) 
 
   -- Clear buffers 
@@ -361,9 +365,13 @@ function lib:initFramebuffer(cam)
   lo.glClear(cbits)
 end
 
-function lib:setupTransforms(cam)
+function lib:setupCameraParameters(cam)
   self.world_to_camera = M4.inv(cam.transform.matrix)
   self.camera_to_clip = cam.projection_matrix
+  
+  local wsize = self.super.size 
+  self.camera_viewport_origin = V2.mul(cam.viewport.origin, wsize)
+  self.camera_resolution = V2.mul(cam.viewport.size, wsize)
 end
 
 -- Renderer interface implementation
@@ -387,7 +395,7 @@ end
 function lib:getCaps() return {} end 
 function lib:getLimits() return self.limits end 
 function lib:renderQueueAdd(cam, o) 
-  local effect = cam.effect_override or o.effect or cam.effect_default 
+  local effect = cam.effect_override or o.effect
   local estate = self:effectStateAllocate(effect) 
   local gstate = self:geometryStateAllocate(o.geometry) 
   self.queue[effect] = self.queue[effect] or {} 
@@ -395,8 +403,8 @@ function lib:renderQueueAdd(cam, o)
 end
 
 function lib:renderQueueFlush(cam)
+  self:setupCameraParameters(cam)
   self:initFramebuffer(cam)
-  self:setupTransforms(cam)
   
   for effect, batch in pairs(self.queue) do
     local estate = self.effects[effect]

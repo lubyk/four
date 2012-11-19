@@ -117,8 +117,8 @@ function lib:set4D(i, x, y, z, w)
   t[b + 4] = w;
 end
 
-function lib:setV3(i, v) self:set3(i, four.V3.tuple(v)) end
-function lib:setV4(i, v) self:set4(i, four.V4.tuple(v)) end
+function lib:setV3(i, v) self:set3D(i, four.V3.tuple(v)) end
+function lib:setV4(i, v) self:set4D(i, four.V4.tuple(v)) end
 
 --[[--
    h2. Append 

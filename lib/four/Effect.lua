@@ -6,12 +6,13 @@
 
   Given a geometry object @g@, a vertex shader input parameters
   @param@ is bound to the @g.data.param@.
-
 --]]--
 
--- Module definition
-
 local lib = { type = 'four.Effect' }
+four.Effect = lib
+
+local Color = four.Color
+local Effect = lib
 
 function lib.__index(e, k)           -- special handling for the uniforms key
   if k == "uniforms" then return rawget(e, "_uniforms")
@@ -23,7 +24,6 @@ function lib.__newindex(e, k, v)
    else rawset(e, k, v) end
 end
 
-four.Effect = lib
 setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
 
 -- h2. Constructor
@@ -81,14 +81,17 @@ lib.camera_to_clip = 3
 lib.model_to_camera = 4
 lib.model_to_clip = 5
 lib.normals_model_to_camera = 6
+lib.camera_resolution = 7
 
-lib.modelToWorld = { dim = 16, typ = lib.ft, transform = lib.model_to_world }
-lib.worldToCamera = { dim = 16, typ = lib.ft, transform = lib.world_to_camera }
-lib.cameraToClip = { dim = 16, typ = lib.ft, transform = lib.camera_to_clip }
-lib.modelToCamera = { dim = 16, typ = lib.ft, transform = lib.model_to_camera }
-lib.modelToClip = { dim = 16, typ = lib.ft, transform = lib.model_to_clip }
+lib.modelToWorld = { dim = 16, typ = lib.ft, special = lib.model_to_world }
+lib.worldToCamera = { dim = 16, typ = lib.ft, special = lib.world_to_camera }
+lib.cameraToClip = { dim = 16, typ = lib.ft, special = lib.camera_to_clip }
+lib.modelToCamera = { dim = 16, typ = lib.ft, special = lib.model_to_camera }
+lib.modelToClip = { dim = 16, typ = lib.ft, special = lib.model_to_clip }
 lib.normalModelToCamera = { dim = 16, typ = lib.ft, 
-                             transform = lib.normals_model_to_camera }
+                             special = lib.normals_model_to_camera }
+lib.cameraResolution = { dim = 2, typ = lib.ft, 
+                         special = lib.camera_resolution }
 
 function lib.U(o) -- TODO int request
   local ot = type(o)
@@ -108,7 +111,7 @@ function lib.U(o) -- TODO int request
 end
 
 function fromUniform(u) -- removes the uniform typing information 
-  if u.transform then return "Depends on camera and renderable transform" else
+  if u.special then return "Depends on camera and renderable transform" else
     if u.dim == 1 then 
       if u.typ == lib.bt then return u.v[1] == 0
       else return u.v[1] end
@@ -194,27 +197,72 @@ function lib:fragmentShaderSource(pretty)
   return f
 end
 
------- 
+-- h2. Predefined Effects
 
-function lib.FlatShading(color) 
-local vertex_shader =
-[[#version 150
-in  vec3 vertex;
-out vec3 color;
-void main(void)
-{
-  gl_Position(vertex, 1.0)
+--[[--
+  @Wireframe(def)@ renders triangle geometry as wireframe. @def@ keys:
+  * @fill@, a Color defining the triangle fill color (defaults 
+    to Color.white ()).
+  * @wite@, a Color defining the wireframe color (default to Color.red().
+
+  Effect adapted from http://cgg-journal.com/2008-2/06/index.html.
+--]]--
+function lib.Wireframe(def)
+  return Effect
+  {
+    uniforms = 
+      { 
+        model_to_clip = Effect.modelToClip,
+        resolution = Effect.cameraResolution,
+        fill = def and def.fill or Color.white (),
+        wire = def and def.wire or Color.red ()
+      },
+      
+    vertex = Effect.Shader [[
+      in vec4 vertex;
+      void main() { gl_Position = model_to_clip * vertex; }
+    ]],  
+
+    geometry = Effect.Shader [[
+      layout(triangles) in;
+      layout(triangle_strip, max_vertices=3) out;
+      noperspective out vec3 dist;
+      void main(void)
+      {
+        vec2 p0 = resolution * gl_in[0].gl_Position.xy/gl_in[0].gl_Position.w;
+        vec2 p1 = resolution * gl_in[1].gl_Position.xy/gl_in[1].gl_Position.w;
+        vec2 p2 = resolution * gl_in[2].gl_Position.xy/gl_in[2].gl_Position.w;
+  
+        vec2 v0 = p2 - p1;
+        vec2 v1 = p2 - p0;
+        vec2 v2 = p1 - p0;
+        float area = abs(v1.x * v2.y - v1.y * v2.x);
+
+        dist = vec3(area / length(v0), 0, 0);
+        gl_Position = gl_in[0].gl_Position;
+        EmitVertex();
+	
+        dist = vec3(0, area/length(v1), 0);
+        gl_Position = gl_in[1].gl_Position;
+        EmitVertex();
+
+        dist = vec3(0, 0, area/length(v2));
+        gl_Position = gl_in[2].gl_Position;
+        EmitVertex();
+
+        EndPrimitive();
+      }  
+ ]],
+
+  fragment = Effect.Shader [[
+    noperspective in vec3 dist;
+    out vec4 color;
+    void main(void)
+    {
+      float d = min(dist[0],min(dist[1],dist[2]));
+      float I = exp2(-2*d*d);
+      color = mix(fill, wire, I); // I*wire + (1.0 - I)*fill;
+    }
+  ]]
 }
-]]
-
-local fragment_shader = 
-[[#version 150
-
-in vec3 color;
-out vec4 out_color;
-void main (void) 
-{
-  out_color = vec4 (color, 1.0);
-}
-]]
 end
