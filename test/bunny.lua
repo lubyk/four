@@ -9,6 +9,7 @@ local Color = four.Color
 local Transform = four.Transform
 local Effect = four.Effect
 local Camera = four.Camera 
+local Manip = four.Manip
 
 local gooch = Effect
 {
@@ -108,7 +109,7 @@ function manip_orient_update (relat, m, v)
   else m.transform.rot = Quat.ofV4(q) end
 end
 
-local bunny_orient = nil
+local rotator = nil
 
 -- Render
 
@@ -136,18 +137,24 @@ end
 
 function win:click(x, y, op)
   if op == mimas.MousePress then 
+    -- TODO factor out conversion to ndc.
     local pos = V2.div (V2(x, y), renderer.size)
     pos[2] = 1 - pos[2]
+    pos = 2 * pos - V2(1.0, 1.0)
+    -- END todo
 
-    cube_orient = manip_orient(bunny.transform, pos)
-    win:update()
+    rotator = Manip.Rot(pos, bunny.transform.rot)
   end
 end
 
 function win:mouse(x, y)
+  -- TODO factor out conversion to ndc.
   local pos = V2.div (V2(x, y), renderer.size)
   pos[2] = 1 - pos[2]
-  manip_orient_update(true, cube_orient, pos)
+  pos = 2 * pos - V2(1.0, 1.0)
+  -- END todo
+ 
+  bunny.transform.rot = Manip.rotUpdate(rotator, pos)
   win:update()
 end
 
