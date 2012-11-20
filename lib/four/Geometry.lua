@@ -103,7 +103,6 @@ function lib:computeVertexNormals ()
   local vertex = self.data.vertex 
   local index = self.index
   local tri_count = index:length() / 3
-  local v_count = vertex:length()
   local ns = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
 
   for i = 1, vertex:length(), 1 do ns:set3D(i, 0, 0, 0) end
@@ -132,7 +131,6 @@ end
   extents.
 --]]--
 function lib.Cuboid(extents)
-  
   local x, y, z = V3.tuple(0.5 * extents)
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   local is = Buffer { dim = 1, scalar_type = Buffer.UNSIGNED_INT }
@@ -147,7 +145,7 @@ function lib.Cuboid(extents)
   vs:push3D(-x,  y, -z)  
   vs:push3D( x,  y, -z)
 
-  -- Faces (triangles), TODO seems wrong orientation
+  -- Faces (triangles)
   is:push3D(0, 3, 2)
   is:push3D(0, 1, 3)
   is:push3D(0, 5, 1)
@@ -168,3 +166,59 @@ end
 
 -- @Cube(s)@ is a cube with side length @s@ centered on the origin.
 function lib.Cube(s) return lib.Cuboid(V3(s, s, s)) end
+
+--[[--
+  @Sphere(r[,level])@ is a sphere of radius @r@ centered on the origin.
+  The optional parameter @level@ defines the subdivision level (defaults
+  to @10@. Number of triangles is @4^level * 8@
+  
+--]]--                                                                
+function lib.Sphere(r, level)
+  local ra = r / math.sqrt(2)
+  local level = level or 4
+  local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
+  local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
+
+  -- Level 0 isocahedron 
+  vs:push3D( 0,  0,  r)
+  vs:push3D( 0,  0, -r)
+  vs:push3D(-ra, -ra,  0)
+  vs:push3D( ra, -ra,  0)
+  vs:push3D( ra,  ra,  0)
+  vs:push3D(-ra,  ra,  0)
+  is:push3D(0, 3, 4)
+  is:push3D(0, 4, 5)
+  is:push3D(0, 5, 2)
+  is:push3D(0, 2, 3)
+  is:push3D(1, 4, 3)
+  is:push3D(1, 5, 4)
+  is:push3D(1, 2, 5)
+  is:push3D(1, 3, 2)
+
+  -- For each face we split its edges in two, move the new points on
+  -- the sphere and add the resulting faces to the index
+  for i = 1,level,1 do 
+    for i = 1, is:length(), 1 do
+      local p1i, p2i, p3i = is:get3D(i)
+      local p1 = vs:getV3(p1i + 1) -- one based
+      local p2 = vs:getV3(p2i + 1)
+      local p3 = vs:getV3(p3i + 1)
+      local pmaxi = vs:length()
+      vs:pushV3(r * V3.unit(0.5 * (p1 + p2))) local pai = pmaxi -- zero based
+      vs:pushV3(r * V3.unit(0.5 * (p2 + p3))) local pbi = pmaxi + 1
+      vs:pushV3(r * V3.unit(0.5 * (p3 + p1))) local pci = pmaxi + 2
+      is:push3D(p1i, pai, pci)
+      is:push3D(pai, p2i, pbi)
+      is:push3D(pbi, p3i, pci)
+      is:set3D(i, pai, pbi, pci)
+    end 
+  end
+
+  lk.log("TODO fix that in the renderer")
+  is.dim = 1
+
+  return lib.new({ name = "four.sphere", primitive = lib.TRIANGLES,
+                   data = { vertex = vs }, index = is, 
+                   extents = extents })
+end
+

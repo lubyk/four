@@ -15,6 +15,8 @@ local cube =
     geometry = four.Geometry.Cube(1),
     effect = Effect.Wireframe () }
 
+cube.geometry:computeVertexNormals();
+
 local camera = Camera { transform = Transform { pos = V3(0, 0, 5) } }
 
 local rotator = nil
@@ -28,6 +30,7 @@ function win:resizeGL(w, h)
   renderer.size = V2(w, h) 
   camera.aspect = w / h
 end
+
 function win:paintGL() renderer:render(camera, {cube}) end
 function win:initializeGL() renderer:logInfo() end
 function win:keyboard(key, down, utf8, modifiers)
