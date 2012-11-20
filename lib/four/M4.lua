@@ -46,7 +46,7 @@ local M4 = lib.M4
 
 function lib.row(m, i) return four.V4(m[i], m[4 + i], m[8 + i], m[12 + i]) end
 function lib.col(m, i)
-  local b = i * 4
+  local b = (i - 1) * 4
   return four.V4(m[b + 1], m[b + 2], m[b + 3], m[b + 4])
 end
 
