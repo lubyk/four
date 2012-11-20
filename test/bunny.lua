@@ -67,47 +67,15 @@ local gooch = Effect
 }
 
 local bunny = 
-  { transform = Transform {},
+  { transform = Transform { pos = V3(0, -0.1, 0),
+                            rot = Quat.rotZYX(V3(0, math.pi/6, 0))} ,
     geometry = bunny (),
     effect = gooch }
 
 bunny.geometry:computeVertexNormals()
 
-local camera = Camera { transform = Transform { pos = V3(0, 0.1, 0.5) },
-                        range = V2(0.1, 5)
---                        viewport = { origin = V2(0.5, 0.5), 
---                                     size = V2(0.5, 0.5) }
-}
-
--- TODO factor out and debug manipulators.
-
-function manip_sphere_point(radius, center, v)
-  local p = (1 / radius) * (v - center) 
-  local d = V2.norm2(v)
-  if d > 1 then 
-    local a = 1 / math.sqrt(d)
-    return V3.ofV2(a * p, 0.0)
-  else
-    return V3.ofV2(p, math.sqrt(1.0 - d))
-  end
-end
-
-function manip_orient(tr, start)
-  local center = V2(0,0)
-  local radius = 1.0
-  return { center = center,
-           radius = radius,
-           start = manip_sphere_point(radius, center, start),
-           relative = tr.rot,
-           transform = tr }
-end
-
-function manip_orient_update (relat, m, v) 
-  local p = manip_sphere_point(m.radius, m.center, v) 
-  local q = V4.ofV3(V3.cross(m.start, p), V3.dot(m.start, p))
-  if relat then m.transform.rot = Quat.mul(m.relative, Quat.ofV4(q)) 
-  else m.transform.rot = Quat.ofV4(q) end
-end
+local camera = Camera { transform = Transform { pos = V3(0, 0, 0.5) },
+                        range = V2(0.1, 5) }
 
 local rotator = nil
 
