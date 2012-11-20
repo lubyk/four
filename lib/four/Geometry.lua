@@ -214,7 +214,7 @@ function lib.Sphere(r, level)
     end 
   end
 
-  lk.log("TODO fix that in the renderer")
+  -- TODO fix the renderer so that we don't need to change dim
   is.dim = 1
 
   return lib.new({ name = "four.sphere", primitive = lib.TRIANGLES,

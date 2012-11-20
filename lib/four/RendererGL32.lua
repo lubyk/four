@@ -202,7 +202,9 @@ end
 function lib:geometryStateBind(estate, gstate)
   lo.glBindVertexArray(gstate.vao)
   for attr, loc in pairs(gstate.data_loc) do
-    lo.glBindAttribLocation(estate.program, loc, attr)
+    if lo.glGetAttribLocation(estate.program, attr) ~= - 1 then 
+      lo.glBindAttribLocation(estate.program, loc, attr)
+    end
   end
 
   -- NOTE for now we need to relink the shader due to attrib
