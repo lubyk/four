@@ -164,10 +164,7 @@ function makeSnakeRenderTransforms(snake)
         elem.transform.pos = V3(w:getOrigin():getX(),
                                 w:getOrigin():getY(),
                                 w:getOrigin():getZ())
-        elem.transform.rot = Quat(w:getRotation():getX(),
-                                  w:getRotation():getY(),
-                                  w:getRotation():getZ(),
-                                  w:getRotation():getW())
+        elem.transform.rot = Quat(w:getRotation())
       end
     end
   end
