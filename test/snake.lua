@@ -161,9 +161,7 @@ function makeSnakeRenderTransforms(snake)
     if not elem.transform then 
       elem.transform = Transform()
       function elem.motion:setWorldTransform(w)
-        elem.transform.pos = V3(w:getOrigin():getX(),
-                                w:getOrigin():getY(),
-                                w:getOrigin():getZ())
+        elem.transform.pos = V3(w:getOrigin())
         elem.transform.rot = Quat(w:getRotation())
       end
     end
