@@ -52,7 +52,7 @@ function lib.HSV(h, s, v, a)
   elseif i == 2 then return Color(p, v, t, a)
   elseif i == 3 then return Color(p, q, v, a)
   elseif i == 4 then return Color(t, p, v, a)
-  elseif return Color(v, p, q, a) end
+  else return Color(v, p, q, a) end
 end
 
 -- @r(c)@ is the @r@ component of @c@.

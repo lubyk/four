@@ -23,7 +23,7 @@ local function sphere_point(radius, center, v)
   end
 end
 
-function lib.Rot(start, relat)
+function lib.Rot(relat, start)
   local center = V2(0,0)
   local radius = 1.0
   local relative = relat or Quat.id ()

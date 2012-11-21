@@ -49,7 +49,7 @@ end
 
 function lib:set(def) 
   if def.backend then self.backend = def.backend end
-  if def.size then self.size = size end
+  if def.size then self.size = def.size end
   if def.log_fun then self.log_fun = log_fun end
 end
 
@@ -92,6 +92,19 @@ function lib:logInfo(verbose)
       self:log(string.format("* %s = %s", k, v)) 
     end
   end
+end
+
+-- h2. Screen coordinates
+
+--[[--
+  @r:normalizeScreenPos(pos [,noflip])@ is the normalized position of 
+  @pos@ expressed relative to the top left (bottom left if @noflip@ is true)
+  corner of the rendering surface.
+--]]--
+function lib:normalizeScreenPos(pos, noflip)  
+  local np = V2.div (pos, self.size)
+  if not noflip then np[2] = 1 - np[2] end
+  return np
 end
 
 -- h2. Rendering objects 

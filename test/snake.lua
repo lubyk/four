@@ -183,7 +183,6 @@ function effectWithID(i)
   return effects[(i % #effects) + 1]
 end
 
-local cam_rotator = nil
 local cam_pos = V3(-3, 8, 20)
 local cam_rot = Quat.rotMap(V3(0, 0, -1), V3.unit(-cam_pos)) -- look origin
 local camera = Camera { transform = Transform { pos = cam_pos,
@@ -191,108 +190,74 @@ local camera = Camera { transform = Transform { pos = cam_pos,
 local snake_geom_id = -1
 local snake_effect_id = -1
 
-function screen_to_ndc (renderer, pos)
-  -- TODO factor out conversion to ndc.
-  local pos = V2.div (pos, renderer.size)
-  pos[2] = 1 - pos[2] -- Mimas is upside down w.r.t. OpenGL screen coords
-  pos = 2 * pos - V2(1.0, 1.0)
-  return pos
-end
-
-function handle_command(cmd, win, renderer)
-  if cmd.Exit_fullscreen then 
-    win:showFullScreen(false)
-  elseif cmd.Toggle_fullscreen then 
-    win:swapFullScreen()
-  elseif cmd.Resize then 
-    renderer.size = cmd.size
-    camera.aspect = cmd.aspect
-  elseif cmd.Cycle_geometry then
+function command(app, c)
+  if c.ExitFullscreen then app.win:showFullScreen(false)
+  elseif c.ToggleFullscreen then app.win:swapFullScreen()
+  elseif c.Resize then camera.aspect = V2.x(app.size) / V2.y(app.size)
+  elseif c.CycleGeometry then
     snake_geom_id = snake_geom_id + 1; 
     local g, scale = geometryWithID(snake_geom_id)()
     g:computeVertexNormals()
     setSnakeGeometry(snake, g, scale)
-  elseif cmd.Cycle_effect then    
+  elseif c.CycleEffect then    
     snake_effect_id = snake_effect_id + 1;
     setSnakeEffect(snake, effectWithID(snake_effect_id)())
-  elseif cmd.Start_rotation then 
-    local pos = screen_to_ndc(renderer, cmd.pos)
-    cam_rotator = Manip.Rot(pos, camera.transform.rot)
-  elseif cmd.Rotation then 
-    local pos = screen_to_ndc(renderer, cmd.pos)
-    camera.transform.rot = Manip.rotUpdate(cam_rotator, pos)
-  elseif cmd.Zoom_in then 
+  elseif c.StartRotation then 
+    local pos = camera:screenToDevice(c.pos)
+    app.rotator = Manip.Rot(camera.transform.rot, pos)
+  elseif c.Rotation then 
+    local pos = camera:screenToDevice(c.pos)
+    camera.transform.rot = Manip.rotUpdate(app.rotator, pos)
+  elseif c.ZoomIn then 
     -- TODO factor that out 
     local forward = V3.unit(M4.col(Quat.toM4(camera.transform.rot),3))
     camera.transform.pos = camera.transform.pos - forward
-  elseif cmd.Zoom_out then 
+  elseif c.ZoomOut then 
     -- TODO factor that out 
     local forward = V3.unit(M4.col(Quat.toM4(camera.transform.rot),3))
     camera.transform.pos = camera.transform.pos + forward
-  elseif cmd.Quit then
   end
 end
 
-local w, h = 640, 360
-local renderer = four.Renderer { size = V2(w, h) }
-local win = mimas.GLWindow ()
+function event(app, e) 
+  local c = {} 
+  if e.Resize then c.Resize = true end
+  if e.KeyDown then 
+    if e.key == mimas.Key_Escape then c.ExitFullscreen = true
+    elseif e.key == mimas.Key_Space then c.ToggleFullscreen = true
+    elseif e.key == mimas.Key_Up then c.ZoomIn = true
+    elseif e.key == mimas.Key_Down then c.ZoomOut = true 
+    elseif e.utf8 == 'g' then c.CycleGeometry = true
+    elseif e.utf8 == 'e' then c.CycleEffect = true
+    end
+  end
+  if e.MouseDown then c.StartRotation = true c.pos = e.pos end
+  if e.MouseMove then c.Rotation = true c.pos = e.pos end
+  command(app, c)
+end
 
-function win:initializeGL() 
-  renderer:logInfo() 
-  handle_command({ Cycle_geometry = true }, self, renderer) -- init geom
-  handle_command({ Cycle_effect = true }, self, renderer)   -- init effect
+-- Application
+
+local app = App { event = event, camera = camera, objs = snake }
+
+function app.win:initializeGL() 
+  app.renderer:logInfo() 
+  command(app, { CycleGeometry = true }) -- init geom
+  command(app, { CycleEffect = true })   -- init effect
   makeSnakeRenderTransforms(snake)
 end
 
-function win:paintGL() renderer:render(camera, snake) end
-function win:resizeGL(w, h) 
-  local cmd = { Resize = true, size = V2(w, h), aspect = w / h }
-  handle_command(cmd, self, renderer)
-  self:update()
-end
-
-function win:keyboard(key, down, utf8, modifiers)
-  local cmd = {}
-  if down then
-    if key == mimas.Key_Escape then cmd.Exit_fullscreen = true
-    elseif key == mimas.Key_Space then cmd.Toggle_fullscreen = true
-    elseif key == mimas.Key_Down then cmd.Zoom_out = true
-    elseif key == mimas.Key_Up then cmd.Zoom_in = true
-    elseif utf8 == 'g' then cmd.Cycle_geometry = true
-    elseif utf8 == 'e' then cmd.Cycle_effect = true
-    end
-  end
-  handle_command(cmd, self, renderer)
-  self:update()
-end
-
-function win:click(x, y, op)
-  local cmd = {} 
-  if op == mimas.MousePress then 
-    cmd = { Start_rotation = true, pos = V2(x, y) }
-  end
-  handle_command(cmd, self, renderer)
-  self:update()
-end
-
-function win:mouse(x, y)
-  local cmd = { Rotation = true, pos = V2(x, y) }
-  handle_command(cmd, self, renderer)
-  self:update()
-end
-
-win:move(650, 50)
-win:resize(w, h)
-win:show()
+app.init ()
 
 -- Run simulation
+
 local step = 1/60
 local t = 0
 timer = lk.Timer(step * 1000, function()
   t = t + step
   updateMotors(snake, t)
   dynamicsWorld:stepSimulation(step, 10)
-  win:update()
+  app.win:update()
 end)
 timer:start()
 

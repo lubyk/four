@@ -215,7 +215,8 @@ function lib.Wireframe(def)
         model_to_clip = Effect.modelToClip,
         resolution = Effect.cameraResolution,
         fill = def and def.fill or Color.white (),
-        wire = def and def.wire or Color.red ()
+        wire = def and def.wire or Color.red (),
+        hidden_surface = true
       },
       
     vertex = Effect.Shader [[
@@ -261,6 +262,7 @@ function lib.Wireframe(def)
     {
       float d = min(dist[0],min(dist[1],dist[2]));
       float I = exp2(-2*d*d);
+      if (!hidden_surface && I < 0.01) { discard; }
       color = mix(fill, wire, I); // I*wire + (1.0 - I)*fill;
     }
   ]]

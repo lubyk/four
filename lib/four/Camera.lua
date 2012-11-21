@@ -77,7 +77,8 @@ lib.CUSTOM = 3
 
 --[[--
   @Camera(def)@ is a new camera object. @def@ keys:
-  * @transform@, defines the location and orientation of the camera.
+  * @transform@, defines the location and orientation of the camera. Default
+    transform lies at the origin and looks down the z-axis.
   * @projection@, the kind of projection to use (defaults to @PERSPECTIVE@).
   * @range@, for non-@CUSTOM@ projections defines the near and far clip plane 
     (defaults to @V2(1, 100)@). Clip planes are perpendicular to the camera 
@@ -87,7 +88,8 @@ lib.CUSTOM = 3
   * @aspect@, for non-@CUSTOM@ projections, defines the camera width/height 
     ratio
   * @viewport@, table with @origin@ and @size@ keys defining the viewport
-    in normalized screen coordinates. Defaults covers the viewport. 
+    in normalized screen coordinates of the renderer. Defaults covers 
+    the whole renderer viewport.
   * @background@, TODO
   * @effect_override@, specifies an effect to use instead of the renderable's 
     Effects.
@@ -132,4 +134,13 @@ function lib:set(def)
   if def.background then self.background = def.background end
   if def.viewport then self.viewport = def.viewport end
   if def.effect_override then self.effect_override = def.effect_override end
+end
+
+--[[--
+  c:screenToDevice(pos) is the normalized device coordinates of the normalized
+  screen coordinates @pos@ in @c@.
+--]]--
+function lib:screenToDevice(pos) 
+  local nvp = V2.div(pos - self.viewport.origin, self.viewport.size)
+  return 2 * nvp - V2(1,1)
 end
