@@ -29,14 +29,13 @@ local meta = {} -- for operators, see at the end of file
 --]]--
 function lib.Quat(x, y, z, w) 
   local q = {} 
-  if not y then 
+  if y then q = { x, y, z, w }    
+  else
     if x.type == "bt.Quaternion" then 
       q = { x:getX(), x:getY(), x:getZ(), x:getW() }
     else
       assert(false, string.format("Cannot convert %s to %s", x.type, lib.type))
     end
-  else
-    q = { x, y, z, w }    
   end
   setmetatable(q, meta)
   return q
@@ -44,16 +43,17 @@ end
 
 local Quat = lib.Quat
 
+
 -- h2. Converters
+
+-- @ofV4(v)@ is a quaternion with @v@'s components. 
+function lib.ofV4(v) return V4(v[1], v[2], v[3], v[4]) end
 
 -- @tuple(q)@ is @x, y, z, w@, the components of @q@.
 lib.tuple = V4.tuple
 
 -- @tostring(q)@ is a textual representation of @q@.
 lib.tostring = V4.tostring
-
--- @ofV4(v)@ is a quaternion with @v@'s components. 
-function lib.ofV4(v) return V4(v[1], v[2], v[3], v[4]) end
 
 --[[--
   @ofM4(m)@ is the unit quaternion for the rotation in the 3x3 top left matrix 
@@ -104,6 +104,7 @@ function lib.toM4(q)
                 0,                     0,             0,  1)
 end
 
+
 -- h2. Constants 
 
 lib.quat_eps = 1e-9
@@ -113,6 +114,7 @@ lib.zero = V4.zero
 
 -- @id()@ is the identity quaternion.
 lib.id = V4.ow
+
 
 -- h2. Functions
 
@@ -272,6 +274,7 @@ function lib.apply4D(q, v)                 -- NOTE, code duplicate with apply3D
               v[4])
 end
 
+
 -- h2. Operators
 
 meta.__unm = V4.neg
@@ -279,5 +282,3 @@ meta.__add = V4.add
 meta.__sub = V4.sub
 meta.__mul = lib.mul
 meta.__tostring = lib.tostring
-
-

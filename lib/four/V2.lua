@@ -136,7 +136,7 @@ end
 -- @map(f, v)@ is @V2(f(v1), f(v2))@.
 function lib.map(f, v) return V2(f(v[1]), f(v[2])) end
 
--- @mapi(f, v)@ is @V2(f(i, v1), f(i, v2)@.
+-- @mapi(f, v)@ is @V2(f(1, v1), f(2, v2)@.
 function lib.mapi(f, v) return V2(f(1, v[1]), f(2, v[2])) end
 
 -- @fold(f, acc, v)@ is @f(f(acc, v1), v2)@.

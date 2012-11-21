@@ -170,7 +170,7 @@ end
 -- @map(f, v)@ is @V3(f(v1), f(v2), f(v3))@.
 function lib.map(f, v) return V3(f(v[1]), f(v[2]), f(v[3])) end
 
--- @mapi(f, v)@ is @V3(f(i, v1), f(i, v2), f(i, v3))@.
+-- @mapi(f, v)@ is @V3(f(1, v1), f(2, v2), f(3, v3))@.
 function lib.mapi(f, v) return V3(f(1, v[1]), f(2, v[2]), f(3, v[3])) end
 
 -- @fold(f, acc, v)@ is @f(f(f(acc, v1), v2), v3)@.
