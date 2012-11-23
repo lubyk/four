@@ -112,6 +112,13 @@ end
 function lib:getGlLimits()
   local geti = gl.hi.glGetIntegerv
   self.limits.max_vertex_attribs = geti(lo.GL_MAX_VERTEX_ATTRIBS)
+-- Gl 4.3 self.limits.max_uniform_locations  = geti(lo.GL_MAX_UNIFORM_LOCATIONS)
+  self.limits.max_vertex_uniform_comps = 
+    geti(lo.GL_MAX_VERTEX_UNIFORM_COMPONENTS )
+  self.limits.max_geometry_uniform_comps = 
+    geti(lo.GL_MAX_GEOMETRY_UNIFORM_COMPONENTS )
+  self.limits.max_fragment_uniform_comps = 
+    geti(lo.GL_MAX_FRAGMENT_UNIFORM_COMPONENTS )
 end
 
 function lib:bufferDataParams(buffer)

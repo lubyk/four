@@ -1,4 +1,4 @@
--- Downloaded with
+-- Preamble an C part downloaded with
 -- curl -O https://raw.github.com/malkia/ufo/master/ffi/OpenGL.lua
 -- License must be MIT, check that again, in any case that's mostly 
 -- just a gl.h. Besides we could remove the non gl3.h stuff.
@@ -1002,7 +1002,8 @@ GL_LINE_STRIP_ADJACENCY           = 0x000B,
 GL_TRIANGLES_ADJACENCY            = 0x000C,
 GL_TRIANGLE_STRIP_ADJACENCY       = 0x000D,
 
-
+GL_MAX_UNIFORM_LOCATIONS  =        0x826E,
+GL_MAX_GEOMETRY_UNIFORM_COMPONENTS = 0x8DDF
 };
 typedef unsigned int GLenum;
 typedef unsigned char GLboolean;

@@ -136,10 +136,10 @@ function lib.smul(s, b) -- scalar multiplication
 end
 
 function lib.transpose(a) 
-  return M4(a[1], a[5], a[ 9], a[13],
-            a[2], a[6], a[10], a[14],
-            a[3], a[7], a[11], a[15],
-            a[4], a[8], a[12], a[16])
+  return M4(a[ 1], a[ 2], a[ 3], a[ 4],
+            a[ 5], a[ 6], a[ 7], a[ 8],
+            a[ 9], a[10], a[11], a[12],
+            a[13], a[14], a[15], a[16])
 end
 
 function lib.trace(a) return a[1] + a[6] + a[11] + a[16] end

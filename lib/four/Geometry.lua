@@ -104,7 +104,7 @@ function lib:computeVertexNormals ()
   local index = self.index
   local tri_count = index:length() / 3
   local ns = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
-
+  
   for i = 1, vertex:length(), 1 do ns:set3D(i, 0, 0, 0) end
   for i = 1, tri_count, 1 do
     local b = (i - 1) * 3
@@ -120,7 +120,7 @@ function lib:computeVertexNormals ()
     ns:setV3(vi3, ns:getV3(vi3) + n)
   end
 
-  for i = 1, ns:length(), 1 do ns:setV3(i, V3.unit (ns:getV3(i))) end
+  for i = 1, ns:length(), 1 do ns:setV3(i, V3.unit(ns:getV3(i))) end
   self.data.normal = ns
 end
 
@@ -134,9 +134,8 @@ function lib.Cuboid(extents)
   local x, y, z = V3.tuple(0.5 * extents)
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   local is = Buffer { dim = 1, scalar_type = Buffer.UNSIGNED_INT }
-  
-  -- Vertices
-  vs:push3D(-x, -y,  z)
+ 
+  vs:push3D(-x, -y,  z) -- Vertices
   vs:push3D( x, -y,  z)
   vs:push3D(-x,  y,  z)
   vs:push3D( x,  y,  z)
@@ -144,9 +143,7 @@ function lib.Cuboid(extents)
   vs:push3D( x, -y, -z)
   vs:push3D(-x,  y, -z)  
   vs:push3D( x,  y, -z)
-
-  -- Faces (triangles)
-  is:push3D(0, 3, 2)
+  is:push3D(0, 3, 2)    -- Faces (triangles)
   is:push3D(0, 1, 3)
   is:push3D(0, 5, 1)
   is:push3D(0, 4, 5)
@@ -171,7 +168,6 @@ function lib.Cube(s) return lib.Cuboid(V3(s, s, s)) end
   @Sphere(r[,level])@ is a sphere of radius @r@ centered on the origin.
   The optional parameter @level@ defines the subdivision level (defaults
   to @10@. Number of triangles is @4^level * 8@
-  
 --]]--                                                                
 function lib.Sphere(r, level)
   local ra = r / math.sqrt(2)
