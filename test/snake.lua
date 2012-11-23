@@ -242,6 +242,11 @@ local app = App { event = event, camera = camera, objs = snake }
 
 function app.win:initializeGL() 
   app.renderer:logInfo() 
+  local limits = app.renderer:limits ()
+  print(limits)
+  for k, v in pairs(limits) do 
+    print(k, v)
+  end
   command(app, { CycleGeometry = true }) -- init geom
   command(app, { CycleEffect = true })   -- init effect
   makeSnakeRenderTransforms(snake)

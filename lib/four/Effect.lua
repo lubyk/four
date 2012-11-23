@@ -40,7 +40,7 @@ setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
 --]]--
 function lib.new(def)
   local self = 
-    { version = "150",
+    { version = "150 core",
       vertex = lib.Shader [[void main(void) {}]],
       geometry = nil, -- optional
       fragment = lib.Shader [[void main(void) {}]],
