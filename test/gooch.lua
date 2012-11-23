@@ -30,13 +30,14 @@ function gooch () return Effect
       void main() 
       { 
         vec3 ecPos = vec3(model_to_cam * vec4(vertex, 1.0));
-        vec3 tnorm = normalize(vec3(normal_to_cam * vec4(normal, 0.0)));
+        vec3 tnorm = normalize(normal_to_cam * normal);
         vec3 light = normalize(light_pos - ecPos);
         reflect = normalize(reflect(-light, tnorm));
         view = normalize(-ecPos);
         n_dot_l = 0.5 * (dot(light, tnorm) + 1.0);
 
-        vec3 d_pos = 0.001 * (-1 + sin(2 * time)) * tnorm; // geom pulse
+  //      vec3 d_pos = 0.001 * (sin(2 * time)) * tnorm; // geom pulse
+        vec3 d_pos = 0.003 * (sin(200 * time * vertex.x * vertex.y)) * tnorm; // geom pulse
         gl_Position = camera_to_clip * vec4(ecPos + d_pos, 1.0);
       }
     ]],  

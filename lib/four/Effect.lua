@@ -88,7 +88,7 @@ lib.worldToCamera = { dim = 16, typ = lib.ft, special = lib.world_to_camera }
 lib.cameraToClip = { dim = 16, typ = lib.ft, special = lib.camera_to_clip }
 lib.modelToCamera = { dim = 16, typ = lib.ft, special = lib.model_to_camera }
 lib.modelToClip = { dim = 16, typ = lib.ft, special = lib.model_to_clip }
-lib.normalModelToCamera = { dim = 16, typ = lib.ft, 
+lib.normalModelToCamera = { dim = 9, typ = lib.ft, 
                              special = lib.normals_model_to_camera }
 lib.cameraResolution = { dim = 2, typ = lib.ft, 
                          special = lib.camera_resolution }
@@ -113,7 +113,7 @@ end
 function fromUniform(u) -- removes the uniform typing information 
   if u.special then return "Depends on camera and renderable transform" else
     if u.dim == 1 then 
-      if u.typ == lib.bt then return u.v[1] == 0
+      if u.typ == lib.bt then return u.v[1] == 1
       else return u.v[1] end
     else return u.v end
   end
@@ -160,6 +160,7 @@ local function glslUniform(n, u)
   local s = string.format
   if u.dim == 1 then return s("uniform %s %s;", uTypeScalar[u.typ], n)
   elseif u.dim <= 5 then return s("uniform %s%d %s;", uTypeVec[u.typ], u.dim, n)
+  elseif u.dim == 9 then return s("uniform mat3 %s;", n)
   elseif u.dim == 16 then return s("uniform mat4 %s;", n)
   else assert(false) end
 end

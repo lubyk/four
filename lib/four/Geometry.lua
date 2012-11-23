@@ -95,11 +95,13 @@ function lib:computeBoundRadius ()
 end
 
 --[[--
-  @computeVertexNormals()@ computes per vertex normals for all 
+  @computeVertexNormals(force)@ computes per vertex normals for all 
   the 3D points of @self.data.vertex@ and stores them in @self.data.normal@.
-  *WARNING* works only with @Geometry.TRIANGLE@ primitive.
+  *WARNING* works only with @Geometry.TRIANGLE@ primitive. Does nothing
+  if @data.normal@ exists and force is @false@ (default).
 --]]--
-function lib:computeVertexNormals ()
+function lib:computeVertexNormals (force)
+  if self.data.normal and not force then return end
   local vertex = self.data.vertex 
   local index = self.index
   local tri_count = index:length() / 3
@@ -133,16 +135,22 @@ end
 function lib.Cuboid(extents)
   local x, y, z = V3.tuple(0.5 * extents)
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
+  local ns = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   local is = Buffer { dim = 1, scalar_type = Buffer.UNSIGNED_INT }
- 
-  vs:push3D(-x, -y,  z) -- Vertices
-  vs:push3D( x, -y,  z)
-  vs:push3D(-x,  y,  z)
-  vs:push3D( x,  y,  z)
-  vs:push3D(-x, -y, -z)
-  vs:push3D( x, -y, -z)
-  vs:push3D(-x,  y, -z)  
-  vs:push3D( x,  y, -z)
+  local vertices = { V3(-x, -y,  z),
+                     V3( x, -y,  z),
+                     V3(-x,  y,  z),
+                     V3( x,  y,  z),
+                     V3(-x, -y, -z),
+                     V3( x, -y, -z),
+                     V3(-x,  y, -z),
+                     V3( x,  y, -z) }
+
+  for _, v in ipairs(vertices) do 
+    vs:pushV3(v)
+    ns:pushV3(V3.unit(v))
+  end
+
   is:push3D(0, 3, 2)    -- Faces (triangles)
   is:push3D(0, 1, 3)
   is:push3D(0, 5, 1)
@@ -157,7 +165,7 @@ function lib.Cuboid(extents)
   is:push3D(4, 6, 7)
 
   return lib.new ({ name = "four.cuboid", primitive = lib.TRIANGLES, 
-                    data = { vertex = vs }, index = is, 
+                    data = { vertex = vs, normal = ns }, index = is, 
                     extents = extents })
 end
 
@@ -194,15 +202,33 @@ function lib.Sphere(r, level)
   -- For each face we split its edges in two, move the new points on
   -- the sphere and add the resulting faces to the index
   for i = 1,level,1 do 
+    local newones = {} -- new points indexed at their index (not efficient)
     for i = 1, is:length(), 1 do
       local p1i, p2i, p3i = is:get3D(i)
       local p1 = vs:getV3(p1i + 1) -- one based
       local p2 = vs:getV3(p2i + 1)
       local p3 = vs:getV3(p3i + 1)
-      local pmaxi = vs:length()
-      vs:pushV3(r * V3.unit(0.5 * (p1 + p2))) local pai = pmaxi -- zero based
-      vs:pushV3(r * V3.unit(0.5 * (p2 + p3))) local pbi = pmaxi + 1
-      vs:pushV3(r * V3.unit(0.5 * (p3 + p1))) local pci = pmaxi + 2
+      local pmaxi = vs:length() - 1 -- zero based
+      local pa = r * V3.unit(0.5 * (p1 + p2))
+      local pb = r * V3.unit(0.5 * (p2 + p3))
+      local pc = r * V3.unit(0.5 * (p3 + p1))
+      local pai = nil 
+      local pbi = nil 
+      local pci = nil
+      for i, p in pairs(newones) do 
+        if V3.eq(p, pa) then pai = i
+        elseif V3.eq(p, pb) then pbi = i
+        elseif V3.eq(p, pc) then pci = i end
+      end
+      if not pai then 
+        vs:pushV3(pa) pmaxi = pmaxi + 1 pai = pmaxi newones[pai] = pa
+      end
+      if not pbi then 
+        vs:pushV3(pb) pmaxi = pmaxi + 1 pbi = pmaxi newones[pbi] = pb
+      end
+      if not pci then 
+        vs:pushV3(pc) pmaxi = pmaxi + 1 pci = pmaxi newones[pci] = pc
+      end
       is:push3D(p1i, pai, pci)
       is:push3D(pai, p2i, pbi)
       is:push3D(pbi, p3i, pci)

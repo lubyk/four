@@ -267,7 +267,12 @@ function lib:getSpecialUniform(u, m2w)
   elseif u.special == Effect.model_to_clip then 
     return self.camera_to_clip * self.world_to_camera * m2w
   elseif u.special == Effect.normals_model_to_camera then
-    return M4.transpose(M4.inv(self.world_to_camera * m2w))
+    -- We don't have a M3 type yet. Do it the had-hoc way.
+    local m = M4.transpose(M4.inv(self.world_to_camera * m2w))
+    local m3 = { m[1], m[2], m[3],    -- fst col
+                 m[5], m[6], m[7],    -- snd col
+                 m[9], m[10], m[11] } -- trd col
+    return m3;
   elseif u.special == Effect.camera_resolution then 
     return self.camera_resolution
   end
@@ -310,6 +315,9 @@ function lib:effectBindUniforms(m2w, estate, effect)
       elseif u.typ == Effect.ut then 
         lo.glUniform4ui(loc, v[1], v[2], v[3], v[4])
       else assert(false) end
+    elseif u.dim == 9 then 
+      local m = ffi.new("GLfloat[?]", 9, v)
+      lo.glUniformMatrix3fv(loc, 1, lo.GL_FALSE, m)
     elseif u.dim == 16 then
       local m = ffi.new("GLfloat[?]", 16, v)
       lo.glUniformMatrix4fv(loc, 1, lo.GL_FALSE, m)
