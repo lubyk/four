@@ -269,3 +269,68 @@ function lib.Wireframe(def)
   ]]
 }
 end
+
+
+--[[--
+  @Normals(def)@ renders the normals of geometry.
+  * @normal_scale@, a scale factor to apply to the normals.
+  * @normal_color_start@, color at the starting point of the vector.
+  * @normal_color_end@, color at the end of vector. 
+--]]--
+function lib.Normals(def)
+return Effect
+{
+  uniforms = 
+    { model_to_cam = Effect.modelToCamera,
+      normal_to_cam = Effect.normalModelToCamera,
+      cam_to_clip = Effect.cameraToClip,
+      normal_scale = def and def.normal_scale or 0.1,
+      normal_color_start = def and def.normal_color_start or Color.black(),
+      normal_color_end = def and def.normal_color_end or Color.white() },
+    
+  vertex = Effect.Shader [[
+      in vec3 vertex;
+      in vec3 normal;
+      out vec4 v_position;
+      out vec3 v_snormal;
+
+      void main() 
+      { 
+         v_position = model_to_cam * vec4(vertex, 1.0);
+         v_snormal = normal_scale * normalize(normal_to_cam * normal);
+      }
+    ]],  
+  
+  geometry = Effect.Shader [[
+    layout(triangles) in;
+    layout(line_strip, max_vertices = 6) out;
+
+    in vec4 v_position[3];
+    in vec3 v_snormal[3];
+    out vec4 g_color;
+
+    void main()
+    {
+       for (int i = 0; i < 3; i++)
+       {
+         gl_Position = cam_to_clip * v_position[i];
+         g_color = normal_color_start;
+         EmitVertex();
+
+         gl_Position = cam_to_clip * (v_position[i] + vec4(v_snormal[i], 0.0));
+         g_color = normal_color_end;
+         EmitVertex();
+
+         EndPrimitive();
+       }
+    }
+  ]],
+  
+  fragment = Effect.Shader [[
+    in vec4 g_color;
+    out vec4 f_color;
+    void main(void) { f_color = g_color; }
+  ]]
+}
+end
+

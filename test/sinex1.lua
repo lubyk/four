@@ -1,5 +1,7 @@
 require 'lubyk'
 
+-- Effect by Gaspard Bucher (http://teti.ch)
+
 local V2 = four.V2
 local Effect = four.Effect 
 
@@ -160,7 +162,6 @@ end
 win:move(10, 800)
 win:resize(w, h)
 win:show()
---win:showFullScreen(true)
 
 local step = 1/60
 timer = lk.Timer(step * 1000, function() win:update() end)
