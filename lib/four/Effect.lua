@@ -26,6 +26,18 @@ end
 
 setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
 
+-- h2. Render states
+
+--[[--
+h3. Face culling
+In four, the convention is that faces with a counter clock-wise orientation
+are front faces.
+--]]--
+
+lib.CULL_NONE = 1
+lib.CULL_FRONT = 2
+lib.CULL_BACK = 3
+
 -- h2. Constructor
 
 --[[-- 
@@ -37,6 +49,9 @@ setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
   * @vertex@, vertex shader source.
   * @geometry@, geometry shader source (optional).
   * @fragment@, fragment shader source.
+  * @cull_face@, face culling (defaults to @CULL_BACK@).
+  * @polygon_offset@, scale and unit used to calculate depth values
+    (defaults to @{ factor = 0, units = 0 }@).
 --]]--
 function lib.new(def)
   local self = 
@@ -44,6 +59,8 @@ function lib.new(def)
       vertex = lib.Shader [[void main(void) {}]],
       geometry = nil, -- optional
       fragment = lib.Shader [[void main(void) {}]],
+      cull_face = lib.CULL_BACK,
+      polygon_offset = { factor = 0, units = 0 },
       _uniforms = { _table = {} },
       _preamble = nil, }
   setmetatable(self, lib)

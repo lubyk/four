@@ -172,6 +172,7 @@ function geometryWithID(i)
   local geoms =
     { function () return Geometry.Cube(0.5), V3(1, 1, 1) end,
       function () return Geometry.Sphere(0.25, 3), V3(1, 1, 1) end,
+      function () return Geometry.Plane(V2(0.5, 0.5)) end,
       function () return bunny (), V3(-3,3,3) end }
   return geoms[(i % #geoms) + 1]
 end 

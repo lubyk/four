@@ -14,6 +14,7 @@ four.Geometry = lib
 setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
 
 local Buffer = four.Buffer
+local V2 = four.V2
 local V3 = four.V3
 
 -- h2. Primitive constants
@@ -243,4 +244,27 @@ function lib.Sphere(r, level)
                    data = { vertex = vs }, index = is, 
                    extents = extents })
 end
+
+
+--[[--
+  @Plane(V2(w,h))@ is an Oxy plane of width @w@ and height @h@ centered
+  on the origin. 
+--]]--                                                                
+function lib.Plane(extents)
+  local hw, hh = V2.tuple(V2.half(extents))
+  local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
+  local is = Buffer { dim = 1, scalar_type = Buffer.UNSIGNED_INT }
+
+  vs:push3D(-hw, -hh, 0)
+  vs:push3D(hw, -hh, 0)
+  vs:push3D(hw, hh, 0)
+  vs:push3D(-hw, hh, 0)
+  is:push3D(0, 2, 3)
+  is:push3D(0, 1, 2)
+
+  return lib.new({ name = "four.plane", primitive = lib.TRIANGLES,
+                   data = { vertex = vs }, index = is, 
+                   extents = extents })
+end
+
 

@@ -99,7 +99,7 @@ function lib.div(u, v) return V2(u[1] / v[1], u[2] / v[2]) end
 function lib.smul(s, v) return V2(s * v[1], s * v[2]) end
 
 -- @half(v)@ is the half vector @smul(0.5, v)@.
-function lib.half(v) return V3(0.5 * v[1], 0.5 * v[2]) end
+function lib.half(v) return V2(0.5 * v[1], 0.5 * v[2]) end
 
 -- @dot(u, v)@ is the dot product @u.v@.
 function lib.dot(u, v) return u[1] * v[1] + u[2] * v[2] end

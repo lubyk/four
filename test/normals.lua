@@ -38,7 +38,8 @@ local obj_geom_id = -1
 function geometryWithID(i)
   local geoms =
     { function () return Geometry.Cube(1), V3(1, 1, 1) end,
-      function () return Geometry.Sphere(0.5, 3), V3(1, 1, 1) end,
+      function () return Geometry.Plane(four.V2(1,1)), V3(1, 1, 1) end,
+      function () return Geometry.Sphere(0.5, 3), V3(1, 1, 1) end,      
       function () return bunny (), V3(6,6,6) end }
   return geoms[(i % #geoms) + 1]
 end
