@@ -105,15 +105,15 @@ function lib:computeVertexNormals (force)
   if self.data.normal and not force then return end
   local vertex = self.data.vertex 
   local index = self.index
-  local tri_count = index:length() / 3
+  local tri_count = index:scalarLength() / 3
   local ns = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   
   for i = 1, vertex:length(), 1 do ns:set3D(i, 0, 0, 0) end
   for i = 1, tri_count, 1 do
     local b = (i - 1) * 3
-    local vi1 = index:get1D(b + 1) + 1
-    local vi2 = index:get1D(b + 2) + 1
-    local vi3 = index:get1D(b + 3) + 1
+    local vi1 = index:getScalar(b + 1) + 1
+    local vi2 = index:getScalar(b + 2) + 1
+    local vi3 = index:getScalar(b + 3) + 1
     local v1 = vertex:getV3(vi1)
     local v2 = vertex:getV3(vi2)
     local v3 = vertex:getV3(vi3)
@@ -236,9 +236,6 @@ function lib.Sphere(r, level)
       is:set3D(i, pai, pbi, pci)
     end 
   end
-
-  -- TODO fix the renderer so that we don't need to change dim
-  is.dim = 1
 
   return lib.new({ name = "four.sphere", primitive = lib.TRIANGLES,
                    data = { vertex = vs }, index = is, 

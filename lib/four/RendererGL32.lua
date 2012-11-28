@@ -123,7 +123,7 @@ function lib:getGlLimits()
 end
 
 function lib:bufferDataParams(buffer)
-  local len = #buffer.data 
+  local len = buffer:scalarLength()
   local data = buffer.data
   local type = buffer.scalar_type 
   local gltype = typeGLenum[type]
@@ -151,7 +151,7 @@ function lib:geometryStateAllocate(g)
   if state and (g.immutable or not g.dirty) then return state end
 
   state = { primitive = modeGLenum[g.primitive],
-            index_length = g.index:length (),
+            index_length = g.index:scalarLength (),
             index_scalar_type = typeGLenum[g.index.scalar_type],
             index = nil,    -- g.index buffer object id
             data = {},      -- maps g.data keys to buffer object ids

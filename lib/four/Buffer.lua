@@ -47,10 +47,14 @@ function lib:set(def)
   if def.data then self.data = def.data end
   if def.normalize then self.normalize = def.normalize end
 end
+
 function lib:length() return (#self.data / self.dim) end
+function lib:scalarLength() return #self.data end
+function lib:disposeBuffer() self.data = {} end
 
 -- h2. Getters 
 
+function lib:getScalar(i) return self.data[i] end
 function lib:get1D(i)
   local b = (i - 1) * self.dim 
   return self.data[b + 1]
@@ -88,6 +92,7 @@ end
 
 -- h2. Setters
 
+function lib:setScalar(i, x) self.data[i] = x end
 function lib:set1D(i, x)
   local b = (i - 1) * self.dim 
   self.data[b + 1] = x; 
@@ -160,6 +165,15 @@ function lib:pushV3(v) self:push3D(four.V3.tuple(v)) end
 function lib:pushV4(v) self:push4D(four.V4.tuple(v)) end
 
 -- h2. Traversing
+
+function lib:foldScalars(f, acc)
+  local t = self.data 
+  local acc = acc
+  for i = 1, self:scalarLength() do 
+    acc = f(acc, t[i])
+  end
+  return acc
+end
 
 function lib:fold1D(f, acc)
   local dim = self.dim
