@@ -29,6 +29,7 @@ function lib.new(super)
   local self = 
     {  super = super,
        limits = { max_vertex_attribs = 0 },
+       buffers = {},    -- Weakly maps Buffers to their buffer object id
        geometries = {}, -- Weakly maps Geometry object to gl geometry state
        effects = {},    -- Weakly maps Effects to their shader program id
        queue = {},      -- Maps gl programs ids to lists of renderables
@@ -37,6 +38,7 @@ function lib.new(super)
        camera_viewport_origin = nil,
        camera_resolution = nil
     }
+    setmetatable(self.buffers, { __mode = "k"})
     setmetatable(self.geometries, { __mode = "k" })
     setmetatable(self.effects, { __mode = "k"})
     setmetatable(self, lib)
@@ -138,6 +140,10 @@ function lib:bufferDataParams(buffer)
   elseif type == Buffer.UNSIGNED_INT then 
     return true, gltype, len * 4, ffi.new("GLuint[?]", len, data)
   else assert(false) end
+end
+
+function lib:bufferStateAllocate(g)
+  
 end
 
 function lib:geometryStateAllocate(g)

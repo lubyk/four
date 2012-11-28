@@ -29,13 +29,16 @@ lib.UNSIGNED_INT = 4
   * @data@, an array of numbers (defaults to @{}@)
   * @normalize@, @true@ if the data should be normalized by the gpu (defaults
     to @false@).
+  * @immutable@, if @true@, @data@b is disposed after the first render 
+    (defaults to true).
 --]]--
 function lib.new(def)
   local self = 
     { dim = 3,                  
       scalar_type = lib.FLOAT,  
       data = {},
-      normalize = false }               
+      normalize = false,
+      immutable = true }               
     setmetatable(self, lib)
     if def then self:set(def) end
     return self
@@ -46,6 +49,7 @@ function lib:set(def)
   if def.scalar_type then self.scalar_type = def.scalar_type end  
   if def.data then self.data = def.data end
   if def.normalize then self.normalize = def.normalize end
+  if def.immutable then self.immutable = def.immutable end
 end
 
 function lib:length() return (#self.data / self.dim) end

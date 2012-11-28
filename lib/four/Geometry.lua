@@ -42,7 +42,7 @@ lib.TRIANGLES_ADJACENCY = 11
     inputs.
   * @index@, @Buffer@ of ints (any dim), indexing into @data@ to define the 
     actual sequence of primitives. *WARNING* indices are zero-based.
-  * @immutable@, if @true@, @data@ and @index@ are disposed after 
+  * @immutable@, if @true@, @data@ and @index@ buffers are disposed after 
     the first render (defaults to true).
   * @name@, a user defined way of naming the geometry (may be used by
     the renderer to report errors about the object).
@@ -72,11 +72,11 @@ end
 
 -- h2. Geometry operations
 
--- @disposeBuffers()@ sets @self.index@ to @nil@ and @self.data@ to 
+-- @disposeBuffers()@ disposes @self.index@ and @self.data@ to 
 -- @{}@. The renderer calls this function if @self.immutable@ is @true@.
 function lib:disposeBuffers() 
-  self.data = {}
-  self.index = nil
+  for _, b in pairs(self.data) do b:disposeBuffer() end
+  self.index:disposeBuffer()
 end
 
 --[[-- 
@@ -130,10 +130,12 @@ end
 -- h2. Predefined geometries
 
 --[[--
-  @Cuboid(V3(w, h, d))@ is a cuboid centered on the origin with the given
-  extents.
+  @Cuboid(w, h, d)@ or @Cuboid(V3(w, h, d))@ is a cuboid centered on the 
+  origin with the given extents.
 --]]--
-function lib.Cuboid(extents)
+function lib.Cuboid(w, h, d)
+  local extents = w
+  if h then extents = V3(extents, h, d) end
   local x, y, z = V3.tuple(0.5 * extents)
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   local ns = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
@@ -171,7 +173,7 @@ function lib.Cuboid(extents)
 end
 
 -- @Cube(s)@ is a cube with side length @s@ centered on the origin.
-function lib.Cube(s) return lib.Cuboid(V3(s, s, s)) end
+function lib.Cube(s) return lib.Cuboid(s, s, s) end
 
 --[[--
   @Sphere(r[,level])@ is a sphere of radius @r@ centered on the origin.
