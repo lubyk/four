@@ -15,6 +15,7 @@ setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end })
 local V2 = four.V2
 local V4 = four.V4
 local Buffer = four.Buffer
+local Geometry = four.Geometry
 
 -- h2. Renderer backends
 
@@ -37,6 +38,7 @@ function lib.new(def)
     {  backend = lib.DEFAULT,   
        size = V2(480, 270),     
        log_fun = print,         
+       stats = lib.statsTable (), 
        error_line_pattern = "([^:]+):([^:]+):([^:]+):(.*)",
        debug = true,            -- More logging/diagnostics
        r = nil,                 -- Backend renderer object (private)
@@ -69,13 +71,75 @@ function lib:_init()
   end
 end
 
--- ## Renderer info
+
+-- h2. Renderer info
 
 function lib:info() self:_init() return self.r:getInfo() end
 function lib:caps() self:_init() return self.r:getCaps() end
 function lib:limits() self:_init() return self.r:getLimits() end
 
--- ## Renderer log
+
+-- h2. Render statistics
+
+function lib:stats() return self.stats end
+
+function lib.statsTable () 
+  return 
+    { frame_stamp = nil,          -- start time of last frame
+      sample_stamp = nil,         -- start time of sample 
+      sample_frame_count = 0,     -- number of frames in sample
+      frame_hz = 0,               -- frame rate
+      max_frame_hz = -math.huge,
+      min_frame_hz = math.huge,
+      frame_time = 0,            -- duration of last frame
+      max_frame_time = -math.huge,     
+      min_frame_time = math.huge,
+      frame_vertex_count = 0,     -- vertex count of current frame
+      frame_face_count = 0 }      -- face count of current frame
+end
+
+function lib:resetStats() self.stats = lib.statsTable () end
+function lib:updateStats() 
+  local now = now () 
+  local stats = self.stats
+  stats.frame_vertex_count = 0;
+  stats.frame_face_count = 0;
+  if not stats.frame_stamp then 
+    stats.frame_stamp = now
+    stats.sample_stamp = now
+  else 
+    local sample_duration = now - stats.sample_stamp
+    stats.sample_frame_count = stats.sample_frame_count + 1;
+    if sample_duration >= 1000 then 
+      stats.frame_hz = (stats.sample_frame_count / sample_duration) * 1000
+      stats.max_frame_hz = math.max(stats.frame_hz, stats.max_frame_hz)
+      stats.min_frame_hz = math.min(stats.frame_hz, stats.min_frame_hz)
+      stats.sample_frame_count = 0;
+      stats.sample_stamp = now
+    end
+    stats.frame_time = now - stats.frame_stamp
+    stats.max_frame_time = math.max(stats.frame_time, stats.max_frame_time)
+    stats.min_frame_time = math.min(stats.frame_time, stats.min_frame_time)
+    stats.frame_stamp = now
+  end
+end
+
+function lib:addGeometryStats(g)
+  local stats = self.stats
+  local v_count = g.index:length()
+  local f_count = 0
+  if g.primitive == Geometry.TRIANGLES then f_count = v_count / 3
+  elseif g.primitive == Geometry.TRIANGLE_STRIP then f_count = v_count - 2
+  elseif g.primitive == Geometry.TRIANGLE_FAN then f_count = v_count - 2
+  elseif g.primitive == Geometry.TRIANGLES_ADJACENCY then f_count = v_count / 6
+  elseif g.primitive == Geometry.TRIANGLE_STRIP_ADJACENCY then 
+    fcount = v_count / 2 - 4
+  end
+  stats.frame_vertex_count = stats.frame_vertex_count + v_count
+  stats.frame_face_count = stats.frame_face_count + f_count
+end
+
+-- h2. Renderer log
 
 function lib:log(s) self.log_fun(s) end
 function lib:logInfo(verbose)
@@ -118,8 +182,10 @@ end
 -- @render(cam, objs)@ renders the renderables in @objs@ with @cam@.
 function lib:render(cam, objs)
   self:_init ()
+  self:updateStats()
   for _, o in ipairs(objs) do  
     if self:isRenderable(cam, o) and not cam.cull(o) then
+      self:addGeometryStats(o.geometry)
       self.r:renderQueueAdd(cam, o)
     end
   end
