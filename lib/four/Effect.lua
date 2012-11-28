@@ -56,13 +56,14 @@ lib.CULL_BACK = 3
 function lib.new(def)
   local self = 
     { version = "150 core",
+      vertex_in = {},
+      vertex_out = {},
       vertex = lib.Shader [[void main(void) {}]],
       geometry = nil, -- optional
       fragment = lib.Shader [[void main(void) {}]],
       cull_face = lib.CULL_BACK,
       polygon_offset = { factor = 0, units = 0 },
-      _uniforms = { _table = {} },
-      _preamble = nil, }
+      _uniforms = { _table = {} }}
   setmetatable(self, lib)
   if def then self:set(def) end
   return self
@@ -70,10 +71,15 @@ end
 
 function lib:set(def) 
   if def.version then self.version = def.version end
+  if def.vertex_in then self.vertex_in = def.vertex_in end
+  if def.vertex_out then self.vertex_out = def.vertex_out end
   if def.vertex then self.vertex = def.vertex end
+  if def.geometry_out then self.geometry_out = def.geometry_out end
   if def.geometry then self.geometry = def.geometry end
+  if def.fragment_out then self.fragment_out = def.fragment_out end
   if def.fragment then self.fragment = def.fragment end
   if def.uniforms then self.uniforms = def.uniforms end
+
 end
 
 -- h2. Shader constructor
@@ -85,12 +91,37 @@ function lib.Shader(src)
   return { file = file, line = last_line - src_line_count, src_fragment = src }
 end
 
--- h2. Uniforms
+-- h2. GLSL type specifications
 
-lib.bt = 1
-lib.it = 2
-lib.ut = 3
-lib.ft = 4
+lib.bool_scalar = 1
+lib.int_scalar = 2
+lib.uint_scalar = 3
+lib.float_scalar = 4
+
+lib.bool = { dim = 1, scalar_type = lib.bool_scalar }
+lib.bvec2 = { dim = 2, scalar_type = lib.bool_scalar }
+lib.bvec3 = { dim = 3, scalar_type = lib.bool_scalar }
+lib.bvec4 = { dim = 4, scalar_type = lib.bool_scalar }
+
+lib.int = { dim = 1, scalar_type = lib.uint_scalar }
+lib.ivec2 = { dim = 2, scalar_type = lib.uint_scalar }
+lib.ivec3 = { dim = 3, scalar_type = lib.uint_scalar }
+lib.ivec4 = { dim = 4, scalar_type = lib.uint_scalar }
+
+lib.uint = { dim = 1, scalar_type = lib.uint_scalar }
+lib.uvec2 = { dim = 2, scalar_type = lib.uint_scalar }
+lib.uvec3 = { dim = 3, scalar_type = lib.uint_scalar }
+lib.uvec4 = { dim = 4, scalar_type = lib.uint_scalar }
+
+lib.float = { dim = 1, scalar_type = lib.float_scalar}
+lib.vec2 = { dim = 2, scalar_type = lib.float_scalar }
+lib.vec3 = { dim = 3, scalar_type = lib.float_scalar }
+lib.vec4 = { dim = 4, scalar_type = lib.float_scalar }
+
+lib.mat3 = { dim = 3, scalar_type = lib.float_scalar }
+lib.mat4 = { dim = 4, scalar_type = lib.float_scalar }
+
+-- h2. Uniforms
 
 lib.model_to_world = 1
 lib.world_to_camera = 2
@@ -100,26 +131,26 @@ lib.model_to_clip = 5
 lib.normals_model_to_camera = 6
 lib.camera_resolution = 7
 
-lib.modelToWorld = { dim = 16, typ = lib.ft, special = lib.model_to_world }
-lib.worldToCamera = { dim = 16, typ = lib.ft, special = lib.world_to_camera }
-lib.cameraToClip = { dim = 16, typ = lib.ft, special = lib.camera_to_clip }
-lib.modelToCamera = { dim = 16, typ = lib.ft, special = lib.model_to_camera }
-lib.modelToClip = { dim = 16, typ = lib.ft, special = lib.model_to_clip }
-lib.normalModelToCamera = { dim = 9, typ = lib.ft, 
+lib.modelToWorld = { dim = 16, scalar_type = lib.float_scalar, special = lib.model_to_world }
+lib.worldToCamera = { dim = 16, scalar_type = lib.float_scalar, special = lib.world_to_camera }
+lib.cameraToClip = { dim = 16, scalar_type = lib.float_scalar, special = lib.camera_to_clip }
+lib.modelToCamera = { dim = 16, scalar_type = lib.float_scalar, special = lib.model_to_camera }
+lib.modelToClip = { dim = 16, scalar_type = lib.float_scalar, special = lib.model_to_clip }
+lib.normalModelToCamera = { dim = 9, scalar_type = lib.float_scalar, 
                              special = lib.normals_model_to_camera }
-lib.cameraResolution = { dim = 2, typ = lib.ft, 
+lib.cameraResolution = { dim = 2, scalar_type = lib.float_scalar, 
                          special = lib.camera_resolution }
 
 function lib.U(o) -- TODO int request
   local ot = type(o)
-  if ot == "boolean" then return { dim = 1, typ = lib.bt, v = { o and 1 or 0 } }
-  elseif ot == "number" then return { dim = 1, typ = lib.ft, v = { o } } 
+  if ot == "boolean" then return { dim = 1, scalar_type = lib.bool_scalar, v = { o and 1 or 0 } }
+  elseif ot == "number" then return { dim = 1, scalar_type = lib.float_scalar, v = { o } } 
   elseif ot == "table" then 
-    if o.typ then return o -- already a uniform
+    if o.scalar_type then return o -- already a uniform
     else
       local dim = #o 
       if dim > 5 and dim ~= 16 then error("Unsupported uniform type") else
-        return { dim = dim, typ = lib.ft, v = o}
+        return { dim = dim, scalar_type = lib.float_scalar, v = o}
       end
     end
   else
@@ -130,7 +161,7 @@ end
 function fromUniform(u) -- removes the uniform typing information 
   if u.special then return "Depends on camera and renderable transform" else
     if u.dim == 1 then 
-      if u.typ == lib.bt then return u.v[1] == 1
+      if u.scalar_type == lib.bool_scalar then return u.v[1] == 1
       else return u.v[1] end
     else return u.v end
   end
@@ -161,57 +192,79 @@ function lib:getUniforms() return self._uniforms._table end
 -- GLSL meta programming
 
 local uTypeScalar = 
-  {  [lib.bt] = "bool",
-     [lib.it] = "int",
-     [lib.it] = "uint",
-     [lib.ft] = "float" }
+  { [lib.bool_scalar] = "bool",
+    [lib.int_scalar] = "int",
+    [lib.uint_scalar] = "uint",
+    [lib.float_scalar] = "float" }
 
 local uTypeVec = 
-  {  [lib.bt] = "bvec",
-     [lib.it] = "ivec",
-     [lib.it] = "uvec",
-     [lib.ft] = "vec" }
+  { [lib.bool_scalar] = "bvec",
+    [lib.int_scalar] = "ivec",
+    [lib.uint_scalar] = "uvec",
+    [lib.float_scalar] = "vec" }
 
-local function glslVersion(v) return string.format("#version %s\n", v) end
-local function glslUniform(n, u)
+local function glslType(t)
   local s = string.format
-  if u.dim == 1 then return s("uniform %s %s;", uTypeScalar[u.typ], n)
-  elseif u.dim <= 5 then return s("uniform %s%d %s;", uTypeVec[u.typ], u.dim, n)
-  elseif u.dim == 9 then return s("uniform mat3 %s;", n)
-  elseif u.dim == 16 then return s("uniform mat4 %s;", n)
-  else assert(false) end
-end
-
-function lib:glslPreamble(pretty)
-  if self._preamble then return self._preamble else
-    local uniforms = ""
-    local nl = pretty and "\n" or ""
-    for k, v in pairs(self:getUniforms()) do
-      uniforms = uniforms .. glslUniform(k, v) .. nl
-    end
-    if not pretty then uniforms = uniforms .. "\n" end
-    return glslVersion(self.version) .. uniforms
+  if t.dim == 1 then return uTypeScalar[t.scalar_type]
+  elseif t.dim <= 5 then return s("%s%d", uTypeVec[t.scalar_type], t.dim) 
+  elseif t.dim == 9 then return "mat3" 
+  elseif t.dim == 16 then return "mat4"
+  else assert(false)
   end
 end
+
+local function glslVersion(v) return string.format("#version %s\n", v) end
+local function glslUniform(n, u) 
+  return string.format("uniform %s %s;", glslType(u), n) 
+end
+
+local function glslIn(n, type) 
+  return string.format("in %s %s;", glslType(type), n)
+end
+
+local function glslOut(n, type) 
+  return string.format("out %s %s;", glslType(type), n)
+end
+
+function lib:glslPreamble(pretty, inputs, outputs)
+  local decls = ""
+  local nl = pretty and "\n" or ""
+  for k, v in pairs(self:getUniforms()) do
+    decls = decls .. glslUniform(k, v) .. nl
+  end
+  for k, type in pairs(inputs) do
+    decls = decls .. glslIn(k, type) .. nl
+  end
+  for k, type in pairs(outputs) do
+    decls = decls .. glslOut(k, type) .. nl
+  end
+  if not pretty then decls = decls .. "\n" end
+  return glslVersion(self.version) .. decls
+end
+
 
 -- h2. Effect shaders
 
 function lib:vertexShaderSource(pretty) 
   local v = self.vertex
-  v.src = self:glslPreamble(pretty) .. v.src_fragment
+  local pre = self:glslPreamble(pretty, self.vertex_in, self.vertex_out)
+  v.src =  pre .. v.src_fragment
   return  v
 end
 
 function lib:geometryShaderSource(pretty)
   local g = self.geometry
   if not g then return nil end
-  g.src = self:glslPreamble(pretty) .. g.src_fragment
+  local pre = self:glslPreamble(pretty, self.vertex_out, self.geometry_out)
+  g.src =  pre .. g.src_fragment
   return g
 end
 
 function lib:fragmentShaderSource(pretty)
   local f = self.fragment
-  f.src = self:glslPreamble(pretty) .. f.src_fragment
+  local inputs = (self.geometry and self.geometry_out) or self.vertex_out
+  local pre = self:glslPreamble(pretty, inputs, self.fragment_out)
+  f.src =  pre .. f.src_fragment
   return f
 end
 

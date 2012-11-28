@@ -23,12 +23,14 @@ local effect = Effect
        light_color = V3(1, 1, 1),
        Kd = V3(0.5, 0.5, 0.5)
     },
-  
+
+  vertex_in = { vertex = Effect.vec3,
+                normal = Effect.vec3 },
+
+  vertex_out = { v_position = Effect.vec4, 
+                 v_normal = Effect.vec3 },
+
   vertex = Effect.Shader [[
-     in vec3 vertex;
-     in vec3 normal;
-     out vec4 v_position;
-     out vec3 v_normal;
      void main () 
      {
         v_position = model_to_cam * vec4(vertex, 1.0);
@@ -37,10 +39,9 @@ local effect = Effect
      }
   ]],
 
+  fragment_out = { f_color = Effect.vec4 },
+
   fragment = Effect.Shader [[
-    in vec4 v_position; 
-    in vec3 v_normal; 
-    out vec4 f_color;
     void main () 
     {
       vec4 f_light_pos = world_to_cam * vec4(light_pos, 1.0);
@@ -67,6 +68,8 @@ local camera = Camera
 
 local obj_geom_id = -1
 function geometryWithID(i)
+  collectgarbage()
+  collectgarbage()
   local geoms =
     { function () return Geometry.Cube(1), V3(1, 1, 1) end,
       function () return Geometry.Sphere(0.5, 4), V3(1, 1, 1) end,

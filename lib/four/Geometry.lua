@@ -68,6 +68,7 @@ function lib:set(def)
   if def.index then self.index = def.index
   else error ("index is a required Geometry initialization key") end
   if def.immutable then self.immutable = def.immutable end
+  if def.name then self.name = def.name end
 end
 
 -- h2. Geometry operations

@@ -64,18 +64,6 @@ local modeGLenum =
     [Geometry.TRIANGLE_STRIP_ADJACENCY] = lo.GL_TRIANGLE_STRIP_ADJACENCY,
     [Geometry.TRIANGLES_ADJACENCY] = lo.GL_TRIANGLES_ADJACENCY }
 
-function lib:err_max_vertex_attribs(g)
-  local n = g.name or "" 
-  return string.format("Geometry %s: too much data per vertex (max is %d)",
-                       n, self.limits.max_vertex_attribs)
-end
-
-function lib:warn_unused_geom_attrib(g, att)
-  local n = g.name or ""
-  return string.format("Geometry %s: `%s` per vertex data unused by shader",
-                       n, att)
-end
-
 local function err_gl(e)
   if e == lo.GL_NO_ERROR then return "no error" 
   elseif e == lo.GL_INVALID_ENUM then return "invalid enum"
@@ -142,16 +130,34 @@ function lib:bufferDataParams(buffer)
   else assert(false) end
 end
 
-function lib:bufferStateAllocate(g)
+local bufferSpecForScalarType = 
+{ [Buffer.FLOAT] = { byte_count = 4, ffi_spec = "GLfloat[?]" },
+  [Buffer.DOUBLE] = { byte_count = 8, ffi_spec = "GLdouble[?]" },
+  [Buffer.INT] = { byte_count = 4, ffi_spec = "GLint[?]" },
+  [Buffer.UNSIGNED_INT] = { byte_count = 4, ffi_spec = "GLint[?]" }}
+
+function lib:bufferStateAllocate(b, force)
+  local function releaseState(state) gl.hi.glDeleteBuffer(state.id) end
+
+  local state = self.buffers[b]
+  if state and not force then return state end
+  state = { id = gl.hi.glGenBuffer() }
+  setmetatable(state, { __gc = releaseState })
   
+  local len = b:scalarLength()
+  local gltype = typeGLenum[b.scalar_type]
+  local spec = bufferSpecForScalarType[b.scalar_type]
+  local bytes = spec.byte_count * len
+  local data = ffi.new(spec.ffi_spec, len, b.data)
+  lo.glBindBuffer(lo.GL_ARRAY_BUFFER, state.id)
+  lo.glBufferData(lo.GL_ARRAY_BUFFER, bytes, data, lo.GL_STATIC_DRAW)
+
+  self.buffers[b] = state
+  return state
 end
 
 function lib:geometryStateAllocate(g)
-  local function releaseState(state)
-    gl.hi.glDeleteVertexArray(state.vao)
-    gl.hi.glDeleteBuffer(state.index) -- index buffer
-    for _, id in pairs(state.data) do gl.hi.glDeleteBuffer(id) end
-  end
+  local function releaseState(state) gl.hi.glDeleteVertexArray(state.vao) end
 
   local state = self.geometries[g]
   if state and (g.immutable or not g.dirty) then return state end
@@ -160,8 +166,9 @@ function lib:geometryStateAllocate(g)
             index_length = g.index:scalarLength (),
             index_scalar_type = typeGLenum[g.index.scalar_type],
             index = nil,    -- g.index buffer object id
-            data = {},      -- maps g.data keys to buffer object ids
-            data_loc = {}}  -- maps g.data keys to binding index
+            data = {},      -- maps g.data keys to array with all info 
+                            -- for binding the buffer object 
+            data_loc = {}}  -- maps g.data keys to current binding index
   setmetatable(state, { __gc = releaseState })
 
   -- Allocate and bind vertex array object
@@ -169,42 +176,22 @@ function lib:geometryStateAllocate(g)
   lo.glBindVertexArray(state.vao)
 
   -- Allocate and bind index buffer
-  local ints, gltype, bytes, data = self:bufferDataParams(g.index)
-  state.index = gl.hi.glGenBuffer()
+  local index = self:bufferStateAllocate(g.index)
+  state.index = index.id
   lo.glBindBuffer(lo.GL_ELEMENT_ARRAY_BUFFER, state.index)
-  lo.glBufferData(lo.GL_ELEMENT_ARRAY_BUFFER, bytes, data,
-                  lo.GL_STATIC_DRAW)
-
-  -- For each vertex data in g's buffers
-  local i = 0
+  
+  -- Allocate each vertex data buffer.
   for k, buffer in pairs(g.data) do
-    if i == self.limits.max_vertex_attribs then 
-      self:dlog(self:err_max_vertex_attribs(g))
-      break
-    end
-
-    ints, gltype, bytes, data = self:bufferDataParams(buffer)
-    
-    -- Allocate and bind vertex buffer
-    local buf_id = gl.hi.glGenBuffer()
-    state.data[k] = buf_id
-    state.data_loc[k] = i
-    lo.glBindBuffer(lo.GL_ARRAY_BUFFER, buf_id)
-    lo.glBufferData(lo.GL_ARRAY_BUFFER, bytes, data, lo.GL_STATIC_DRAW)
-
-    -- Set as vertex array
-    lo.glEnableVertexAttribArray(i)
-    if ints then
-      lo.glVertexAttribIPointer(i, buffer.dim, gltype, 0, nil)
-    else
-      lo.glVertexAttribPointer(i, buffer.dim, gltype, buffer.normalize, 0, nil)
-    end
-    i = i + 1
+    local data = self:bufferStateAllocate(buffer)
+    local gltype = typeGLenum[buffer.scalar_type]
+    state.data[k] = { id = data.id, dim = buffer.dim, scalar_type = gltype, 
+                      normalize = buffer.normalize }
+    state.data_loc[k] = nil -- never bound yet
   end
 
-  -- Important, unbind *first* the vao and then the buffers
-  lo.glBindBuffer(lo.GL_ARRAY_BUFFER, 0)
+  -- Important, unbind *first* the vao and then the index buffer
   lo.glBindVertexArray(0);
+  lo.glBindBuffer(lo.GL_ARRAY_BUFFER, 0)
   lo.glBindBuffer(lo.GL_ELEMENT_ARRAY_BUFFER, 0)
 
   self.geometries[g] = state
@@ -213,20 +200,34 @@ function lib:geometryStateAllocate(g)
   return state
 end 
 
-function lib:geometryStateBind(estate, gstate)
+
+
+local typeGLenumIsInt =
+  { [lo.GL_FLOAT] = false,
+    [lo.GL_DOUBLE] = false,
+    [lo.GL_INT] = true,
+    [lo.GL_UNSIGNED_INT] = true }
+  
+function lib:geometryStateBind(gstate, estate)
   lo.glBindVertexArray(gstate.vao)
-  for attr, loc in pairs(gstate.data_loc) do
-    if lo.glGetAttribLocation(estate.program, attr) ~= - 1 then 
-      lo.glBindAttribLocation(estate.program, loc, attr)
+  for k, loc in pairs(estate.data_locs) do
+    if gstate.data_loc[k] ~= loc then  
+      -- Program binding doesn't correspond to vao binding, rebind vao.
+      local data = gstate.data[k]
+      local ints = typeGLenumIsInt[data.scalar_type]
+      print(k, loc, data.id)
+      lo.glBindBuffer(lo.GL_ARRAY_BUFFER, data.id)
+      lo.glEnableVertexAttribArray(loc)
+      if ints then
+        lo.glVertexAttribIPointer(loc, data.dim, data.scalar_type, 0, nil)
+      else
+        lo.glVertexAttribPointer(loc, data.dim, data.scalar_type, 
+                                 data.normalize, 0, nil)
+      end
+      gstate.data_loc[k] = loc
+      self:logGlError()
     end
   end
-
-  -- NOTE for now we need to relink the shader due to attrib
-  -- binding. 1) we could try to see if in the same layout holds for
-  -- successive objects 2) we could try to get rid of vao and bind all
-  -- the attrib arrays directly it's unclear what is fastest.
-  self:linkProgram(estate.program)
-  lo.glUseProgram(estate.program)
 end
 
 function lib:rewriteShaderInfoLog(src, log)
@@ -290,35 +291,35 @@ function lib:effectBindUniforms(m2w, estate, effect)
     local loc = lo.glGetUniformLocation(estate.program, k)
     if u.special then v = self:getSpecialUniform(u, m2w) end
     if u.dim == 1 then
-      if u.typ == Effect.ft or u.typ == Effect.bt then 
+      if u.scalar_type == Effect.float_scalar or u.scalar_type == Effect.bool_scalar then 
         lo.glUniform1f(loc, v[1])
-      elseif u.typ == Effect.it then 
+      elseif u.scalar_type == Effect.int_scalar then 
         lo.glUniform1i(loc, v[1])
-      elseif u.typ == Effect.ut then 
+      elseif u.scalar_type == Effect.uint_scalar then 
         lo.glUniform1ui(loc, v[1])
       else assert(false) end
     elseif u.dim == 2 then
-      if u.typ == Effect.ft or u.typ == Effect.bt then 
+      if u.scalar_type == Effect.float_scalar or u.scalar_type == Effect.bool_scalar then 
         lo.glUniform2f(loc, v[1], v[2])
-      elseif u.typ == Effect.it then 
+      elseif u.scalar_type == Effect.int_scalar then 
         lo.glUniform2i(loc, v[1], v[2])
-      elseif u.typ == Effect.ut then 
+      elseif u.scalar_type == Effect.uint_scalar then 
         lo.glUniform2ui(loc, v[1], v[2])
       else assert(false) end
     elseif u.dim == 3 then
-      if u.typ == Effect.ft or u.typ == Effect.bt then 
+      if u.scalar_type == Effect.float_scalar or u.scalar_type == Effect.bool_scalar then 
         lo.glUniform3f(loc, v[1], v[2], v[3])
-      elseif u.typ == Effect.it then 
+      elseif u.scalar_type == Effect.int_scalar then 
         lo.glUniform3i(loc, v[1], v[2], v[3])
-      elseif u.typ == Effect.ut then 
+      elseif u.scalar_type == Effect.uint_scalar then 
         lo.glUniform3ui(loc, v[1], v[2], v[3])
       else assert(false) end
     elseif u.dim == 4 then
-      if u.typ == Effect.ft or u.typ == Effect.bt then 
+      if u.scalar_type == Effect.float_scalar or u.scalar_type == Effect.bool_scalar then 
         lo.glUniform4f(loc, v[1], v[2], v[3], v[4])
-      elseif u.typ == Effect.it then 
+      elseif u.scalar_type == Effect.int_scalar then 
         lo.glUniform4i(loc, v[1], v[2], v[3], v[4])
-      elseif u.typ == Effect.ut then 
+      elseif u.scalar_type == Effect.uint_scalar then 
         lo.glUniform4ui(loc, v[1], v[2], v[3], v[4])
       else assert(false) end
     elseif u.dim == 9 then 
@@ -337,7 +338,7 @@ function lib:effectStateAllocate(effect)
   local state = self.effects[effect] 
   if state then return state end
 
-  local state = { program = lo.glCreateProgram() }
+  local state = { program = lo.glCreateProgram(), data_locs = {}}
   setmetatable(state, { __gc = releaseState })
 
   local vsrc = effect:vertexShaderSource() 
@@ -353,6 +354,12 @@ function lib:effectStateAllocate(effect)
   lo.glAttachShader(state.program, fid); lo.glDeleteShader(fid)
   
   self:linkProgram(state.program)
+
+  for data, _ in pairs(effect.vertex_in) do 
+    local loc = lo.glGetAttribLocation(state.program, data)
+    state.data_locs[data] = loc
+  end
+
   self.effects[effect] = state
   return state
 end
@@ -435,12 +442,11 @@ function lib:renderQueueFlush(cam)
     for _, o in ipairs(batch) do
       local gstate = self.geometries[o.geometry]
       local m2w = o.transform and o.transform.matrix or M4.id ()
-      self:geometryStateBind(estate, gstate)
-      
-      -- TODO here again we could bind uniforms only once 
-      -- for the effect but the program relinking done in geometryStateBind
-      -- forces us to rebind the uniforms, optimize that.
+      self:geometryStateBind(gstate, estate)
+
+      -- TODO optimize uniform binding. 
       self:effectBindUniforms(m2w, estate, effect)
+
 
       lo.glDrawElements(gstate.primitive, gstate.index_length, 
                         gstate.index_scalar_type, nil)
