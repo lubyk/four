@@ -206,7 +206,7 @@ function lib:fold3D(f, acc)
   local t = self.data 
   local acc = acc 
   for i = 1, self:length() do 
-    local b = (i - 1) * t
+    local b = (i - 1) * dim
     acc = f(acc, t[b + 1], t[b + 2], t[b + 3])
   end
   return acc
