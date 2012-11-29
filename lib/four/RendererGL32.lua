@@ -442,6 +442,8 @@ function lib:renderQueueFlush(cam)
     for _, o in ipairs(batch) do
       local gstate = self.geometries[o.geometry]
       local m2w = o.transform and o.transform.matrix or M4.id ()
+      if o.geometry.pre_transform then m2w = m2w * o.geometry.pre_transform end
+
       self:geometryStateBind(gstate, estate)
 
       -- TODO optimize uniform binding. 

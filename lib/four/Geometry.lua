@@ -42,6 +42,8 @@ lib.TRIANGLES_ADJACENCY = 11
     inputs.
   * @index@, @Buffer@ of ints (any dim), indexing into @data@ to define the 
     actual sequence of primitives. *WARNING* indices are zero-based.
+  * @pre_transform@, an M4 matrix that the renderer pre-multiplies to the 
+    renderable's transform.
   * @immutable@, if @true@, @data@ and @index@ buffers are disposed after 
     the first render (defaults to true).
   * @name@, a user defined way of naming the geometry (may be used by
@@ -52,8 +54,10 @@ function lib.new(def)
     { primitive = lib.TRIANGLES,
       data = {},
       index = nil,
+      pre_transform = nil,
       immutable = true,
       name = "",
+      offset = nil, -- 
       bound_radius = nil,
       dirty = false } -- Geometry is mutable and was touched. The renderer
                       -- sets this to false once it got the new data.
@@ -67,6 +71,7 @@ function lib:set(def)
   if def.data then self.data = def.data end  
   if def.index then self.index = def.index
   else error ("index is a required Geometry initialization key") end
+  if def.pre_transform then self.pre_transform = def.pre_transform end
   if def.immutable then self.immutable = def.immutable end
   if def.name then self.name = def.name end
 end
