@@ -1,8 +1,6 @@
 require 'lubyk'
 require 'app'
 
-local Demo = require 'demo'
-
 local V2 = four.V2
 local V3 = four.V3
 local Quat = four.Quat
@@ -13,6 +11,8 @@ local Camera = four.Camera
 local Manip = four.Manip
 local Color = four.Color
 
+local Demo = require 'demo'
+
 local effect = Effect 
 {
   uniforms = 
@@ -22,8 +22,7 @@ local effect = Effect
        world_to_cam = Effect.worldToCamera,
        light_pos = V3(3, 5, 5),
        light_color = V3(1, 1, 1),
-       Kd = V3(0.5, 0.5, 0.5)
-    },
+       Kd = V3(0.5, 0.5, 0.5) },
 
   vertex_in = { vertex = Effect.vec3,
                 normal = Effect.vec3 },

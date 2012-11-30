@@ -265,6 +265,44 @@ function lib:linkProgram(pid)
   end
 end
 
+function lib:effectStateAllocate(effect)
+  local function releaseState(state) lo.glDeleteProgram(state.program) end
+  local state = self.effects[effect] 
+  if state then return state end
+
+  local state = { program = lo.glCreateProgram(), 
+                  uniform_locs = {},
+                  data_locs = {} }
+  setmetatable(state, { __gc = releaseState })
+
+  local vsrc = effect:vertexShaderSource() 
+  local gsrc = effect:geometryShaderSource()
+  local fsrc = effect:fragmentShaderSource()
+
+  local vid = self:compileShader(vsrc, lo.GL_VERTEX_SHADER)
+  local gid = gsrc and self:compileShader(gsrc, lo.GL_GEOMETRY_SHADER)
+  local fid = self:compileShader(fsrc, lo.GL_FRAGMENT_SHADER)
+
+  lo.glAttachShader(state.program, vid); lo.glDeleteShader(vid)
+  if gid then lo.glAttachShader(state.program, gid); lo.glDeleteShader(gid) end
+  lo.glAttachShader(state.program, fid); lo.glDeleteShader(fid)
+  
+  self:linkProgram(state.program)
+
+  for data, _ in pairs(effect.vertex_in) do 
+    local loc = lo.glGetAttribLocation(state.program, data)
+    if loc ~= -1 then state.data_locs[data] = loc end
+  end
+
+  for u, _ in pairs(effect:getUniforms()) do 
+    local loc = lo.glGetUniformLocation(state.program, u)
+    if loc ~= -1 then state.uniform_locs[u] = loc end
+  end
+
+  self.effects[effect] = state
+  return state
+end
+
 function lib:getSpecialUniform(u, m2w)
   if u.special == Effect.model_to_world then return m2w
   elseif u.special == Effect.world_to_camera then return self.world_to_camera
@@ -285,83 +323,62 @@ function lib:getSpecialUniform(u, m2w)
   end
 end
 
-function lib:effectBindUniforms(m2w, estate, effect)
-  for k, u in pairs(effect:getUniforms()) do 
+local bindUniform1D = 
+{ [Effect.float_scalar] = lo.glUniform1f,
+  [Effect.bool_scalar] = lo.glUniform1f,
+  [Effect.int_scalar] = lo.glUniform1i,
+  [Effect.uint_scalar] = lo.glUniform1ui }
+
+local bindUniform2D = 
+{ [Effect.float_scalar] = lo.glUniform2f,
+  [Effect.bool_scalar] = lo.glUniform2f,
+  [Effect.int_scalar] = lo.glUniform2i,
+  [Effect.uint_scalar] = lo.glUniform2ui }
+
+local bindUniform3D = 
+{ [Effect.float_scalar] = lo.glUniform3f,
+  [Effect.bool_scalar] = lo.glUniform3f,
+  [Effect.int_scalar] = lo.glUniform3i,
+  [Effect.uint_scalar] = lo.glUniform3ui }
+
+local bindUniform4D = 
+{ [Effect.float_scalar] = lo.glUniform4f,
+  [Effect.bool_scalar] = lo.glUniform4f,
+  [Effect.int_scalar] = lo.glUniform4i,
+  [Effect.uint_scalar] = lo.glUniform4ui }
+
+function lib:effectBindUniforms(estate, m2w, uniforms, override)
+  for k, u in pairs(uniforms) do
+    local uoverride = override and override[k]
+    local u = uoverride or u -- TODO check type consistency ? 
     local v = u.v
-    local loc = lo.glGetUniformLocation(estate.program, k)
-    if u.special then v = self:getSpecialUniform(u, m2w) end
-    if u.dim == 1 then
-      if u.scalar_type == Effect.float_scalar or u.scalar_type == Effect.bool_scalar then 
-        lo.glUniform1f(loc, v[1])
-      elseif u.scalar_type == Effect.int_scalar then 
-        lo.glUniform1i(loc, v[1])
-      elseif u.scalar_type == Effect.uint_scalar then 
-        lo.glUniform1ui(loc, v[1])
-      else assert(false) end
-    elseif u.dim == 2 then
-      if u.scalar_type == Effect.float_scalar or u.scalar_type == Effect.bool_scalar then 
-        lo.glUniform2f(loc, v[1], v[2])
-      elseif u.scalar_type == Effect.int_scalar then 
-        lo.glUniform2i(loc, v[1], v[2])
-      elseif u.scalar_type == Effect.uint_scalar then 
-        lo.glUniform2ui(loc, v[1], v[2])
-      else assert(false) end
-    elseif u.dim == 3 then
-      if u.scalar_type == Effect.float_scalar or u.scalar_type == Effect.bool_scalar then 
-        lo.glUniform3f(loc, v[1], v[2], v[3])
-      elseif u.scalar_type == Effect.int_scalar then 
-        lo.glUniform3i(loc, v[1], v[2], v[3])
-      elseif u.scalar_type == Effect.uint_scalar then 
-        lo.glUniform3ui(loc, v[1], v[2], v[3])
-      else assert(false) end
-    elseif u.dim == 4 then
-      if u.scalar_type == Effect.float_scalar or u.scalar_type == Effect.bool_scalar then 
-        lo.glUniform4f(loc, v[1], v[2], v[3], v[4])
-      elseif u.scalar_type == Effect.int_scalar then 
-        lo.glUniform4i(loc, v[1], v[2], v[3], v[4])
-      elseif u.scalar_type == Effect.uint_scalar then 
-        lo.glUniform4ui(loc, v[1], v[2], v[3], v[4])
-      else assert(false) end
-    elseif u.dim == 9 then 
-      local m = ffi.new("GLfloat[?]", 9, v)
-      lo.glUniformMatrix3fv(loc, 1, lo.GL_FALSE, m)
-    elseif u.dim == 16 then
-      local m = ffi.new("GLfloat[?]", 16, v)
-      lo.glUniformMatrix4fv(loc, 1, lo.GL_FALSE, m)
-    else assert(false)
+    local loc = estate.uniform_locs[k]
+    if loc then
+      if u.special then v = self:getSpecialUniform(u, m2w) end
+      if u.dim == 1 then
+        local fun = bindUniform1D[u.scalar_type] 
+        fun(loc, v[1])
+      elseif u.dim == 2 then
+        local fun = bindUniform2D[u.scalar_type]
+        fun(loc, v[1], v[2])
+      elseif u.dim == 3 then
+        local fun = bindUniform3D[u.scalar_type]
+        fun(loc, v[1], v[2], v[3])
+      elseif u.dim == 4 then
+        local fun = bindUniform4D[u.scalar_type]
+        fun(loc, v[1], v[2], v[3], v[4])
+      elseif u.dim == 9 then 
+        local m = ffi.new("GLfloat[?]", 9, v)
+        lo.glUniformMatrix3fv(loc, 1, lo.GL_FALSE, m)
+      elseif u.dim == 16 then
+        local m = ffi.new("GLfloat[?]", 16, v)
+        lo.glUniformMatrix4fv(loc, 1, lo.GL_FALSE, m)
+      else assert(false)
+      end
+    else
+      self:log(string.format("No program location for %s uniform", k))
     end
   end
-end
-
-function lib:effectStateAllocate(effect)
-  local function releaseState(state) lo.glDeleteProgram(state.program) end
-  local state = self.effects[effect] 
-  if state then return state end
-
-  local state = { program = lo.glCreateProgram(), data_locs = {}}
-  setmetatable(state, { __gc = releaseState })
-
-  local vsrc = effect:vertexShaderSource() 
-  local gsrc = effect:geometryShaderSource()
-  local fsrc = effect:fragmentShaderSource()
-
-  local vid = self:compileShader(vsrc, lo.GL_VERTEX_SHADER)
-  local gid = gsrc and self:compileShader(gsrc, lo.GL_GEOMETRY_SHADER)
-  local fid = self:compileShader(fsrc, lo.GL_FRAGMENT_SHADER)
-
-  lo.glAttachShader(state.program, vid); lo.glDeleteShader(vid)
-  if gid then lo.glAttachShader(state.program, gid); lo.glDeleteShader(gid) end
-  lo.glAttachShader(state.program, fid); lo.glDeleteShader(fid)
-  
-  self:linkProgram(state.program)
-
-  for data, _ in pairs(effect.vertex_in) do 
-    local loc = lo.glGetAttribLocation(state.program, data)
-    state.data_locs[data] = loc
-  end
-
-  self.effects[effect] = state
-  return state
 end
 
 function lib:initFramebuffer(cam)
@@ -440,15 +457,15 @@ function lib:renderQueueFlush(cam)
     local estate = self.effects[effect]
     lo.glUseProgram(estate.program)
     for _, o in ipairs(batch) do
+      -- Bind geometry
       local gstate = self.geometries[o.geometry]
-      local m2w = o.transform and o.transform.matrix or M4.id ()
-      if o.geometry.pre_transform then m2w = m2w * o.geometry.pre_transform end
-
       self:geometryStateBind(gstate, estate)
 
-      -- TODO optimize uniform binding. 
-      self:effectBindUniforms(m2w, estate, effect)
-
+      -- Bind uniforms
+      local override = o.uniforms and Effect.rawUniforms(o.uniforms) or nil
+      local m2w = o.transform and o.transform.matrix or M4.id ()
+      if o.geometry.pre_transform then m2w = m2w * o.geometry.pre_transform end
+      self:effectBindUniforms(estate, m2w, effect:getUniforms(), override)
 
       lo.glDrawElements(gstate.primitive, gstate.index_length, 
                         gstate.index_scalar_type, nil)

@@ -37,5 +37,24 @@ function lib.geometryCycler(def)
   return next
 end
 
+-- h2. Effects
+
+--[[--
+  @effectCycle(def)@ is an argument less function returning 
+  new effects in a cyclic fashion. @def@ keys:
+  * @effecdts@, an array of argument less functions that returns effect
+    objects. Default has the effect of @four.Effect@ TODO.
+--]]--
+function lib.effectCycler(def)
+  local id = -1 
+  local effects = def.effects or {} -- TODO
+  local function next () 
+    id = (id + 1) % #effects
+    return effects[id + 1] ()
+  end
+  return next
+end
+
+
 return lib
 

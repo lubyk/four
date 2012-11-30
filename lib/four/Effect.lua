@@ -20,7 +20,7 @@ function lib.__index(e, k)           -- special handling for the uniforms key
 end
 
 function lib.__newindex(e, k, v)
-   if k == "uniforms" then rawset(e, "_uniforms", toUniformTable(v)) 
+   if k == "uniforms" then rawset(e, "_uniforms", lib.Uniforms(v)) 
    else rawset(e, k, v) end
 end
 
@@ -79,7 +79,6 @@ function lib:set(def)
   if def.fragment_out then self.fragment_out = def.fragment_out end
   if def.fragment then self.fragment = def.fragment end
   if def.uniforms then self.uniforms = def.uniforms end
-
 end
 
 -- h2. Shader constructor
@@ -167,7 +166,7 @@ function fromUniform(u) -- removes the uniform typing information
   end
 end
 
-local uniformTableMeta = 
+local uniformsMeta = 
 {
   __index = function (us, k) 
     if k == "_table" then return rawget(us, k)
@@ -180,14 +179,15 @@ local uniformTableMeta =
   end
 }
 
-function toUniformTable(t)
+function lib.Uniforms(t)
   local us = { _table = {}}
-  setmetatable(us, uniformTableMeta)
+  setmetatable(us, uniformsMeta)
   for k, v in pairs(t) do us[k] = v end
   return us
 end
 
-function lib:getUniforms() return self._uniforms._table end
+function lib.rawUniforms(t) return t._table end
+function lib:getUniforms() return lib.rawUniforms(self._uniforms) end
 
 -- GLSL meta programming
 
