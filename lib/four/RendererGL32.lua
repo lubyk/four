@@ -112,24 +112,6 @@ function lib:getGlLimits()
     geti(lo.GL_MAX_GEOMETRY_OUTPUT_VERTICES)
 end
 
-function lib:bufferDataParams(buffer)
-  local len = buffer:scalarLength()
-  local data = buffer.data
-  local type = buffer.scalar_type 
-  local gltype = typeGLenum[type]
-
-  -- TODO better code
-  if type == Buffer.FLOAT then 
-    return false, gltype, len * 4, ffi.new("GLfloat[?]", len, data)
-  elseif type == Buffer.DOUBLE then 
-    return false, gltype, len * 8, ffi.new("GLdouble[?]", len, data)
-  elseif type == Buffer.INT then 
-    return true, gltype, len * 4, ffi.new("GLint[?]", len, data)
-  elseif type == Buffer.UNSIGNED_INT then 
-    return true, gltype, len * 4, ffi.new("GLuint[?]", len, data)
-  else assert(false) end
-end
-
 local bufferSpecForScalarType = 
 { [Buffer.FLOAT] = { byte_count = 4, ffi_spec = "GLfloat[?]" },
   [Buffer.DOUBLE] = { byte_count = 8, ffi_spec = "GLdouble[?]" },
@@ -200,8 +182,6 @@ function lib:geometryStateAllocate(g)
   return state
 end 
 
-
-
 local typeGLenumIsInt =
   { [lo.GL_FLOAT] = false,
     [lo.GL_DOUBLE] = false,
@@ -210,12 +190,13 @@ local typeGLenumIsInt =
   
 function lib:geometryStateBind(gstate, estate)
   lo.glBindVertexArray(gstate.vao)
-  for k, loc in pairs(estate.data_locs) do
-    if gstate.data_loc[k] ~= loc then  
+  for a, aspec in pairs(estate.attribs) do
+    if gstate.data_loc[a] ~= aspec.loc then  
       -- Program binding doesn't correspond to vao binding, rebind vao.
-      local data = gstate.data[k]
+      local data = gstate.data[a]
       local ints = typeGLenumIsInt[data.scalar_type]
-      print(k, loc, data.id)
+      local loc = aspec.loc
+      print("REBIND", a, aspec.loc, data.id)
       lo.glBindBuffer(lo.GL_ARRAY_BUFFER, data.id)
       lo.glEnableVertexAttribArray(loc)
       if ints then
@@ -224,7 +205,7 @@ function lib:geometryStateBind(gstate, estate)
         lo.glVertexAttribPointer(loc, data.dim, data.scalar_type, 
                                  data.normalize, 0, nil)
       end
-      gstate.data_loc[k] = loc
+      gstate.data_loc[a] = loc
       self:logGlError()
     end
   end
@@ -271,10 +252,14 @@ function lib:effectStateAllocate(effect)
   if state then return state end
 
   local state = { program = lo.glCreateProgram(), 
+                  attribs = {}, -- maps attrib names to loc/type
+                  uniforms = {}, -- maps uniform names to loc/type
                   uniform_locs = {},
-                  data_locs = {} }
+                  data_locs = {}}
   setmetatable(state, { __gc = releaseState })
 
+  -- Compile and link program
+  local p = state.program
   local vsrc = effect:vertexShaderSource() 
   local gsrc = effect:geometryShaderSource()
   local fsrc = effect:fragmentShaderSource()
@@ -283,15 +268,27 @@ function lib:effectStateAllocate(effect)
   local gid = gsrc and self:compileShader(gsrc, lo.GL_GEOMETRY_SHADER)
   local fid = self:compileShader(fsrc, lo.GL_FRAGMENT_SHADER)
 
-  lo.glAttachShader(state.program, vid); lo.glDeleteShader(vid)
-  if gid then lo.glAttachShader(state.program, gid); lo.glDeleteShader(gid) end
-  lo.glAttachShader(state.program, fid); lo.glDeleteShader(fid)
+  lo.glAttachShader(p, vid); lo.glDeleteShader(vid)
+  if gid then lo.glAttachShader(p, gid); lo.glDeleteShader(gid) end
+  lo.glAttachShader(p, fid); lo.glDeleteShader(fid)
   
-  self:linkProgram(state.program)
+  self:linkProgram(p)
 
-  for data, _ in pairs(effect.vertex_in) do 
-    local loc = lo.glGetAttribLocation(state.program, data)
-    if loc ~= -1 then state.data_locs[data] = loc end
+  -- Get info about attributes and uniforms
+  local a_max = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_ATTRIBUTE_MAX_LENGTH)
+  local u_max = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_UNIFORM_MAX_LENGTH)
+  local a_count = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_ATTRIBUTES)
+  local u_count = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_UNIFORMS)
+  local max_len = math.max(a_max, u_max)
+  local s = ffi.new("GLchar [?]", max_len)
+  local len = ffi.new("GLsizei [1]", 0)
+  local size = ffi.new("GLsizei [1]", 0)
+  local type = ffi.new("GLenum [1]", 0)
+
+  for loc = 0, a_count - 1, 1 do 
+    lo.glGetActiveAttrib(p, loc, max_len, len, size, type, s)
+    local name = ffi.string (s, len[0])
+    state.attribs[name] = { loc = loc, type = type[0], size = size[0] } 
   end
 
   for u, _ in pairs(effect:getUniforms()) do 

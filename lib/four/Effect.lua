@@ -226,17 +226,11 @@ local function glslOut(n, type)
   return string.format("out %s %s;", glslType(type), n)
 end
 
-function lib:glslPreamble(pretty, inputs, outputs)
+function lib:glslPreamble(pretty)
   local decls = ""
   local nl = pretty and "\n" or ""
   for k, v in pairs(self:getUniforms()) do
     decls = decls .. glslUniform(k, v) .. nl
-  end
-  for k, type in pairs(inputs) do
-    decls = decls .. glslIn(k, type) .. nl
-  end
-  for k, type in pairs(outputs) do
-    decls = decls .. glslOut(k, type) .. nl
   end
   if not pretty then decls = decls .. "\n" end
   return glslVersion(self.version) .. decls
@@ -247,7 +241,7 @@ end
 
 function lib:vertexShaderSource(pretty) 
   local v = self.vertex
-  local pre = self:glslPreamble(pretty, self.vertex_in, self.vertex_out)
+  local pre = self:glslPreamble(pretty)
   v.src =  pre .. v.src_fragment
   return  v
 end
@@ -255,15 +249,14 @@ end
 function lib:geometryShaderSource(pretty)
   local g = self.geometry
   if not g then return nil end
-  local pre = self:glslPreamble(pretty, self.vertex_out, self.geometry_out)
+  local pre = self:glslPreamble(pretty)
   g.src =  pre .. g.src_fragment
   return g
 end
 
 function lib:fragmentShaderSource(pretty)
   local f = self.fragment
-  local inputs = (self.geometry and self.geometry_out) or self.vertex_out
-  local pre = self:glslPreamble(pretty, inputs, self.fragment_out)
+  local pre = self:glslPreamble(pretty)
   f.src =  pre .. f.src_fragment
   return f
 end
@@ -274,7 +267,7 @@ end
   @Wireframe(def)@ renders triangle geometry as wireframe. @def@ keys:
   * @fill@, a Color defining the triangle fill color (defaults 
     to Color.white ()).
-  * @wite@, a Color defining the wireframe color (default to Color.red().
+  * @wire@, a Color defining the wireframe color (default to Color.red().
 
   Effect adapted from http://cgg-journal.com/2008-2/06/index.html.
 --]]--
