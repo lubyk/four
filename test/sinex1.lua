@@ -35,6 +35,8 @@ local effect = Effect
   ]],  
 
   fragment = Effect.Shader [[ 
+    uniform vec2 resolution;
+    uniform float time; 
     out vec4 color;
     void main() 
     {

@@ -16,17 +16,19 @@ local Demo = require 'demo'
 local effect = Effect 
 {
   uniforms = 
-    {  model_to_cam = Effect.modelToCamera,
-       normal_to_cam = Effect.normalModelToCamera,
-       cam_to_clip = Effect.cameraToClip,
-       world_to_cam = Effect.worldToCamera,
+    {  model_to_cam = Effect.MODEL_TO_CAMERA,
+       normal_to_cam = Effect.MODEL_NORMAL_TO_CAMERA,
+       model_to_clip = Effect.MODEL_TO_CLIP,
+       world_to_cam = Effect.WORLD_TO_CAMERA,
        light_pos = V3(3, 5, 5),
        light_color = V3(1, 1, 1),
        Kd = V3(0.5, 0.5, 0.5) },
 
   vertex = Effect.Shader [[
-     struct material { vec3 ambient; vec4 diffuse; };
-     uniform material bla[2];
+     uniform mat4 model_to_cam; 
+     uniform mat3 normal_to_cam; 
+     uniform mat4 model_to_clip;
+
      in vec3 vertex;
      in vec3 normal; 
      out vec4 v_position;
@@ -34,13 +36,17 @@ local effect = Effect
      void main () 
      {
         v_position = model_to_cam * vec4(vertex, 1.0);
-        material a = bla[0];
         v_normal = normal_to_cam * normal; 
-        gl_Position = cam_to_clip * v_position;
+        gl_Position = model_to_clip * vec4(vertex, 1.0);
      }
   ]],
 
   fragment = Effect.Shader [[
+    uniform mat4 world_to_cam;
+    uniform vec3 light_pos;
+    uniform vec3 light_color; 
+    uniform vec3 Kd;
+
     in vec4 v_position; 
     in vec3 v_normal; 
     out vec4 f_color;

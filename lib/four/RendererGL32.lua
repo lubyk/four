@@ -51,6 +51,13 @@ local typeGLenum =
     [Buffer.INT] = lo.GL_INT,
     [Buffer.UNSIGNED_INT] = lo.GL_UNSIGNED_INT }
 
+local typeGLenumIsInt =
+  { [lo.GL_FLOAT] = false,
+    [lo.GL_DOUBLE] = false,
+    [lo.GL_INT] = true,
+    [lo.GL_UNSIGNED_INT] = true }
+
+
 local modeGLenum =
   { [Geometry.POINTS] = lo.GL_POINTS,
     [Geometry.LINE_STRIP] = lo.GL_LINE_STRIP,
@@ -63,6 +70,234 @@ local modeGLenum =
     [Geometry.TRIANGLES] = lo.GL_TRIANGLES,
     [Geometry.TRIANGLE_STRIP_ADJACENCY] = lo.GL_TRIANGLE_STRIP_ADJACENCY,
     [Geometry.TRIANGLES_ADJACENCY] = lo.GL_TRIANGLES_ADJACENCY }
+
+local vec_kind = 1
+local mat_kind = 2
+local samp_kind = 3
+
+-- N.B. this includes more types than is allowed in GL 3.2, list taken from
+-- GL 4.2. Apparently they don't know about parametric polymorphism.
+local uniformTypeInfo = { 
+  [lo.GL_FLOAT] = 
+    { kind = vec_kind, dim = 1, bind = lo.glUniform1f, glsl = "float" }, 
+  [lo.GL_FLOAT_VEC2] = 
+    { kind = vec_kind, dim = 2, bind = lo.glUniform2f, glsl = "vec2" }, 
+  [lo.GL_FLOAT_VEC3] = 
+    { kind = vec_kind, dim = 3, bind = lo.glUniform3f, glsl = "vec3" },
+  [lo.GL_FLOAT_VEC4] = 
+    { kind = vec_kind, dim = 4, bind = lo.glUniform4f, glsl = "vec4" },
+  [lo.GL_DOUBLE] = 
+    { kind = vec_kind, dim = 1, unsupported = true, glsl = "double" },
+  [lo.GL_DOUBLE_VEC2] = 
+    { kind = vec_kind, dim = 2, unsupported = true, glsl = "dvec2" },
+  [lo.GL_DOUBLE_VEC3] = 
+    { kind = vec_kind, dim = 3, unsupported = true, glsl = "dvec3" },
+  [lo.GL_DOUBLE_VEC4] = 
+    { kind = vec_kind, dim = 4, unsupported = true, glsl = "dvec4" },
+  [lo.GL_INT] = 
+    { kind = vec_kind, dim = 1, bind = lo.glUniform1i, glsl = "int" },
+  [lo.GL_INT_VEC2] = 
+    { kind = vec_kind, dim = 2, bind = lo.glUniform2i, glsl = "ivec2" },
+  [lo.GL_INT_VEC3] = 
+    { kind = vec_kind, dim = 3, bind = lo.glUniform3i, glsl = "ivec3" },
+  [lo.GL_INT_VEC4] = 
+    { kind = vec_kind, dim = 4, bind = lo.glUniform4i, glsl = "ivec4" },
+  [lo.GL_UNSIGNED_INT] = 
+    { kind = vec_kind, dim = 1, bind = lo.glUniform1ui, glsl = "unsigned int" },
+  [lo.GL_UNSIGNED_INT_VEC2] = 
+    { kind = vec_kind, dim = 2, bind = lo.glUniform2ui, glsl = "uvec2" },
+  [lo.GL_UNSIGNED_INT_VEC3] = 
+    { kind = vec_kind, dim = 3, bind = lo.glUniform3ui, glsl = "uvec3" },
+  [lo.GL_UNSIGNED_INT_VEC4] = 
+    { kind = vec_kind, dim = 4, bind = lo.glUniform4ui, glsl = "uvec4" },
+  [lo.GL_BOOL] = 
+    { kind = vec_kind, dim = 1, bind = lo.glUniform1f, glsl = "bool" },
+  [lo.GL_BOOL_VEC2] = 
+    { kind = vec_kind, dim = 2, bind = lo.glUniform2f, glsl = "bvec2" },
+  [lo.GL_BOOL_VEC3] = 
+    { kind = vec_kind, dim = 3, bind = lo.glUniform3f, glsl = "bvec3" },
+  [lo.GL_BOOL_VEC4] = 
+    { kind = vec_kind, dim = 4, bind = lo.glUniform4f, glsl = "bvec4" },
+  [lo.GL_FLOAT_MAT2] = 
+    { kind = mat_kind, dim = 4, bind = lo.glUniformMatrix2fv, glsl = "mat2" },
+  [lo.GL_FLOAT_MAT3] = 
+    { kind = mat_kind, dim = 9, bind = lo.glUniformMatrix3fv, glsl = "mat3" },
+  [lo.GL_FLOAT_MAT4] = 
+    { kind = mat_kind, dim = 16, bind = lo.glUniformMatrix4fv, glsl = "mat4" },
+  [lo.GL_FLOAT_MAT2x3] = 
+    { kind = mat_kind, dim = 6, unsupported = true, glsl = "mat2x3" },
+  [lo.GL_FLOAT_MAT2x4] = 
+    { kind = mat_kind, dim = 8, unsupported = true, glsl = "mat2x4" },
+  [lo.GL_FLOAT_MAT3x2] = 
+    { kind = mat_kind, dim = 6, unsupported = true, glsl = "mat3x2" },
+  [lo.GL_FLOAT_MAT3x4] = 
+    { kind = mat_kind, dim = 12, unsupported = true, glsl = "mat3x4" },
+  [lo.GL_FLOAT_MAT4x2] = 
+    { kind = mat_kind, dim = 8, unsupported = true, glsl = "mat4x2" },
+  [lo.GL_FLOAT_MAT4x3] = 
+    { kind = mat_kind, dim = 12, unsupported = true, glsl = "mat4x3" },
+  [lo.GL_DOUBLE_MAT2] = 
+    { kind = mat_kind, dim = 4, unsupported = true, glsl = "dmat2" },
+  [lo.GL_DOUBLE_MAT3] = 
+    { kind = mat_kind, dim = 9, unsupported = true, glsl = "dmat3" },
+  [lo.GL_DOUBLE_MAT4] = 
+    { kind = mat_kind, dim = 16, unsupported = true, glsl = "dmat4" },
+  [lo.GL_DOUBLE_MAT2x3] = 
+    { kind = mat_kind, dim = 6, unsupported = true, glsl = "dmat2x3" },
+  [lo.GL_DOUBLE_MAT2x4] = 
+    { kind = mat_kind, dim = 8, unsupported = true, glsl = "dmat2x4" },
+  [lo.GL_DOUBLE_MAT3x2] = 
+    { kind = mat_kind, dim = 6, unsupported = true, glsl = "dmat3x2" },
+  [lo.GL_DOUBLE_MAT3x4] = 
+    { kind = mat_kind, dim = 12, unsupported = true, glsl = "dmat3x4" },
+  [lo.GL_DOUBLE_MAT4x2] = 
+    { kind = mat_kind, dim = 8, unsupported = true, glsl = "dmat4x2" },
+  [lo.GL_DOUBLE_MAT4x3] = 
+    { kind = mat_kind, dim = 12, unsupported = true, glsl = "dmat4x3" },
+  [lo.GL_SAMPLER_1D] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "sampler1D" },
+  [lo.GL_SAMPLER_2D] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "sampler2D" },
+  [lo.GL_SAMPLER_3D] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "sampler3D" },
+  [lo.GL_SAMPLER_CUBE] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "samplerCube" },
+  [lo.GL_SAMPLER_1D_SHADOW] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "sampler1DShadow" },
+  [lo.GL_SAMPLER_2D_SHADOW] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "sampler2DShadow" },
+  [lo.GL_SAMPLER_1D_ARRAY] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "sampler1DArray" },
+  [lo.GL_SAMPLER_2D_ARRAY] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "sampler2DArray" },
+  [lo.GL_SAMPLER_1D_ARRAY_SHADOW] = 
+    { kind = samp_kind, dim = 1, unsupported = true, 
+      glsl = "sampler1DArrayShadow" },
+  [lo.GL_SAMPLER_2D_ARRAY_SHADOW] = 
+    { kind = samp_kind, dim = 2, unsupported = true, 
+      glsl = "sampler2DArrayShadow" },
+  [lo.GL_SAMPLER_2D_MULTISAMPLE] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "sampler2DMS" },
+  [lo.GL_SAMPLER_2D_MULTISAMPLE_ARRAY] = 
+    { kind = samp_kind, dim = 2, unsupported = true, 
+      glsl = "sampler2DMSArray" },
+  [lo.GL_SAMPLER_CUBE_SHADOW] = 
+    { kind = samp_kind, dim = 3, unsupported = true, 
+      glsl = "samplerCubeShadow" },
+  [lo.GL_SAMPLER_BUFFER] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "samplerBuffer" },
+  [lo.GL_SAMPLER_2D_RECT] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "sampler2DRect" },
+  [lo.GL_SAMPLER_2D_RECT_SHADOW] = 
+    { kind = samp_kind, dim = 2, unsupported = true, 
+      glsl = "sampler2DRectShadow" },
+  [lo.GL_INT_SAMPLER_1D] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "isampler1D" },
+  [lo.GL_INT_SAMPLER_2D] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "isampler2D" },
+  [lo.GL_INT_SAMPLER_3D] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "isampler3D" },
+  [lo.GL_INT_SAMPLER_CUBE] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "isamplerCube" },
+  [lo.GL_INT_SAMPLER_1D_ARRAY] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "isampler1DArray" },
+  [lo.GL_INT_SAMPLER_2D_ARRAY] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "isampler2DArray" },
+  [lo.GL_INT_SAMPLER_2D_MULTISAMPLE] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "isampler2DMS" },
+  [lo.GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY] = 
+   { kind = samp_kind, dim = 2, unsupported = true, 
+     glsl = "isampler2DMSArray" },
+  [lo.GL_INT_SAMPLER_BUFFER] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "isamplerBuffer" },
+  [lo.GL_INT_SAMPLER_2D_RECT] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "isampler2DRect" },
+  [lo.GL_UNSIGNED_INT_SAMPLER_1D] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "usampler1D" },
+  [lo.GL_UNSIGNED_INT_SAMPLER_2D] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "usampler2D" },
+  [lo.GL_UNSIGNED_INT_SAMPLER_3D] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "usampler3D" },
+  [lo.GL_UNSIGNED_INT_SAMPLER_CUBE] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "usamplerCube" },
+  [lo.GL_UNSIGNED_INT_SAMPLER_1D_ARRAY] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "usampler2DArray" },
+  [lo.GL_UNSIGNED_INT_SAMPLER_2D_ARRAY] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "usampler2DArray" },
+  [lo.GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "usampler2DMS" },
+  [lo.GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY] = 
+    { kind = samp_kind, dim = 2, unsupported = true, 
+      glsl = "usampler2DMSArray" },
+  [lo.GL_UNSIGNED_INT_SAMPLER_BUFFER] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "usamplerBuffer" },
+  [lo.GL_UNSIGNED_INT_SAMPLER_2D_RECT] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "usampler2DRect" },
+  [lo.GL_IMAGE_1D] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "image1D" },
+  [lo.GL_IMAGE_2D] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "image2D" },
+  [lo.GL_IMAGE_3D] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "image3D" },
+  [lo.GL_IMAGE_2D_RECT] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "image2DRect" },
+  [lo.GL_IMAGE_CUBE] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "imageCube" },
+  [lo.GL_IMAGE_BUFFER] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "imageBuffer" },
+  [lo.GL_IMAGE_1D_ARRAY] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "image1DArray" },
+  [lo.GL_IMAGE_2D_ARRAY] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "image2DArray" },
+  [lo.GL_IMAGE_2D_MULTISAMPLE] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "image2DMS" },
+  [lo.GL_IMAGE_2D_MULTISAMPLE_ARRAY] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "image2DMSArray" },
+  [lo.GL_INT_IMAGE_1D] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "iimage1D" },
+  [lo.GL_INT_IMAGE_2D] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "iimage2D" },
+  [lo.GL_INT_IMAGE_3D] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "iimage3D" },
+  [lo.GL_INT_IMAGE_2D_RECT] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "iimage2DRect" },
+  [lo.GL_INT_IMAGE_CUBE] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "iimageCube" },
+  [lo.GL_INT_IMAGE_BUFFER] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "iimageBuffer" },
+  [lo.GL_INT_IMAGE_1D_ARRAY] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "iimage1DArray" },
+  [lo.GL_INT_IMAGE_2D_ARRAY] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "iimage2DArray" },
+  [lo.GL_INT_IMAGE_2D_MULTISAMPLE] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "iimage2DMS" },
+  [lo.GL_INT_IMAGE_2D_MULTISAMPLE_ARRAY] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "iimage2DMSArray" },
+  [lo.GL_UNSIGNED_INT_IMAGE_1D] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "uimage1D" },
+  [lo.GL_UNSIGNED_INT_IMAGE_2D] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "uimage2D" },
+  [lo.GL_UNSIGNED_INT_IMAGE_3D] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "uimage3D" },
+  [lo.GL_UNSIGNED_INT_IMAGE_2D_RECT] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "uimage2DRect" },
+  [lo.GL_UNSIGNED_INT_IMAGE_CUBE] = 
+    { kind = samp_kind, dim = 3, unsupported = true, glsl = "uimageCube" },
+  [lo.GL_UNSIGNED_INT_IMAGE_BUFFER] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "uimageBuffer" },
+  [lo.GL_UNSIGNED_INT_IMAGE_1D_ARRAY] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "uimage1DArray" },
+  [lo.GL_UNSIGNED_INT_IMAGE_2D_ARRAY] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "uimage2DArray" },
+  [lo.GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "uimage2DMS" },
+  [lo.GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY] = 
+    { kind = samp_kind, dim = 2, unsupported = true, glsl = "uimage2DMSArray" },
+  [lo.GL_UNSIGNED_INT_ATOMIC_COUNTER] = 
+    { kind = samp_kind, dim = 1, unsupported = true, glsl = "atomic_uint" }
+}
+
+
 
 local function err_gl(e)
   if e == lo.GL_NO_ERROR then return "no error" 
@@ -80,9 +315,10 @@ end
 
 function lib:log(s) self.super:log(s) end
 function lib:dlog(s) if self.super.debug then self.super:log(s) end end
-function lib:logGlError()
+function lib:logGlError(loc)
   local e = lo.glGetError ()
-  if e ~= lo.GL_NO_ERROR then self:log("GL error: " .. err_gl(e)) end
+  local loc = loc or ""
+  if e ~= lo.GL_NO_ERROR then self:log(loc .. " GL error:" .. err_gl(e)) end
 end
 
 function lib:initGlState()  
@@ -181,12 +417,6 @@ function lib:geometryStateAllocate(g)
   g.dirty = false
   return state
 end 
-
-local typeGLenumIsInt =
-  { [lo.GL_FLOAT] = false,
-    [lo.GL_DOUBLE] = false,
-    [lo.GL_INT] = true,
-    [lo.GL_UNSIGNED_INT] = true }
   
 function lib:geometryStateBind(gstate, estate)
   lo.glBindVertexArray(gstate.vao)
@@ -252,10 +482,9 @@ function lib:effectStateAllocate(effect)
   if state then return state end
 
   local state = { program = lo.glCreateProgram(), 
-                  attribs = {}, -- maps attrib names to loc/type
-                  uniforms = {}, -- maps uniform names to loc/type
-                  uniform_locs = {},
-                  data_locs = {}}
+                  attribs = {}, -- maps active attrib names to loc/type/siz
+                  uniforms = {} } -- maps active uniform names to loc/type/siz
+
   setmetatable(state, { __gc = releaseState })
 
   -- Compile and link program
@@ -275,11 +504,11 @@ function lib:effectStateAllocate(effect)
   self:linkProgram(p)
 
   -- Get info about attributes and uniforms
-  local a_max = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_ATTRIBUTE_MAX_LENGTH)
-  local u_max = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_UNIFORM_MAX_LENGTH)
+  local a_name_max = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_ATTRIBUTE_MAX_LENGTH)
+  local u_name_max = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_UNIFORM_MAX_LENGTH)
   local a_count = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_ATTRIBUTES)
   local u_count = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_UNIFORMS)
-  local max_len = math.max(a_max, u_max)
+  local max_len = math.max(a_name_max, u_name_max)
   local s = ffi.new("GLchar [?]", max_len)
   local len = ffi.new("GLsizei [1]", 0)
   local size = ffi.new("GLsizei [1]", 0)
@@ -291,9 +520,17 @@ function lib:effectStateAllocate(effect)
     state.attribs[name] = { loc = loc, type = type[0], size = size[0] } 
   end
 
-  for u, _ in pairs(effect:getUniforms()) do 
-    local loc = lo.glGetUniformLocation(state.program, u)
-    if loc ~= -1 then state.uniform_locs[u] = loc end
+  for i = 0, u_count - 1, 1 do 
+    lo.glGetActiveUniform(p, i, max_len, len, size, type, s)
+    local name = ffi.string (s, len[0])
+    local type_info = uniformTypeInfo[type[0]]
+    if type_info.unsupported then 
+      self:log(string.format("Unsupported uniform type: %s", type_info.glsl))
+    else
+      local loc = lo.glGetUniformLocation(p, name)
+      state.uniforms[name] = { loc = loc, type = type[0], size = size[0] }
+      print(name, loc, type_info.glsl, size[0])
+    end
   end
 
   self.effects[effect] = state
@@ -301,80 +538,61 @@ function lib:effectStateAllocate(effect)
 end
 
 function lib:getSpecialUniform(u, m2w)
-  if u.special == Effect.model_to_world then return m2w
-  elseif u.special == Effect.world_to_camera then return self.world_to_camera
-  elseif u.special == Effect.camera_to_clip then return self.camera_to_clip
-  elseif u.special == Effect.model_to_camera then 
+  if u == Effect.MODEL_TO_WORLD then 
+    return m2w
+  elseif u == Effect.MODEL_TO_CAMERA then 
     return self.world_to_camera * m2w 
-  elseif u.special == Effect.model_to_clip then 
+  elseif u == Effect.MODEL_TO_CLIP then 
     return self.camera_to_clip * self.world_to_camera * m2w
-  elseif u.special == Effect.normals_model_to_camera then
-    -- We don't have a M3 type yet. Do it the had-hoc way.
+  elseif u == Effect.WORLD_TO_CAMERA then 
+    return self.world_to_camera
+  elseif u == Effect.CAMERA_TO_CLIP then 
+    return self.camera_to_clip
+  elseif u == Effect.MODEL_NORMAL_TO_CAMERA then
+    -- We don't have a M3 type yet. Do it the had-hoc here.
     local m = M4.transpose(M4.inv(self.world_to_camera * m2w))
     local m3 = { m[1], m[2], m[3],    -- fst col
                  m[5], m[6], m[7],    -- snd col
                  m[9], m[10], m[11] } -- trd col
-    return m3;
-  elseif u.special == Effect.camera_resolution then 
+    return m3
+  elseif u == Effect.CAMERA_RESOLUTION then 
     return self.camera_resolution
   end
+  return nil
 end
 
-local bindUniform1D = 
-{ [Effect.float_scalar] = lo.glUniform1f,
-  [Effect.bool_scalar] = lo.glUniform1f,
-  [Effect.int_scalar] = lo.glUniform1i,
-  [Effect.uint_scalar] = lo.glUniform1ui }
-
-local bindUniform2D = 
-{ [Effect.float_scalar] = lo.glUniform2f,
-  [Effect.bool_scalar] = lo.glUniform2f,
-  [Effect.int_scalar] = lo.glUniform2i,
-  [Effect.uint_scalar] = lo.glUniform2ui }
-
-local bindUniform3D = 
-{ [Effect.float_scalar] = lo.glUniform3f,
-  [Effect.bool_scalar] = lo.glUniform3f,
-  [Effect.int_scalar] = lo.glUniform3i,
-  [Effect.uint_scalar] = lo.glUniform3ui }
-
-local bindUniform4D = 
-{ [Effect.float_scalar] = lo.glUniform4f,
-  [Effect.bool_scalar] = lo.glUniform4f,
-  [Effect.int_scalar] = lo.glUniform4i,
-  [Effect.uint_scalar] = lo.glUniform4ui }
-
 function lib:effectBindUniforms(estate, m2w, uniforms, override)
-  for k, u in pairs(uniforms) do
-    local uoverride = override and override[k]
-    local u = uoverride or u -- TODO check type consistency ? 
-    local v = u.v
-    local loc = estate.uniform_locs[k]
-    if loc then
-      if u.special then v = self:getSpecialUniform(u, m2w) end
-      if u.dim == 1 then
-        local fun = bindUniform1D[u.scalar_type] 
-        fun(loc, v[1])
-      elseif u.dim == 2 then
-        local fun = bindUniform2D[u.scalar_type]
-        fun(loc, v[1], v[2])
-      elseif u.dim == 3 then
-        local fun = bindUniform3D[u.scalar_type]
-        fun(loc, v[1], v[2], v[3])
-      elseif u.dim == 4 then
-        local fun = bindUniform4D[u.scalar_type]
-        fun(loc, v[1], v[2], v[3], v[4])
-      elseif u.dim == 9 then 
-        local m = ffi.new("GLfloat[?]", 9, v)
-        lo.glUniformMatrix3fv(loc, 1, lo.GL_FALSE, m)
-      elseif u.dim == 16 then
-        local m = ffi.new("GLfloat[?]", 16, v)
-        lo.glUniformMatrix4fv(loc, 1, lo.GL_FALSE, m)
-      else assert(false)
-      end
-    else
-      self:log(string.format("No program location for %s uniform", k))
+  for u, uspec in pairs(estate.uniforms) do 
+    local loc = uspec.loc
+    local info = uniformTypeInfo[uspec.type]
+    local v = override and override[u] or uniforms[u]
+    
+    -- TODO do we do type checks here 
+    local vt = type(v)
+    if vt == "boolean" then v = { v and 1 or 0 } 
+    elseif vt == "number" then v = { v } 
+    elseif vt == "table" then 
+      if v.special_uniform then v = self:getSpecialUniform(v, m2w) end
     end
+    
+    if not v then 
+      self:log(string.format("No value found for uniform: %s %s", info.glsl, u))
+    elseif uspec.size ~= 1 then
+      self:log(string.format("Uniform arrays unsupported yet (%s)", u))
+    else
+      if info.kind == vec_kind then 
+        if info.dim == 1 then info.bind(loc, v[1])
+        elseif info.dim == 2 then info.bind(loc, v[1], v[2])
+        elseif info.dim == 3 then info.bind(loc, v[1], v[2], v[3])
+        elseif info.dim == 4 then info.bind(loc, v[1], v[2], v[3], v[4])
+        end
+      elseif info.kind == mat_kind then 
+        local m = ffi.new("GLfloat [?]", info.dim, v) 
+        info.bind(loc, 1, lo.GL_FALSE, m)
+      elseif info.kind == samp_kind then 
+        -- TODO
+      end
+    end 
   end
 end
 
@@ -459,10 +677,10 @@ function lib:renderQueueFlush(cam)
       self:geometryStateBind(gstate, estate)
 
       -- Bind uniforms
-      local override = o.uniforms and Effect.rawUniforms(o.uniforms) or nil
+      local override = o.uniforms or nil
       local m2w = o.transform and o.transform.matrix or M4.id ()
       if o.geometry.pre_transform then m2w = m2w * o.geometry.pre_transform end
-      self:effectBindUniforms(estate, m2w, effect:getUniforms(), override)
+      self:effectBindUniforms(estate, m2w, effect.uniforms, override)
 
       lo.glDrawElements(gstate.primitive, gstate.index_length, 
                         gstate.index_scalar_type, nil)
@@ -473,12 +691,3 @@ function lib:renderQueueFlush(cam)
   self.queue = {}
   if self.super.debug then self:logGlError() end
 end
-
-
-
-
-
-
-
-
-
