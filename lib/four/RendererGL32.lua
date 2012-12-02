@@ -574,8 +574,7 @@ function lib:getSpecialUniform(u, m2w)
   return nil
 end
 
-function lib:effectBindUniforms(estate, cam, o)
-  local effect = o.effect
+function lib:effectBindUniforms(effect, estate, cam, o)
   local m2w = o.transform and o.transform.matrix or M4.id ()
   if o.geometry.pre_transform then 
     m2w = m2w * o.geometry.pre_transform 
@@ -742,14 +741,9 @@ function lib:renderQueueFlush(cam)
       if self:setupEffect(effect, estate, current_program) then  
         current_program = estate.program
         for _, o in ipairs(batch) do
-          -- Bind geometry
+          self:effectBindUniforms(effect, estate, cam, o)
           local gstate = self.geometries[o.geometry]
           self:geometryStateBind(gstate, estate)
-          
-          -- Bind uniforms
-          self:effectBindUniforms(estate, cam, o)
-          
-          -- Draw !
           lo.glDrawElements(gstate.primitive, gstate.index_length, 
                             gstate.index_scalar_type, nil)
           lo.glBindVertexArray(0)
