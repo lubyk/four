@@ -16,6 +16,8 @@ local V4 = four.V4
 
 -- h2. Constructors and accessors
 
+local meta = {} -- for operators, see at the end of file
+
 --[[--
   @Color(r, g, b [,a])@ is a color with the corresponding components.
   @a@ is @1@ if unspecified.
@@ -29,6 +31,7 @@ function lib.Color(r, g, b, a)
   else
     assert(false, string.format("Cannot convert %s to %s", x.type, lib.type))
   end
+  setmetatable(c, meta)
   return c
 end
 
@@ -145,3 +148,14 @@ function lib.green(a) return Color(0, 1, 0, a or 1) end
 
 -- @blue([,a])@ is @Color(0, 0, 1, a)@. @a@ is @1@ if unspecified.
 function lib.blue(a) return Color(0, 0, 1, a or 1) end
+
+
+-- h2. Operators
+
+meta.__unm = V4.neg
+meta.__add = V4.add
+meta.__sub = V4.sub
+meta.__mul = V4.smul
+meta.__tostring = lib.tostring
+
+
