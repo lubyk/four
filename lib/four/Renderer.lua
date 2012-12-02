@@ -39,6 +39,7 @@ lib.DEFAULT = lib.GL32
 function lib.new(def)
   local self = 
     {  backend = lib.DEFAULT,   
+       frame_start_time = -1,
        size = V2(480, 270),     
        log_fun = print,         
        stats = lib.statsTable (), 
@@ -102,8 +103,7 @@ function lib.statsTable ()
 end
 
 function lib:resetStats() self.stats = lib.statsTable () end
-function lib:updateStats() 
-  local now = now () 
+function lib:updateStats(now) 
   local stats = self.stats
   stats.frame_vertex_count = 0;
   stats.frame_face_count = 0;
@@ -184,8 +184,10 @@ end
 
 -- @render(cam, objs)@ renders the renderables in @objs@ with @cam@.
 function lib:render(cam, objs)
+  local now = now () 
   self:_init ()
-  self:updateStats()
+  self.frame_start_time = now
+  self:updateStats(now)
   for _, o in ipairs(objs) do  
     if self:isRenderable(cam, o) and not cam.cull(o) then
       self:addGeometryStats(o.geometry)

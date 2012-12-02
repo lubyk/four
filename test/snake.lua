@@ -201,7 +201,7 @@ function sinskin () return Effect
   default_uniforms = 
     { model_to_clip = Effect.MODEL_TO_CLIP,
       delta = V3(0,0,0),
-      time = 0 },
+      time = Effect.RENDER_FRAME_START_TIME },
 
   vertex = vertexSkin,
   fragment = { 
@@ -213,6 +213,7 @@ function sinskin () return Effect
 
     void main( void )
     {
+      float time = time * 1e-3;
       vec3 c = 0.5 + 0.5 * sin(v_tex_coord + time / vec3(2, 3, 4));
       c.g = (c.g - 0.5) *  sin(v_tex_coord.x * time / 2) + 0.5;
 
@@ -235,7 +236,7 @@ function snoiseskin () return Effect
   default_uniforms = 
     { model_to_clip = Effect.MODEL_TO_CLIP,
       delta = V3(0,0,0),
-      time = 0 },
+      time = Effect.RENDER_FRAME_START_TIME },
   
   vertex = vertexSkin,
   fragment = { 
@@ -247,7 +248,7 @@ function snoiseskin () return Effect
     out vec4 color;
     void main( void )
     {
-      float time = time * 0.01;
+      float time = time * 1e-5;
       vec3 c = vec3(snoise(v_tex_coord * 0.3 - vec3(0.0, 0.0, time * 5.6)),
                     snoise(v_tex_coord * 0.3 - vec3(0.0, 0.0, time * 4.8)),
                     snoise(v_tex_coord * 0.3 - vec3(0.0, 0.0, time * 4.9)));
@@ -329,21 +330,12 @@ function app.win:initializeGL()
   local limits = app.renderer:limits ()
   print(limits)
   for k, v in pairs(limits) do print(k, v) end
-  command(app, { CycleGeometry = true }) -- init geom
-  command(app, { CycleEffect = true })   -- init effect
-  makeSnakeRenderTransforms(snake)
 end
 
 app.init ()
-
-function app.win:paintGL()
-  local t = now() / 1000
-  for _, o in ipairs(app.objs) do
-    o.effect.default_uniforms.time = t
-  end
-  app.renderer:render(app.camera, app.objs)
-end
-
+setSnakeGeometry(snake, nextGeometry())
+setSnakeEffect(snake, nextEffect())
+makeSnakeRenderTransforms(snake)
 
 -- Run simulation
 

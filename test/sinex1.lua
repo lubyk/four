@@ -28,7 +28,7 @@ local effect = Effect
 {
   default_uniforms = 
     { resolution = Effect.CAMERA_RESOLUTION,
-      time = 0 },
+      time = Effect.RENDER_FRAME_START_TIME },
 
   vertex = Effect.Shader [[ 
     in vec3 vertex;
@@ -47,7 +47,7 @@ local effect = Effect
       vec2 p =  gl_FragCoord.xy / resolution.xy;
 
       // time = temps en [s]
-      float t = time / 5;
+      float t = time / 1000 / 5;
 
       // zoom
       vec3 f = 4 * 6.28 * vec3(2, 1.8, 1.7) * (1.0 + sin(t/8));
@@ -95,22 +95,17 @@ local camera = four.Camera {}
 
 -- Render
 
-local time = 0
 local w, h = 600, 400
 local renderer = four.Renderer { size = V2(w, h) }
 local win = mimas.GLWindow()
 
 function win:initializeGL() renderer:logInfo() end  
+function win:paintGL() renderer:render(camera, {obj}) end
 function win:closed() timer:stop() end
 function win:resizeGL(w, h) 
   local size = V2(w, h)
   renderer.size = size 
   camera.aspect = w / h 
-end
-
-function win:paintGL()
-  renderer:render(camera, {obj})  
-  effect.default_uniforms.time = now() / 1000
 end
 
 function win:keyboard(key, down, utf8, modifiers)

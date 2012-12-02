@@ -424,7 +424,6 @@ function lib:geometryStateBind(gstate, estate)
       local data = gstate.data[a]
       local ints = typeGLenumIsInt[data.scalar_type]
       local loc = aspec.loc
-      print("REBIND", a, aspec.loc, data.id)
       lo.glBindBuffer(lo.GL_ARRAY_BUFFER, data.id)
       lo.glEnableVertexAttribArray(loc)
       if ints then
@@ -502,7 +501,6 @@ function lib:setProgramInfo(state)
     else
       local loc = lo.glGetUniformLocation(p, name)
       state.uniforms[name] = { loc = loc, type = type[0], size = size[0] }
-      print(name, loc, type_info.glsl, size[0])
     end
   end
 end
@@ -565,6 +563,8 @@ function lib:getSpecialUniform(u, m2w)
     return m3
   elseif u == Effect.CAMERA_RESOLUTION then 
     return self.camera_resolution
+  elseif u == Effect.RENDER_FRAME_START_TIME then 
+    return { self.super.frame_start_time }
   end
   return nil
 end
@@ -611,7 +611,6 @@ function lib:setupEffect(effect, current_program)
   if program ~= current_program then lo.glUseProgram(program) end
   return true
 end
-
 
 function lib:clearFramebuffer(cam)
   -- Setup viewport 
