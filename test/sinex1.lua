@@ -1,6 +1,7 @@
-require 'lubyk'
+-- Gaspard Buma (http://teti.ch) 2012
 
--- Effect by Gaspard Bucher (http://teti.ch)
+require 'lubyk'
+local Shadefuns = require 'shadefuns'
 
 local V2 = four.V2
 local Effect = four.Effect 
@@ -26,7 +27,7 @@ end
 local effect = Effect
 {
   uniforms = 
-    { resolution = V2.zero(),
+    { resolution = Effect.CAMERA_RESOLUTION,
       time = 0 },
 
   vertex = Effect.Shader [[ 
@@ -34,7 +35,9 @@ local effect = Effect
     void main() { gl_Position = vec4(vertex, 1.0); }
   ]],  
 
-  fragment = Effect.Shader [[ 
+  fragment = {
+    Shadefuns.smoothcut,
+    Effect.Shader [[ 
     uniform vec2 resolution;
     uniform float time; 
     out vec4 color;
@@ -42,8 +45,10 @@ local effect = Effect
     {
       // p in [0.0, 1.0]
       vec2 p =  gl_FragCoord.xy / resolution.xy;
+
       // time = temps en [s]
       float t = time / 5;
+
       // zoom
       vec3 f = 4 * 6.28 * vec3(2, 1.8, 1.7) * (1.0 + sin(t/8));
 
@@ -51,11 +56,14 @@ local effect = Effect
       float amp_scale = 0.01 * (1.0 + sin(t)) * 96 / f.x;
       vec2 amp = vec2(amp_scale, amp_scale * resolution.x/resolution.y);
       float px = p.x;
-      p.x = p.x * (1-amp.x) + (amp.x * 0.5 * (1.0 + sin(p.y * f.x * 0.3 * (1.0 + sin(t*10*sin(t/10))))));
-      p.y = p.y * (1-amp.y) + (amp.y* 0.5 * (1.0 + sin(px  * f.x * 0.3 * (1.0 + sin(t*10*sin(t/10))))));
+      p.x = p.x * (1-amp.x) + 
+     (amp.x * 0.5 * (1.0 + sin(p.y * f.x * 0.3 * (1.0 + sin(t*10*sin(t/10))))));
+      p.y = p.y * (1-amp.y) + 
+     (amp.y* 0.5 * (1.0 + sin(px  * f.x * 0.3 * (1.0 + sin(t*10*sin(t/10))))));
 
       // translation in xyz
       vec2 a = vec2(sin(t/2), sin(t/1.5));
+
       // translation in rgb
       vec3 d = vec3(sin(t/5), sin(t/5.5), sin(t/6));
       float r = sin(f.x * (d.r + a.x + p.x)) * sin(f.x * (d.r + a.y + p.y));
@@ -64,61 +72,22 @@ local effect = Effect
 
       // normalize [-1, 1] to [0, 1]
       r = 0.5 * (r + 1.0);
-      // more black
-      //r = r * r * r;
-
       g = 0.5 * (g + 1.0);
-      //g = g * g * g;
       b = 0.5 * (b + 1.0);
-      //b = b * b * b;
 
       // contour
-      vec2 range = vec2(
-        0.7 * (2.0 + sin(p.x + a.x)) / 3.0,
-        0.2 + 0.8 * (2.0 + sin(p.y + a.y * 0.5)) / 3.0
-      );
-      // smooth cut
-      if (r > range[1]) {
-        // distance to range[1] in [1, 0];
-        float dist = 1.0 - (r - range[1]) / (1.0 - range[1]);
-        // quick turn to 0
-        r = r * dist * dist * dist;
-      } else if (r < range[0]) {
-        // distance to range[0] in [1, 0];
-        float dist = 1.0 - (range[0] - r) / range[0];
-        // quick turn to 0
-        r = r * dist * dist * dist * dist * dist;
-      }
-
-      if (g > range[1]) {
-        // distance to range[1] in [1, 0];
-        float dist = 1.0 - (g - range[1]) / (1.0 - range[1]);
-        // quick turn to 0
-        g = g * dist * dist * dist;
-      } else if (g < range[0]) {
-        // distance to range[0] in [1, 0];
-        float dist = 1.0 - (range[0] - g) / range[0];
-        // quick turn to 0
-        g = g * dist * dist * dist * dist * dist;
-      }
-
-      if (b > range[1]) {
-        // distance to range[1] in [1, 0];
-        float dist = 1.0 - (b - range[1]) / (1.0 - range[1]);
-        // quick turn to 0
-        b = b * dist * dist * dist;
-      } else if (b < range[0]) {
-        // distance to range[0] in [1, 0];
-        float dist = 1.0 - (range[0] - b) / range[0];
-        // quick turn to 0
-        b = b * dist * dist * dist * dist * dist;
-      }
+      float e0 = 0.7 * (2.0 + sin(p.x + a.x)) / 3.0;
+      float e1 = 0.2 + 0.8 * (2.0 + sin(p.y + a.y * 0.5)) / 3.0;
+      r = smoothcut(e0, e1, r);
+      g = smoothcut(e0, e1, g);
+      b = smoothcut(e0, e1, b);
 
       // fuse colors
-      float c = r + g + b;
-      color=vec4(r * c, g * c, b * c, 1.0);
+      float sum = r + g + b;
+      color=vec4(sum * vec3(r, g, b), 1.0);
     }
     ]]
+  }
 }
 
 local obj = { geometry = fullscreen (), effect = effect }
@@ -131,25 +100,18 @@ local w, h = 600, 400
 local renderer = four.Renderer { size = V2(w, h) }
 local win = mimas.GLWindow()
 
-function win:closed()
-  timer:stop()
-end
-
+function win:initializeGL() renderer:logInfo() end  
+function win:closed() timer:stop() end
 function win:resizeGL(w, h) 
   local size = V2(w, h)
   renderer.size = size 
-  effect.uniforms.resolution = Effect.U(size)
+  camera.aspect = w / h 
 end
 
 function win:paintGL()
   renderer:render(camera, {obj})  
   effect.uniforms.time = now() / 1000
 end
-
-function win:initializeGL() 
-  renderer:logInfo() 
-  effect.uniforms.resolution = V2(w, h)
-end  
 
 function win:keyboard(key, down, utf8, modifiers)
   if down then

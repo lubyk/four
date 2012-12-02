@@ -120,19 +120,21 @@ function lib.Wireframe(def)
   {
     uniforms = 
       { 
-        model_to_clip = Effect.modelToClip,
-        resolution = Effect.cameraResolution,
-        fill = def and def.fill or Color.white (),
-        wire = def and def.wire or Color.red (),
+        model_to_clip = Effect.MODEL_TO_CLIP,
+        resolution = Effect.CAMERA_RESOLUTION,
+        fill = def and def.fill or Color.white(),
+        wire = def and def.wire or Color.red(),
         hidden_surface = true
       },
       
     vertex = Effect.Shader [[
+      uniform mat4 model_to_clip;
       in vec4 vertex;
       void main() { gl_Position = model_to_clip * vertex; }
     ]],  
 
     geometry = Effect.Shader [[
+      uniform vec2 resolution;
       layout(triangles) in;
       layout(triangle_strip, max_vertices=3) out;
       noperspective out vec3 dist;
@@ -160,19 +162,23 @@ function lib.Wireframe(def)
         EmitVertex();
 
         EndPrimitive();
-      }  
- ]],
+      }
+    ]],
 
-  fragment = Effect.Shader [[
-    noperspective in vec3 dist;
-    out vec4 color;
-    void main(void)
-    {
-      float d = min(dist[0],min(dist[1],dist[2]));
-      float I = exp2(-2*d*d);
-      if (!hidden_surface && I < 0.01) { discard; }
-      color = mix(fill, wire, I); // I*wire + (1.0 - I)*fill;
-    }]]
+    fragment = Effect.Shader [[
+      uniform bool hidden_surface;
+      uniform vec4 wire;
+      uniform vec4 fill; 
+      noperspective in vec3 dist;
+      out vec4 color;
+      void main(void)
+      {
+        float d = min(dist[0],min(dist[1],dist[2]));
+        float I = exp2(-2*d*d);
+        if (!hidden_surface && I < 0.01) { discard; }
+        color = mix(fill, wire, I);
+      }
+   ]]
 }
 end
 
@@ -187,27 +193,34 @@ function lib.Normals(def)
 return Effect
 {
   uniforms = 
-    { model_to_cam = Effect.modelToCamera,
-      normal_to_cam = Effect.normalModelToCamera,
-      cam_to_clip = Effect.cameraToClip,
+    { model_to_cam = Effect.MODEL_TO_CAMERA,
+      normal_to_cam = Effect.MODEL_NORMAL_TO_CAMERA,
+      cam_to_clip = Effect.CAMERA_TO_CLIP,
       normal_scale = def and def.normal_scale or 0.1,
       normal_color_start = def and def.normal_color_start or Color.black(),
       normal_color_end = def and def.normal_color_end or Color.white() },
     
   vertex = Effect.Shader [[
-      in vec3 vertex;
-      in vec3 normal;
-      out vec4 v_position;
-      out vec3 v_snormal;
+    uniform mat4 model_to_cam; 
+    uniform mat3 normal_to_cam; 
+    uniform float normal_scale;
+    in vec3 vertex;
+    in vec3 normal;
+    out vec4 v_position;
+    out vec3 v_snormal;
 
-      void main() 
-      { 
-         v_position = model_to_cam * vec4(vertex, 1.0);
-         v_snormal = normal_scale * normalize(normal_to_cam * normal);
-      }
-    ]],  
+    void main() 
+    { 
+      v_position = model_to_cam * vec4(vertex, 1.0);
+      v_snormal = normal_scale * normalize(normal_to_cam * normal);
+    }
+  ]],  
   
   geometry = Effect.Shader [[
+    uniform mat4 cam_to_clip;
+    uniform vec4 normal_color_start; 
+    uniform vec4 normal_color_end; 
+   
     layout(triangles) in;
     layout(line_strip, max_vertices = 6) out;
 

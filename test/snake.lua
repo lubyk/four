@@ -1,4 +1,5 @@
 require 'lubyk'
+
 math.randomseed(os.time())
 
 --=============================================== WORLD SETUP
@@ -121,8 +122,7 @@ function updateMotors(snake, t)
     if constraint then
       -- sin oscillation
       constraint:enableAngularMotor(
-        true,
-        1 * math.cos(phi + i * PHASE_PER_ELEM) * damp * pos_damp,
+        true,1 * math.cos(phi + i * PHASE_PER_ELEM) * damp * pos_damp,
         5
       )
     end
@@ -131,8 +131,10 @@ end
 
 -- Rendering 
 
-require 'bunny_geometry' -- hin hin
-require 'gooch'
+local Demo = require 'demo'
+local Models = require 'models' 
+local Shadefuns = require 'shadefuns'
+local Gooch = require 'gooch'
 
 local V2 = four.V2
 local V3 = four.V3
@@ -145,15 +147,18 @@ local Effect = four.Effect
 local Camera = four.Camera
 local Manip = four.Manip
 
-function setSnakeGeometry(snake, geometry, scale)
-  for _, elem in ipairs(snake) do 
-    if elem.transform and scale then elem.transform.scale = scale end
-    elem.geometry = geometry
-  end
+function setSnakeGeometry(snake, geometry)
+  for _, elem in ipairs(snake) do elem.geometry = geometry end
 end
 
 function setSnakeEffect(snake, effect)
-  for _, elem in ipairs(snake) do elem.effect = effect end
+  local delta = V3(-0.5, 0, 0)
+  for i, elem in ipairs(snake) do 
+    if not elem.uniforms then
+      elem.uniforms = { delta = i * delta } 
+    end
+    elem.effect = effect
+  end
 end
 
 function makeSnakeRenderTransforms(snake)
@@ -168,41 +173,121 @@ function makeSnakeRenderTransforms(snake)
   end
 end
 
-function geometryWithID(i)
-  local geoms =
-    { function () return Geometry.Cube(0.5), V3(1, 1, 1) end,
-      function () return Geometry.Sphere(0.25, 3), V3(1, 1, 1) end,
-      function () return Geometry.Plane(V2(0.5, 0.5)) end,
-      function () return bunny (), V3(-3,3,3) end }
-  return geoms[(i % #geoms) + 1]
-end 
+local geometries = 
+  { function () return Geometry.Cube(0.5) end,
+    function () return Geometry.Sphere(0.25, 3) end,
+    function () return Geometry.Plane(V2(0.5, 0.5)) end,
+    function ()
+      local b = Models.bunny(0.5) 
+      b.pre_transform = M4.scale(V3(-1, 1, 1)) * b.pre_transform
+      return b
+    end }
 
-function effectWithID(i)
-  local effects = 
-    { function () return Effect.Wireframe() end,
-      function () return gooch () end }
-  return effects[(i % #effects) + 1]
+local nextGeometry = Demo.geometryCycler { normals = true, 
+                                           geometries = geometries} 
+
+local vertexSkin = Effect.Shader [[
+    uniform mat4 model_to_clip;
+    uniform vec3 delta;
+    in vec3 vertex;
+    out vec3 v_tex_coord;
+    void main () 
+    {
+      v_tex_coord = vertex - delta;
+      gl_Position = model_to_clip * vec4(vertex, 1.0);
+    }                                   
+]]
+
+function sinskin () return Effect 
+{
+  uniforms = 
+    { model_to_clip = Effect.MODEL_TO_CLIP,
+      delta = V3(0,0,0),
+      time = 0 },
+  
+  vertex = vertexSkin,
+  fragment = { 
+    Shadefuns.smoothcut,
+    Effect.Shader [[ 
+    uniform float time;
+    out vec4 color;
+    in vec3 v_tex_coord;
+
+    void main( void )
+    {
+      vec3 c = 0.5 + 0.5 * sin(v_tex_coord + time / vec3(2, 3, 4));
+      c.g = (c.g - 0.5) *  sin(v_tex_coord.x * time / 2) + 0.5;
+
+      const float e0 = 0.2;
+      const float e1 = 0.7;
+      float r = smoothcut(e0, e1, c.r);
+      float g = smoothcut(e0, e1, c.g);
+      float b = smoothcut(e0, e1, c.b);
+
+      // fuse colors
+      float sum = r + g + b;
+      color=vec4(sum * vec3(r, g, b), 1.0);
+    }]]
+  }
+}
 end
+
+function snoiseskin () return Effect 
+{
+  uniforms = 
+    { model_to_clip = Effect.MODEL_TO_CLIP,
+      delta = V3(0,0,0),
+      time = 0 },
+  
+  vertex = vertexSkin,
+  fragment = { 
+    Shadefuns.smoothcut,
+    Shadefuns.snoise,
+    Effect.Shader [[ 
+    uniform float time;
+    in vec3 v_tex_coord;
+    out vec4 color;
+    void main( void )
+    {
+      float time = time * 0.01;
+      vec3 c = vec3(snoise(v_tex_coord * 0.3 - vec3(0.0, 0.0, time * 5.6)),
+                    snoise(v_tex_coord * 0.3 - vec3(0.0, 0.0, time * 4.8)),
+                    snoise(v_tex_coord * 0.3 - vec3(0.0, 0.0, time * 4.9)));
+ 
+      const float e0 = 0.2;
+      const float e1 = 0.7;
+
+      float r = smoothcut(e0, e1, c.r);
+      float g = smoothcut(e0, e1, c.g);
+      float b = smoothcut(e0, e1, c.b);
+
+      // fuse colors
+      float sum = r + g + b;
+      color=vec4(sum * vec3(r, g, b), 1.0);
+    }]]
+  }
+}
+end
+
+local effects = 
+  { sinskin,
+    snoiseskin,
+    function () return Effect.Wireframe() end,
+    Gooch.effect, }  
+
+local nextEffect = Demo.effectCycler { effects = effects } 
 
 local cam_pos = V3(-3, 8, 20)
 local cam_rot = Quat.rotMap(V3(0, 0, -1), V3.unit(-cam_pos)) -- look origin
 local camera = Camera { transform = Transform { pos = cam_pos,
                                                 rot = cam_rot }}
-local snake_geom_id = -1
-local snake_effect_id = -1
 
 function command(app, c)
   if c.ExitFullscreen then app.win:showFullScreen(false)
   elseif c.ToggleFullscreen then app.win:swapFullScreen()
   elseif c.Resize then camera.aspect = V2.x(app.size) / V2.y(app.size)
-  elseif c.CycleGeometry then
-    snake_geom_id = snake_geom_id + 1; 
-    local g, scale = geometryWithID(snake_geom_id)()
-    g:computeVertexNormals()
-    setSnakeGeometry(snake, g, scale)
-  elseif c.CycleEffect then    
-    snake_effect_id = snake_effect_id + 1;
-    setSnakeEffect(snake, effectWithID(snake_effect_id)())
+  elseif c.CycleGeometry then setSnakeGeometry(snake, nextGeometry())
+  elseif c.CycleEffect then setSnakeEffect(snake, nextEffect())
   elseif c.StartRotation then 
     local pos = camera:screenToDevice(c.pos)
     app.rotator = Manip.Rot(camera.transform.rot, pos)
@@ -239,21 +324,28 @@ end
 
 -- Application
 
-local app = App { event = event, camera = camera, objs = snake }
+local app = Demo.App { event = event, camera = camera, objs = snake }
 
 function app.win:initializeGL() 
   app.renderer:logInfo() 
   local limits = app.renderer:limits ()
   print(limits)
-  for k, v in pairs(limits) do 
-    print(k, v)
-  end
+  for k, v in pairs(limits) do print(k, v) end
   command(app, { CycleGeometry = true }) -- init geom
   command(app, { CycleEffect = true })   -- init effect
   makeSnakeRenderTransforms(snake)
 end
 
 app.init ()
+
+function app.win:paintGL()
+  local t = now() / 1000
+  for _, o in ipairs(app.objs) do
+    o.effect.uniforms.time = t
+  end
+  app.renderer:render(app.camera, app.objs)
+end
+
 
 -- Run simulation
 

@@ -1,6 +1,7 @@
+-- Show model normals
+
 require 'lubyk'
-require 'app'
-require 'bunny_geometry'
+local Demo = require 'demo'
 
 local V2 = four.V2
 local V3 = four.V3
@@ -12,37 +13,19 @@ local Camera = four.Camera
 local Manip = four.Manip
 local Color = four.Color
 
--- Effect
-
-      -- vec3 diffuse(vec3 p, vec3 n, vec3 Kd, vec3 light_p, vec3 light_c)
-      -- {
-      --    vec3 l = normalize(light_p - p); 
-      --    return Kd * light_c * clamp(dot(n, l), 0, 1);
-      -- }
-
 -- World
 
+local nextGeometry = Demo.geometryCycler { normals = true }
 local angle = math.pi/4
-
 local obj = 
   { transform = Transform { rot = Quat.rotZYX(V3(angle, angle, 0)) },
-    geometry = four.Geometry.Cube(1),
+    geometry = nextGeometry(),
     effect = Effect.Normals() }
 
-local camera = Camera 
-{ transform = Transform { pos = V3(0, 0, 5) },
-  background = { color = Color(0.2, 0.3, 0.55), depth = 1.0 },
-  range = V2(0.1, 10) }
-
-local obj_geom_id = -1
-function geometryWithID(i)
-  local geoms =
-    { function () return Geometry.Cube(1), V3(1, 1, 1) end,
-      function () return Geometry.Plane(four.V2(1,1)), V3(1, 1, 1) end,
-      function () return Geometry.Sphere(0.5, 3), V3(1, 1, 1) end,      
-      function () return bunny (), V3(6,6,6) end }
-  return geoms[(i % #geoms) + 1]
-end
+local camera = 
+  Camera { transform = Transform { pos = V3(0, 0, 5) },
+           background = { color = Color(0.2, 0.3, 0.55), depth = 1.0 },
+           range = V2(0.1, 10) }
 
 -- Interaction
 
@@ -68,13 +51,7 @@ function command(app, c)
     local forward = V3.unit(four.M4.col(four.Quat.toM4(camera.transform.rot),3))
     camera.transform.pos = camera.transform.pos - 0.2 * forward
   end
-  if c.CycleGeometry then
-    obj_geom_id = obj_geom_id + 1; 
-    local g, scale = geometryWithID(obj_geom_id)()
-    g:computeVertexNormals()
-    obj.geometry = g
-    obj.transform.scale = scale
-  end
+  if c.CycleGeometry then obj.geometry = nextGeometry () end 
   if c.SwapMode then 
     obj.effect.uniforms.mode = not obj.effect.uniforms.mode;
   end
@@ -102,12 +79,6 @@ end
 
 -- Application
 
-local app = App { event = event, camera = camera, objs = { obj } }
-
+local app = Demo.App { event = event, camera = camera, objs = { obj } }
 app.init()
-command(app, { CycleGeometry = true })
-
 run ()
-
-
-

@@ -1,5 +1,5 @@
 require 'lubyk'
-require 'app'
+local Demo = require 'demo'
 
 local V2 = four.V2
 local V3 = four.V3
@@ -65,7 +65,7 @@ end
 
 -- Application
 
-local app = App { event = event, camera = camera, objs = { cube } }
+local app = Demo.App { event = event, camera = camera, objs = { cube } }
 app.init ()
 run()
 
