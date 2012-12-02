@@ -32,7 +32,7 @@ function lib.new(super)
        buffers = {},    -- Weakly maps Buffers to their buffer object id
        geometries = {}, -- Weakly maps Geometry object to gl geometry state
        effects = {},    -- Weakly maps Effects to their shader program id
-       queue = {},      -- Maps gl programs ids to lists of renderables
+       queue = {}, -- Array of maps from gl programs ids to lists of renderables
        world_to_camera = nil,
        camera_to_clip = nil,
        camera_viewport_origin = nil,
@@ -604,7 +604,15 @@ function lib:effectBindUniforms(estate, m2w, uniforms, override)
   end
 end
 
-function lib:initFramebuffer(cam)
+function lib:setupEffect(effect, current_program)
+  local program = effect.program 
+  if program == -1 then return false end
+  if program ~= current_program then lo.glUseProgram(program) end
+  return true
+end
+
+
+function lib:clearFramebuffer(cam)
   -- Setup viewport 
   local wsize = self.super.size 
   local x, y = V2.tuple(self.camera_viewport_origin)
@@ -665,37 +673,53 @@ end
 function lib:getCaps() return {} end 
 function lib:getLimits() return self.limits end 
 function lib:renderQueueAdd(cam, o) 
-  local effect = cam.effect_override or o.effect
-  local estate = self:effectStateAllocate(effect) 
+  local pass = 0
+  local addPasses
+  addPasses = function(e) 
+    if e.type and e.type == 'four.Effect' then 
+      local estate = self:effectStateAllocate(e) 
+      pass = pass + 1
+      self.queue[pass] = self.queue[pass] or {} 
+      self.queue[pass][e] = self.queue[pass][e] or {}
+      table.insert(self.queue[pass][e], o)
+    else
+      for _, ep in ipairs(e) do addPasses(ep) end
+    end
+  end
+
   local gstate = self:geometryStateAllocate(o.geometry) 
-  self.queue[effect] = self.queue[effect] or {} 
-  table.insert(self.queue[effect], o) 
+  local effect = cam.effect_override or o.effect
+  addPasses(effect)
 end
 
 function lib:renderQueueFlush(cam)
   self:setupCameraParameters(cam)
-  self:initFramebuffer(cam)
+  self:clearFramebuffer(cam)
   
-  for effect, batch in pairs(self.queue) do
-    local estate = self.effects[effect]
-    if estate.program ~= -1 then
-      lo.glUseProgram(estate.program)
-      for _, o in ipairs(batch) do
-        -- Bind geometry
-        local gstate = self.geometries[o.geometry]
-        self:geometryStateBind(gstate, estate)
-        
-        -- Bind uniforms
-        local override = o.uniforms or nil
-        local m2w = o.transform and o.transform.matrix or M4.id ()
-        if o.geometry.pre_transform then 
-          m2w = m2w * o.geometry.pre_transform 
+  local current_program = -1
+  for _, pass in ipairs(self.queue) do 
+    for effect, batch in pairs(pass) do
+      local estate = self.effects[effect] 
+      if self:setupEffect(estate, current_program) then  
+        current_program = estate.program
+        for _, o in ipairs(batch) do
+          -- Bind geometry
+          local gstate = self.geometries[o.geometry]
+          self:geometryStateBind(gstate, estate)
+          
+          -- Bind uniforms
+          local override = o.uniforms or nil
+          local m2w = o.transform and o.transform.matrix or M4.id ()
+          if o.geometry.pre_transform then 
+            m2w = m2w * o.geometry.pre_transform 
+          end
+          self:effectBindUniforms(estate, m2w, effect.uniforms, override)
+          
+          -- Draw !
+          lo.glDrawElements(gstate.primitive, gstate.index_length, 
+                            gstate.index_scalar_type, nil)
+          lo.glBindVertexArray(0)
         end
-        self:effectBindUniforms(estate, m2w, effect.uniforms, override)
-        
-        lo.glDrawElements(gstate.primitive, gstate.index_length, 
-                          gstate.index_scalar_type, nil)
-        lo.glBindVertexArray(0)
       end
     end
   end
