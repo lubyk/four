@@ -167,7 +167,7 @@ function lib.Wireframe(def)
         resolution = Effect.CAMERA_RESOLUTION,
         fill = def and def.fill or Color.white(),
         wire = def and def.wire or Color.red(),
-        hidden_surface = true },
+        hidden_lines = true },
       
     vertex = Effect.Shader [[
       uniform mat4 model_to_clip;
@@ -208,7 +208,7 @@ function lib.Wireframe(def)
     ]],
 
     fragment = Effect.Shader [[
-      uniform bool hidden_surface;
+      uniform bool hidden_lines;
       uniform vec4 wire;
       uniform vec4 fill; 
       noperspective in vec3 dist;
@@ -217,7 +217,7 @@ function lib.Wireframe(def)
       {
         float d = min(dist[0],min(dist[1],dist[2]));
         float I = exp2(-2*d*d);
-        if (!hidden_surface && I < 0.01) { discard; }
+        if (!hidden_lines && I < 0.01) { discard; }
         color = mix(fill, wire, I);
       }
    ]]

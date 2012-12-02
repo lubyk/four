@@ -584,8 +584,9 @@ function lib:effectBindUniforms(estate, cam, o)
   for u, uspec in pairs(estate.uniforms) do 
     local loc = uspec.loc
     local info = uniformTypeInfo[uspec.type]
-    local v = effect.uniform(cam, o, u) or effect.default_uniforms[u]
-
+    local v = effect.uniform(cam, o, u)
+    if v == nil then v = effect.default_uniforms[u] end
+    
     -- TODO do we do type checks here 
     local vt = type(v)
     if vt == "boolean" then v = { v and 1 or 0 } 
