@@ -57,13 +57,15 @@ local effect = Effect
       float I = clamp(dot(normalize(v_normal), l.xyz), 0, 1);
       f_color = vec4(clamp(Kd * light_color * I, 0, 1), 1.0);
     }
-  ]]
+  ]],
+
+  rasterization = { cull_face = Effect.CULL_NONE }
 }
 
 -- World
 
 local nextGeometry = Demo.geometryCycler { normals = true }
-local angle = math.pi/4
+local angle = math.pi / 4
 
 local obj = 
   { transform = Transform { rot = Quat.rotZYX(V3(angle, angle, 0)) },
@@ -72,7 +74,7 @@ local obj =
 
 local camera = 
   Camera { transform = Transform { pos = V3(0, 0, 5) },
-           background = { color = Color(0.2, 0.3, 0.55), depth = 1.0 },
+           background = { color = Color(0.2, 0.3, 0.55) },
            range = V2(0.1, 10) }
 
 -- Interaction

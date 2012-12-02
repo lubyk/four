@@ -16,14 +16,47 @@ local Effect = lib
 -- h2. Render states
 
 --[[--
-h3. Face culling
-In four, the convention is that faces with a counter clock-wise orientation
-are front faces.
+h3. Rasterization state
+
+*Note*. Faces with a counter clock-wise orientation are front faces.
+
+Rasterization state is described by a table with the following keys:
+  * @face_cull@, faces to cull (defaults to @CULL_NONE@).
 --]]--
+
+function lib.defaultRasterization () 
+  return { cull_face = lib.CULL_NONE }
+end
 
 lib.CULL_NONE = 1
 lib.CULL_FRONT = 2
 lib.CULL_BACK = 3
+
+--[[--
+h3. Depth state
+
+*Note.* Depth clearing and depth range are specified by the Camera object.
+
+Depth state is described by a table with the following keys:
+  * @enable@, @true@ if z-test should be performed (defaults to @true@)
+  * @func@, comparison function (defaults to @DEPTH_FUNC_LESS@)
+  * @offset@, depth offset (defaults to @{ factor = 0, units = 0 }@), 
+    see doc of glPolygonOffset.
+--]]--
+
+function lib.defaultDepth() 
+  return { enable = true, func = lib.DEPTH_FUNC_LESS,
+           offset = { factor = 0, units = 0 } }
+end
+
+lib.DEPTH_FUNC_NEVER = 1
+lib.DEPTH_FUNC_LESS = 2
+lib.DEPTH_FUNC_EQUAL = 3
+lib.DEPTH_FUNC_LEQUAL = 4
+lib.DEPTH_FUNC_GREATER = 5
+lib.DEPTH_FUNC_NOTEQUAL = 6
+lib.DEPTH_FUNC_GEQUAL = 7
+lib.DEPTH_FUNC_ALWAYS = 8
 
 -- h2. Constructor
 
@@ -37,9 +70,9 @@ lib.CULL_BACK = 3
   * @vertex@, vertex shader source.
   * @geometry@, geometry shader source (optional).
   * @fragment@, fragment shader source.
-  * @cull_face@, face culling (defaults to @CULL_BACK@).
-  * @polygon_offset@, scale and unit used to calculate depth values
-    (defaults to @{ factor = 0, units = 0 }@).
+  * @depth@, depth state keys to override the defaults (see Depth state).
+  * @rasterization@, rasterization state keys to override the defaults 
+    (see Rasterization state).
 --]]--
 function lib.new(def)
   local self = 
@@ -48,8 +81,8 @@ function lib.new(def)
       vertex = lib.Shader [[void main() {}]],
       geometry = nil, -- optional
       fragment = lib.Shader [[void main() {}]],
-      cull_face = lib.CULL_BACK,
-      polygon_offset = { factor = 0, units = 0 },}
+      rasterization = lib.defaultRasterization(),
+      depth = lib.defaultDepth() }
   setmetatable(self, lib)
   if def then self:set(def) end
   return self
@@ -61,8 +94,16 @@ function lib:set(def)
   if def.vertex then self.vertex = def.vertex end
   if def.geometry then self.geometry = def.geometry end
   if def.fragment then self.fragment = def.fragment end
-  if def.cull_face then self.cull_face = def.cull_face end
-  if def.polygon_offset then self.polygon_offset = def.polygon_offset end
+  if def.rasterization then 
+    if def.rasterization.cull_face then 
+      self.rasterization.cull_face = def.rasterization.cull_face 
+    end
+  end
+  if def.depth then 
+    if def.depth.enable then self.depth.enable = def.depth.enable end
+    if def.depth.func then self.depth.func = def.depth.func end
+    if def.depth.offset then self.depth.offset = def.depth.offset end
+  end
 end
 
 

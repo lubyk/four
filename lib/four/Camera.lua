@@ -108,9 +108,8 @@ function lib.new(def)
       viewport = { origin = four.V2.zero (), size = four.V2(1.0, 1.0) },
 
       background = 
-        { color = four.Color.black (), -- set to nil to disable clearing
-          depth = 1.0,                 -- set to nil to disable clearing
-          clear_stencil = 0 },         -- set to nil to disable clearing
+        { color = four.Color.black (),
+          depth = 1.0 },
 
       -- Custom culling fun, e.g. omit renderable with a given key defined.
       cull = function (renderable) return false end, -- custom culling fun
@@ -131,7 +130,14 @@ function lib:set(def)
   if def.projection_matrix then 
     self.projection_matrix = def.projection_matrix 
   end
-  if def.background then self.background = def.background end
+  if def.background then 
+    if def.background.color then 
+      self.background.color = def.background.color 
+    end
+    if def.background.depth then 
+      self.background.depth = def.background.depth 
+    end
+  end
   if def.viewport then self.viewport = def.viewport end
   if def.effect_override then self.effect_override = def.effect_override end
 end

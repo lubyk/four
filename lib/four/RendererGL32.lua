@@ -71,6 +71,16 @@ local modeGLenum =
     [Geometry.TRIANGLE_STRIP_ADJACENCY] = lo.GL_TRIANGLE_STRIP_ADJACENCY,
     [Geometry.TRIANGLES_ADJACENCY] = lo.GL_TRIANGLES_ADJACENCY }
 
+local depthFuncGLenum = 
+  { [Effect.DEPTH_FUNC_NEVER] = lo.GL_NEVER,
+    [Effect.DEPTH_FUNC_LESS] = lo.GL_LESS,
+    [Effect.DEPTH_FUNC_EQUAL] = lo.GL_EQUAL,
+    [Effect.DEPTH_FUNC_LEQUAL] = lo.GL_LEQUAL,
+    [Effect.DEPTH_FUNC_GREATER] = lo.GL_GREATER,
+    [Effect.DEPTH_FUNC_NOTEQUAL] = lo.GL_NOTEQUAL,
+    [Effect.DEPTH_FUNC_GEQUAL] = lo.GL_GEQUAL,
+    [Effect.DEPTH_FUNC_ALWAYS] = lo.GL_ALWAYS }
+
 local vec_kind = 1
 local mat_kind = 2
 local samp_kind = 3
@@ -320,14 +330,9 @@ function lib:logGlError(loc)
 end
 
 function lib:initGlState()  
-  lo.glDepthFunc(lo.GL_LEQUAL)
-  lo.glEnable(lo.GL_DEPTH_TEST)
+  lo.glFrontFace(lo.GL_CCW)
 
-  --  lk.log("TODO enable backface culling")
---  lo.glFrontFace(lo.GL_CCW)
---  lo.glCullFace (lo.GL_BACK)
---  lo.glEnable(lo.GL_CULL_FACE)
-  
+  -- TODO move that to blend state
   lo.glBlendEquation(lo.GL_FUNC_ADD)
   lo.glBlendFunc(lo.GL_SRC_ALPHA, lo.GL_ONE_MINUS_SRC_ALPHA)
   lo.glEnable(lo.GL_BLEND)
@@ -569,8 +574,13 @@ function lib:getSpecialUniform(u, m2w)
   return nil
 end
 
-function lib:effectBindUniforms(estate, m2w, cam, o)
+function lib:effectBindUniforms(estate, cam, o)
   local effect = o.effect
+  local m2w = o.transform and o.transform.matrix or M4.id ()
+  if o.geometry.pre_transform then 
+    m2w = m2w * o.geometry.pre_transform 
+  end
+  
   for u, uspec in pairs(estate.uniforms) do 
     local loc = uspec.loc
     local info = uniformTypeInfo[uspec.type]
@@ -605,10 +615,38 @@ function lib:effectBindUniforms(estate, m2w, cam, o)
   end
 end
 
-function lib:setupEffect(effect, current_program)
-  local program = effect.program 
+function lib:setupRasterizationState(r)
+  if r.cull_face == Effect.CULL_NONE then 
+    lo.glDisable(lo.GL_CULL_FACE)
+  else 
+    lo.glEnable(lo.GL_CULL_FACE)
+    if r.cull_face == Effect.CULL_FRONT then lo.glCullFace(lo.GL_FRONT)
+    else lo.glCullFace(lo.GL_BACK) end
+  end
+end
+
+function lib:setupDepthState(d)
+  if not d.enable then lo.glDisable(lo.GL_DEPTH_TEST) else 
+    lo.glEnable(lo.GL_DEPTH_TEST)
+    lo.glDepthFunc(depthFuncGLenum[d.func])
+    if d.offset.factor == 0 and d.offset.units == 0 then 
+      lo.glDisable(lo.GL_POLYGON_OFFSET_FILL)
+    else
+      glEnable(lo.GL_POLYGON_OFFSET_FILL)
+      glPolygonOffset(d.offset.factor, d.offset.units)
+    end
+  end
+end
+
+function lib:setupEffect(effect, estate, current_program)
+  local program = estate.program 
   if program == -1 then return false end
   if program ~= current_program then lo.glUseProgram(program) end
+
+  -- FIXME if all these GL calls are too expensive track current state in 
+  -- the renderer.
+  self:setupRasterizationState(effect.rasterization)
+  self:setupDepthState(effect.depth)
   return true
 end
 
@@ -700,7 +738,7 @@ function lib:renderQueueFlush(cam)
   for _, pass in ipairs(self.queue) do 
     for effect, batch in pairs(pass) do
       local estate = self.effects[effect] 
-      if self:setupEffect(estate, current_program) then  
+      if self:setupEffect(effect, estate, current_program) then  
         current_program = estate.program
         for _, o in ipairs(batch) do
           -- Bind geometry
@@ -708,11 +746,7 @@ function lib:renderQueueFlush(cam)
           self:geometryStateBind(gstate, estate)
           
           -- Bind uniforms
-          local m2w = o.transform and o.transform.matrix or M4.id ()
-          if o.geometry.pre_transform then 
-            m2w = m2w * o.geometry.pre_transform 
-          end
-          self:effectBindUniforms(estate, m2w, cam, o)
+          self:effectBindUniforms(estate, cam, o)
           
           -- Draw !
           lo.glDrawElements(gstate.primitive, gstate.index_length, 
