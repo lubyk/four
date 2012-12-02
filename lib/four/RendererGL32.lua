@@ -569,12 +569,13 @@ function lib:getSpecialUniform(u, m2w)
   return nil
 end
 
-function lib:effectBindUniforms(estate, m2w, uniforms, override)
+function lib:effectBindUniforms(estate, m2w, cam, o)
+  local effect = o.effect
   for u, uspec in pairs(estate.uniforms) do 
     local loc = uspec.loc
     local info = uniformTypeInfo[uspec.type]
-    local v = override and override[u] or uniforms[u]
-    
+    local v = effect.uniform(cam, o, u) or effect.default_uniforms[u]
+
     -- TODO do we do type checks here 
     local vt = type(v)
     if vt == "boolean" then v = { v and 1 or 0 } 
@@ -708,12 +709,11 @@ function lib:renderQueueFlush(cam)
           self:geometryStateBind(gstate, estate)
           
           -- Bind uniforms
-          local override = o.uniforms or nil
           local m2w = o.transform and o.transform.matrix or M4.id ()
           if o.geometry.pre_transform then 
             m2w = m2w * o.geometry.pre_transform 
           end
-          self:effectBindUniforms(estate, m2w, effect.uniforms, override)
+          self:effectBindUniforms(estate, m2w, cam, o)
           
           -- Draw !
           lo.glDrawElements(gstate.primitive, gstate.index_length, 

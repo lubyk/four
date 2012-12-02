@@ -148,17 +148,15 @@ local Camera = four.Camera
 local Manip = four.Manip
 
 function setSnakeGeometry(snake, geometry)
-  for _, elem in ipairs(snake) do elem.geometry = geometry end
+  local tex_delta = V3(-0.5, 0, 0)
+  for i, elem in ipairs(snake) do 
+    elem.geometry = geometry
+    elem.tex_delta = i * tex_delta
+  end
 end
 
 function setSnakeEffect(snake, effect)
-  local delta = V3(-0.5, 0, 0)
-  for i, elem in ipairs(snake) do 
-    if not elem.uniforms then
-      elem.uniforms = { delta = i * delta } 
-    end
-    elem.effect = effect
-  end
+  for i, elem in ipairs(snake) do elem.effect = effect end
 end
 
 function makeSnakeRenderTransforms(snake)
@@ -187,24 +185,24 @@ local nextGeometry = Demo.geometryCycler { normals = true,
                                            geometries = geometries} 
 
 local vertexSkin = Effect.Shader [[
-    uniform mat4 model_to_clip;
-    uniform vec3 delta;
-    in vec3 vertex;
-    out vec3 v_tex_coord;
-    void main () 
-    {
-      v_tex_coord = vertex - delta;
-      gl_Position = model_to_clip * vec4(vertex, 1.0);
-    }                                   
+  uniform mat4 model_to_clip;
+  uniform vec3 tex_delta;
+  in vec3 vertex;
+  out vec3 v_tex_coord;
+  void main () 
+  {
+    v_tex_coord = vertex - tex_delta;
+    gl_Position = model_to_clip * vec4(vertex, 1.0);
+  }                                   
 ]]
 
 function sinskin () return Effect 
 {
-  uniforms = 
+  default_uniforms = 
     { model_to_clip = Effect.MODEL_TO_CLIP,
       delta = V3(0,0,0),
       time = 0 },
-  
+
   vertex = vertexSkin,
   fragment = { 
     Shadefuns.smoothcut,
@@ -234,7 +232,7 @@ end
 
 function snoiseskin () return Effect 
 {
-  uniforms = 
+  default_uniforms = 
     { model_to_clip = Effect.MODEL_TO_CLIP,
       delta = V3(0,0,0),
       time = 0 },
@@ -341,7 +339,7 @@ app.init ()
 function app.win:paintGL()
   local t = now() / 1000
   for _, o in ipairs(app.objs) do
-    o.effect.uniforms.time = t
+    o.effect.default_uniforms.time = t
   end
   app.renderer:render(app.camera, app.objs)
 end

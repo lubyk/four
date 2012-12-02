@@ -8,7 +8,7 @@ local V3 = four.V3
 
 function lib.effect () return Effect
 {
-  uniforms = 
+  default_uniforms = 
     { model_to_cam = Effect.MODEL_TO_CAMERA,
       normal_to_cam = Effect.MODEL_NORMAL_TO_CAMERA,
       camera_to_clip = Effect.CAMERA_TO_CLIP,

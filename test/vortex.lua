@@ -27,7 +27,7 @@ end
 
 local effect = Effect
 {
-  uniforms = 
+  default_uniforms = 
     { resolution = Effect.CAMERA_RESOLUTION,
       time = 0 },
 
@@ -88,7 +88,7 @@ end
 
 function win:paintGL()
   renderer:render(camera, {obj})  
-  effect.uniforms.time = time 
+  effect.default_uniforms.time = time 
 end
 
 function win:keyboard(key, down, utf8, modifiers)

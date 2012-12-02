@@ -30,8 +30,10 @@ lib.CULL_BACK = 3
 --[[-- 
   @Effect(def)@ is a new effect object. @def@ keys:
   * @version@, the GLSL version string (defaults to @"150"@).
-  * @uniforms@, key/value table, defining values for the given 
-    uniforms.
+  * @default_uniforms@, key/value table, defining default values for uniforms.
+  * @uniform@, uniform lookup function invoked before rendering a renderable.
+    defaults to @function(cam, renderable, name) = return renderable[name]@. 
+    If the function returns @nil@, @default_uniforms@ is used.
   * @vertex@, vertex shader source.
   * @geometry@, geometry shader source (optional).
   * @fragment@, fragment shader source.
@@ -41,7 +43,8 @@ lib.CULL_BACK = 3
 --]]--
 function lib.new(def)
   local self = 
-    { uniforms = {},
+    { default_uniforms = {},
+      uniform = function(cam, renderable, name) return renderable[name] end,
       vertex = lib.Shader [[void main() {}]],
       geometry = nil, -- optional
       fragment = lib.Shader [[void main() {}]],
@@ -53,8 +56,8 @@ function lib.new(def)
 end
 
 function lib:set(def) 
-  if def.version then self.version = def.version end
-  if def.uniforms then self.uniforms = def.uniforms end
+  if def.default_uniforms then self.default_uniforms = def.default_uniforms end
+  if def.uniform then self.uniform = def.uniform end
   if def.vertex then self.vertex = def.vertex end
   if def.geometry then self.geometry = def.geometry end
   if def.fragment then self.fragment = def.fragment end
@@ -118,14 +121,12 @@ end
 function lib.Wireframe(def)
   return Effect
   {
-    uniforms = 
-      { 
-        model_to_clip = Effect.MODEL_TO_CLIP,
+    default_uniforms = 
+      { model_to_clip = Effect.MODEL_TO_CLIP,
         resolution = Effect.CAMERA_RESOLUTION,
         fill = def and def.fill or Color.white(),
         wire = def and def.wire or Color.red(),
-        hidden_surface = true
-      },
+        hidden_surface = true },
       
     vertex = Effect.Shader [[
       uniform mat4 model_to_clip;
@@ -192,7 +193,7 @@ end
 function lib.Normals(def)
 return Effect
 {
-  uniforms = 
+  default_uniforms = 
     { model_to_cam = Effect.MODEL_TO_CAMERA,
       normal_to_cam = Effect.MODEL_NORMAL_TO_CAMERA,
       cam_to_clip = Effect.CAMERA_TO_CLIP,

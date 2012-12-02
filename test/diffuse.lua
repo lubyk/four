@@ -15,7 +15,7 @@ local Color = four.Color
 
 local effect = Effect 
 { 
-  uniforms = 
+  default_uniforms = 
     { model_to_cam = Effect.MODEL_TO_CAMERA,
       normal_to_cam = Effect.MODEL_NORMAL_TO_CAMERA,
       model_to_clip = Effect.MODEL_TO_CLIP,
