@@ -31,6 +31,9 @@ lib.DEFAULT = lib.GL32
   * @size@, a @V2@ defining the viewport size (defaults to V2(480,270).
   * @log_fun@, the renderer logging function (defaults to @print@).
   * @error_line_pattern@, a string used to parse GPU compiler logs,
+    Must split a line in three part, before the GLSL file,
+    the file (a number), after the file. The number is then substituted
+    with the appriorate 
     TODO find something generic
 --]]-- 
 function lib.new(def)
@@ -39,7 +42,7 @@ function lib.new(def)
        size = V2(480, 270),     
        log_fun = print,         
        stats = lib.statsTable (), 
-       error_line_pattern = "([^:]+):([^:]+):([^:]+):(.*)",
+       error_line_pattern = "([^:]+: *)(%d+)(:.*)",
        debug = true,            -- More logging/diagnostics
        r = nil,                 -- Backend renderer object (private)
        initialized = false }    -- true when backend was initalized

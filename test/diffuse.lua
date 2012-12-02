@@ -1,5 +1,7 @@
+-- Simple diffuse shader
+
 require 'lubyk'
-require 'app'
+local Demo = require 'demo'
 
 local V2 = four.V2
 local V3 = four.V3
@@ -11,18 +13,16 @@ local Camera = four.Camera
 local Manip = four.Manip
 local Color = four.Color
 
-local Demo = require 'demo'
-
 local effect = Effect 
-{
+{ 
   uniforms = 
-    {  model_to_cam = Effect.MODEL_TO_CAMERA,
-       normal_to_cam = Effect.MODEL_NORMAL_TO_CAMERA,
-       model_to_clip = Effect.MODEL_TO_CLIP,
-       world_to_cam = Effect.WORLD_TO_CAMERA,
-       light_pos = V3(3, 5, 5),
-       light_color = V3(1, 1, 1),
-       Kd = V3(0.5, 0.5, 0.5) },
+    { model_to_cam = Effect.MODEL_TO_CAMERA,
+      normal_to_cam = Effect.MODEL_NORMAL_TO_CAMERA,
+      model_to_clip = Effect.MODEL_TO_CLIP,
+      world_to_cam = Effect.WORLD_TO_CAMERA,
+      light_pos = V3(3, 5, 5),
+      light_color = V3(1, 1, 1),
+      Kd = V3(0.5, 0.5, 0.5) },
 
   vertex = Effect.Shader [[
      uniform mat4 model_to_cam; 
@@ -70,10 +70,10 @@ local obj =
     geometry = nextGeometry(),
     effect = effect }
 
-local camera = Camera 
-{ transform = Transform { pos = V3(0, 0, 5) },
-  background = { color = Color(0.2, 0.3, 0.55), depth = 1.0 },
-  range = V2(0.1, 10) }
+local camera = 
+  Camera { transform = Transform { pos = V3(0, 0, 5) },
+           background = { color = Color(0.2, 0.3, 0.55), depth = 1.0 },
+           range = V2(0.1, 10) }
 
 -- Interaction
 
@@ -123,10 +123,6 @@ end
 
 -- Application
 
-local app = App { event = event, camera = camera, objs = { obj } }
-
+local app = Demo.App { event = event, camera = camera, objs = { obj } }
 app.init()
 run ()
-
-
-

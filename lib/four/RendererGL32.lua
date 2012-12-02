@@ -297,8 +297,6 @@ local uniformTypeInfo = {
     { kind = samp_kind, dim = 1, unsupported = true, glsl = "atomic_uint" }
 }
 
-
-
 local function err_gl(e)
   if e == lo.GL_NO_ERROR then return "no error" 
   elseif e == lo.GL_INVALID_ENUM then return "invalid enum"
@@ -444,11 +442,9 @@ end
 function lib:rewriteShaderInfoLog(src, log)
   local lines = lk.split(log,'\n')
   for i, l in ipairs(lines) do
-    local function rewrite(t, f, l, msg)
-      local line = tonumber(l) + src.line - 2
-      if line then
-        lines[i] = string.format("%s: %s:%d: %s", t, src.file, line, msg)
-      end
+    local function rewrite(pre, f, post)      
+      local file = tonumber(f)
+      lines[i] = string.format("%s%s%s", pre, src.files[file], post)
     end
     string.gsub(l, self.super.error_line_pattern, rewrite)
   end
@@ -459,52 +455,29 @@ function lib:compileShader(src, type)
   local s = lo.glCreateShader(type)
   gl.hi.glShaderSource(s, src.src)
   lo.glCompileShader(s)
-  if gl.hi.glGetShaderiv(s, lo.GL_COMPILE_STATUS) == 0 or self.super.debug 
-  then
+  local fail = gl.hi.glGetShaderiv(s, lo.GL_COMPILE_STATUS) == lo.GL_FALSE
+  if fail or self.super.debug then
     local msg = gl.hi.glGetShaderInfoLog(s)
     if msg ~= "" then self:log(self:rewriteShaderInfoLog(src, msg)) end
   end
+  if fail then lo.glDeleteShader(s) s = -1 end
   return s
 end
 
 function lib:linkProgram(pid)
   lo.glLinkProgram(pid)
-  if gl.hi.glGetProgramiv(pid, lo.GL_LINK_STATUS) == 0 or self.super.debug 
+  local fail = gl.hi.glGetProgramiv(pid, lo.GL_LINK_STATUS) == lo.GL_FALSE
+  if fail or self.super.debug 
   then
     local msg = gl.hi.glGetProgramInfoLog(pid)
     if msg ~= "" then self:log(msg) end
   end
+  return not fail
 end
 
-function lib:effectStateAllocate(effect)
-  local function releaseState(state) lo.glDeleteProgram(state.program) end
-  local state = self.effects[effect] 
-  if state then return state end
-
-  local state = { program = lo.glCreateProgram(), 
-                  attribs = {}, -- maps active attrib names to loc/type/siz
-                  uniforms = {} } -- maps active uniform names to loc/type/siz
-
-  setmetatable(state, { __gc = releaseState })
-
-  -- Compile and link program
+function lib:setProgramInfo(state)
   local p = state.program
-  local vsrc = effect:vertexShaderSource() 
-  local gsrc = effect:geometryShaderSource()
-  local fsrc = effect:fragmentShaderSource()
-
-  local vid = self:compileShader(vsrc, lo.GL_VERTEX_SHADER)
-  local gid = gsrc and self:compileShader(gsrc, lo.GL_GEOMETRY_SHADER)
-  local fid = self:compileShader(fsrc, lo.GL_FRAGMENT_SHADER)
-
-  lo.glAttachShader(p, vid); lo.glDeleteShader(vid)
-  if gid then lo.glAttachShader(p, gid); lo.glDeleteShader(gid) end
-  lo.glAttachShader(p, fid); lo.glDeleteShader(fid)
-  
-  self:linkProgram(p)
-
-  -- Get info about attributes and uniforms
-  local a_name_max = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_ATTRIBUTE_MAX_LENGTH)
+  local a_name_max = gl.hi.glGetProgramiv(p,lo.GL_ACTIVE_ATTRIBUTE_MAX_LENGTH)
   local u_name_max = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_UNIFORM_MAX_LENGTH)
   local a_count = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_ATTRIBUTES)
   local u_count = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_UNIFORMS)
@@ -513,13 +486,13 @@ function lib:effectStateAllocate(effect)
   local len = ffi.new("GLsizei [1]", 0)
   local size = ffi.new("GLsizei [1]", 0)
   local type = ffi.new("GLenum [1]", 0)
-
+  
   for loc = 0, a_count - 1, 1 do 
     lo.glGetActiveAttrib(p, loc, max_len, len, size, type, s)
     local name = ffi.string (s, len[0])
     state.attribs[name] = { loc = loc, type = type[0], size = size[0] } 
   end
-
+  
   for i = 0, u_count - 1, 1 do 
     lo.glGetActiveUniform(p, i, max_len, len, size, type, s)
     local name = ffi.string (s, len[0])
@@ -531,6 +504,41 @@ function lib:effectStateAllocate(effect)
       state.uniforms[name] = { loc = loc, type = type[0], size = size[0] }
       print(name, loc, type_info.glsl, size[0])
     end
+  end
+end
+
+local glslPreamble = "#version 150 core"
+
+function lib:effectStateAllocate(effect)
+  local function releaseState(state) lo.glDeleteProgram(state.program) end
+  local state = self.effects[effect] 
+  if state then return state end
+
+  local state = { program = -1, 
+                  attribs = {},   -- maps active attrib names to loc/type/siz
+                  uniforms = {} } -- maps active uniform names to loc/type/siz
+  setmetatable(state, { __gc = releaseState })
+
+  -- Compile and link program
+  local p = state.program
+  local vsrc = effect:vertexShaderSource(glslPreamble) 
+  local gsrc = effect:geometryShaderSource(glslPreamble)
+  local fsrc = effect:fragmentShaderSource(glslPreamble)
+
+  local vid = self:compileShader(vsrc, lo.GL_VERTEX_SHADER)
+  local gid = gsrc and self:compileShader(gsrc, lo.GL_GEOMETRY_SHADER)
+  local fid = self:compileShader(fsrc, lo.GL_FRAGMENT_SHADER)
+
+  if vid ~= -1 and (gid == nil or gid ~= -1) and fid ~= -1 then
+    local p = lo.glCreateProgram()
+    lo.glAttachShader(p, vid); lo.glDeleteShader(vid)
+    if gid then lo.glAttachShader(p, gid); lo.glDeleteShader(gid) end
+    lo.glAttachShader(p, fid); lo.glDeleteShader(fid)
+    if not self:linkProgram(p) then lo.glDeleteProgram(p) 
+    else
+      state.program = p
+      self:setProgramInfo(state)
+    end 
   end
 
   self.effects[effect] = state
@@ -670,21 +678,25 @@ function lib:renderQueueFlush(cam)
   
   for effect, batch in pairs(self.queue) do
     local estate = self.effects[effect]
-    lo.glUseProgram(estate.program)
-    for _, o in ipairs(batch) do
-      -- Bind geometry
-      local gstate = self.geometries[o.geometry]
-      self:geometryStateBind(gstate, estate)
-
-      -- Bind uniforms
-      local override = o.uniforms or nil
-      local m2w = o.transform and o.transform.matrix or M4.id ()
-      if o.geometry.pre_transform then m2w = m2w * o.geometry.pre_transform end
-      self:effectBindUniforms(estate, m2w, effect.uniforms, override)
-
-      lo.glDrawElements(gstate.primitive, gstate.index_length, 
-                        gstate.index_scalar_type, nil)
-      lo.glBindVertexArray(0)
+    if estate.program ~= -1 then
+      lo.glUseProgram(estate.program)
+      for _, o in ipairs(batch) do
+        -- Bind geometry
+        local gstate = self.geometries[o.geometry]
+        self:geometryStateBind(gstate, estate)
+        
+        -- Bind uniforms
+        local override = o.uniforms or nil
+        local m2w = o.transform and o.transform.matrix or M4.id ()
+        if o.geometry.pre_transform then 
+          m2w = m2w * o.geometry.pre_transform 
+        end
+        self:effectBindUniforms(estate, m2w, effect.uniforms, override)
+        
+        lo.glDrawElements(gstate.primitive, gstate.index_length, 
+                          gstate.index_scalar_type, nil)
+        lo.glBindVertexArray(0)
+      end
     end
   end
 

@@ -41,11 +41,10 @@ lib.CULL_BACK = 3
 --]]--
 function lib.new(def)
   local self = 
-    { version = "150 core",
-      uniforms = {},
-      vertex = lib.Shader [[void main(void) {}]],
+    { uniforms = {},
+      vertex = lib.Shader [[void main() {}]],
       geometry = nil, -- optional
-      fragment = lib.Shader [[void main(void) {}]],
+      fragment = lib.Shader [[void main() {}]],
       cull_face = lib.CULL_BACK,
       polygon_offset = { factor = 0, units = 0 },}
   setmetatable(self, lib)
@@ -63,14 +62,17 @@ function lib:set(def)
   if def.polygon_offset then self.polygon_offset = def.polygon_offset end
 end
 
+
 -- h2. Shader constructor
 
 function lib.Shader(src) 
   local trace = lk.split(debug.traceback(),'\n\t')[3]
   local file, last_line = string.match(trace, '^([^:]+):([^:]+):')
   local src_line_count = #lk.split(src, '\n')
-  return { file = file, line = last_line - src_line_count, src_fragment = src }
+  
+  return { file = file, line = last_line - src_line_count, fragment = src }
 end
+
 
 -- h2. Special Uniforms
 
@@ -82,38 +84,26 @@ lib.WORLD_TO_CAMERA = { special_uniform = true }
 lib.CAMERA_TO_CLIP = { special_uniform = true } 
 lib.CAMERA_RESOLUTION = { special_uniform = true } 
 
-local function glslVersion(v) return string.format("#version %s\n", v) end
-
-function lib:glslPreamble(pretty)
-  local decls = ""
-  local nl = pretty and "\n" or ""
-  if not pretty then decls = decls .. "\n" end
-  return glslVersion(self.version) .. decls
-end
 
 -- h2. Effect shaders
 
-function lib:vertexShaderSource(pretty) 
-  local v = self.vertex
-  local pre = self:glslPreamble(pretty)
-  v.src =  pre .. v.src_fragment
-  return  v
+local function makeSource(preamble, src)
+  local frags = src.fragment and { src } or src
+  local src = { preamble }
+  local files = {}
+  for i, f in ipairs(frags) do 
+    src[i + 1] = string.format("#line %d %d\n%s", f.line, i, f.fragment)
+    files[i] = f.file
+  end
+  return { src = table.concat(src,"\n"), files = files }
 end
 
-function lib:geometryShaderSource(pretty)
-  local g = self.geometry
-  if not g then return nil end
-  local pre = self:glslPreamble(pretty)
-  g.src =  pre .. g.src_fragment
-  return g
+function lib:vertexShaderSource(pre) return makeSource(pre, self.vertex) end
+function lib:fragmentShaderSource(pre) return makeSource(pre, self.fragment) end
+function lib:geometryShaderSource(pre) 
+  return self.geometry and makeSource(pre, self.geometry) or nil
 end
 
-function lib:fragmentShaderSource(pretty)
-  local f = self.fragment
-  local pre = self:glslPreamble(pretty)
-  f.src =  pre .. f.src_fragment
-  return f
-end
 
 -- h2. Predefined Effects
 
@@ -182,8 +172,7 @@ function lib.Wireframe(def)
       float I = exp2(-2*d*d);
       if (!hidden_surface && I < 0.01) { discard; }
       color = mix(fill, wire, I); // I*wire + (1.0 - I)*fill;
-    }
-  ]]
+    }]]
 }
 end
 
