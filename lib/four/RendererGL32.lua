@@ -358,12 +358,12 @@ local bufferSpecForScalarType =
   [Buffer.UNSIGNED_INT] = { byte_count = 4, ffi_spec = "GLint[?]" }}
 
 function lib:bufferStateAllocate(b, force)
-  local function releaseState(state) gl.hi.glDeleteBuffer(state.id) end
-
   local state = self.buffers[b]
   if state and not force then return state end
+
   state = { id = gl.hi.glGenBuffer() }
-  setmetatable(state, { __gc = releaseState })
+  local function finalize () gl.hi.glDeleteBuffer(state.id) end
+  state.finalizer = lk.Finalizer(finalize)
   
   local len = b:scalarLength()
   local gltype = typeGLenum[b.scalar_type]
@@ -378,8 +378,6 @@ function lib:bufferStateAllocate(b, force)
 end
 
 function lib:geometryStateAllocate(g)
-  local function releaseState(state) gl.hi.glDeleteVertexArray(state.vao) end
-
   local state = self.geometries[g]
   if state and (g.immutable or not g.dirty) then return state end
 
@@ -390,7 +388,8 @@ function lib:geometryStateAllocate(g)
             data = {},      -- maps g.data keys to array with all info 
                             -- for binding the buffer object 
             data_loc = {}}  -- maps g.data keys to current binding index
-  setmetatable(state, { __gc = releaseState })
+  function finalize () gl.hi.glDeleteVertexArray(state.vao) end
+  state.finalizer = lk.Finalizer(finalize)
 
   -- Allocate and bind vertex array object
   state.vao = gl.hi.glGenVertexArray ()
@@ -513,14 +512,15 @@ end
 local glslPreamble = "#version 150 core"
 
 function lib:effectStateAllocate(effect)
-  local function releaseState(state) lo.glDeleteProgram(state.program) end
   local state = self.effects[effect] 
   if state then return state end
 
   local state = { program = -1, 
                   attribs = {},   -- maps active attrib names to loc/type/siz
-                  uniforms = {} } -- maps active uniform names to loc/type/siz
-  setmetatable(state, { __gc = releaseState })
+                  uniforms = {}}  -- maps active uniform names to loc/type/siz
+  local function finalize () lo.glDeleteProgram(state.program) end
+  state.finalizer = lk.Finalizer(finalize) 
+                                   
 
   -- Compile and link program
   local p = state.program
@@ -576,7 +576,7 @@ end
 
 function lib:effectBindUniforms(effect, estate, cam, o)
   local m2w = o.transform and o.transform.matrix or M4.id ()
-  if o.geometry.pre_transform then 
+  if o.geometry.pre_transform then
     m2w = m2w * o.geometry.pre_transform 
   end
   
