@@ -32,7 +32,8 @@ function lib.new(super)
        buffers = {},    -- Weakly maps Buffers to their buffer object id
        geometries = {}, -- Weakly maps Geometry object to gl geometry state
        effects = {},    -- Weakly maps Effects to their shader program id
-       queue = {}, -- Array of maps from gl programs ids to lists of renderables
+       programs = {}, -- Maps program sources to a weak reference of it program.
+       queue = {},    -- Array of maps from effects to lists of renderables
        world_to_camera = nil,
        camera_to_clip = nil,
        camera_viewport_origin = nil,
@@ -41,6 +42,7 @@ function lib.new(super)
     setmetatable(self.buffers, { __mode = "k"})
     setmetatable(self.geometries, { __mode = "k" })
     setmetatable(self.effects, { __mode = "k"})
+    setmetatable(self.programs, { __mode = "v"})
     setmetatable(self, lib)
     return self
 end
@@ -56,7 +58,6 @@ local typeGLenumIsInt =
     [lo.GL_DOUBLE] = false,
     [lo.GL_INT] = true,
     [lo.GL_UNSIGNED_INT] = true }
-
 
 local modeGLenum =
   { [Geometry.POINTS] = lo.GL_POINTS,
@@ -381,7 +382,8 @@ function lib:geometryStateAllocate(g)
   local state = self.geometries[g]
   if state and (g.immutable or not g.dirty) then return state end
 
-  state = { primitive = modeGLenum[g.primitive],
+  state = { vao = gl.hi.glGenVertexArray (),
+            primitive = modeGLenum[g.primitive],
             index_length = g.index:scalarLength (),
             index_scalar_type = typeGLenum[g.index.scalar_type],
             index = nil,    -- g.index buffer object id
@@ -391,8 +393,6 @@ function lib:geometryStateAllocate(g)
   function finalize () gl.hi.glDeleteVertexArray(state.vao) end
   state.finalizer = lk.Finalizer(finalize)
 
-  -- Allocate and bind vertex array object
-  state.vao = gl.hi.glGenVertexArray ()
   lo.glBindVertexArray(state.vao)
 
   -- Allocate and bind index buffer
@@ -422,11 +422,11 @@ end
   
 function lib:geometryStateBind(gstate, estate)
   lo.glBindVertexArray(gstate.vao)
-  for a, aspec in pairs(estate.attribs) do
+  for a, aspec in pairs(estate.program.attribs) do
     if gstate.data_loc[a] ~= aspec.loc then 
-      -- Program binding doesn't correspond to vao binding, rebind vao.
-      -- and leave.
-      for a, aspec in pairs(estate.attribs) do
+      -- Program binding doesn't correspond to vao binding, rebind all vao
+      -- vertex attributes and leave outer loop.
+      for a, aspec in pairs(estate.program.attribs) do
         local data = gstate.data[a]
         if data then
           local ints = typeGLenumIsInt[data.scalar_type]
@@ -485,8 +485,8 @@ function lib:linkProgram(pid)
   return not fail
 end
 
-function lib:setProgramInfo(state)
-  local p = state.program
+function lib:setProgramInfo(pstate)
+  local p = pstate.id
   local a_name_max = gl.hi.glGetProgramiv(p,lo.GL_ACTIVE_ATTRIBUTE_MAX_LENGTH)
   local u_name_max = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_UNIFORM_MAX_LENGTH)
   local a_count = gl.hi.glGetProgramiv(p, lo.GL_ACTIVE_ATTRIBUTES)
@@ -500,7 +500,7 @@ function lib:setProgramInfo(state)
   for loc = 0, a_count - 1, 1 do 
     lo.glGetActiveAttrib(p, loc, max_len, len, size, type, s)
     local name = ffi.string (s, len[0])
-    state.attribs[name] = { loc = loc, type = type[0], size = size[0] } 
+    pstate.attribs[name] = { loc = loc, type = type[0], size = size[0] } 
   end
   
   for i = 0, u_count - 1, 1 do 
@@ -511,30 +511,30 @@ function lib:setProgramInfo(state)
       self:log(string.format("Unsupported uniform type: %s", type_info.glsl))
     else
       local loc = lo.glGetUniformLocation(p, name)
-      state.uniforms[name] = { loc = loc, type = type[0], size = size[0] }
+      pstate.uniforms[name] = { loc = loc, type = type[0], size = size[0] }
     end
   end
 end
 
 local glslPreamble = "#version 150 core"
 
-function lib:effectStateAllocate(effect)
-  local state = self.effects[effect] 
-  if state then return state end
-
-  local state = { program = -1, 
-                  attribs = {},   -- maps active attrib names to loc/type/siz
-                  uniforms = {}}  -- maps active uniform names to loc/type/siz
-  local function finalize () lo.glDeleteProgram(state.program) end
-  state.finalizer = lk.Finalizer(finalize) 
-                                   
-
-  -- Compile and link program
-  local p = state.program
+function lib:programStateAllocate(effect)
   local vsrc = effect:vertexShaderSource(glslPreamble) 
   local gsrc = effect:geometryShaderSource(glslPreamble)
   local fsrc = effect:fragmentShaderSource(glslPreamble)
+  local fullsrc = vsrc.src .. (gsrc and gsrc.src or "") .. fsrc.src
+  local state = self.programs[fullsrc]
+  if state then return state end
+  
+  local state = { id = -1,
+                  attribs = {},  -- maps active attrib names to loc/type/siz
+                  uniforms = {}} -- maps active uniform names to loc/type/siz
+  local function finalize () 
+    if state.id ~= -1 then lo.glDeleteProgram(state.id) end
+  end
+  state.finalizer = lk.Finalizer(finalize) 
 
+  -- Compile and link program
   local vid = self:compileShader(vsrc, lo.GL_VERTEX_SHADER)
   local gid = gsrc and self:compileShader(gsrc, lo.GL_GEOMETRY_SHADER)
   local fid = self:compileShader(fsrc, lo.GL_FRAGMENT_SHADER)
@@ -546,11 +546,21 @@ function lib:effectStateAllocate(effect)
     lo.glAttachShader(p, fid); lo.glDeleteShader(fid)
     if not self:linkProgram(p) then lo.glDeleteProgram(p) 
     else
-      state.program = p
+      state.id = p
       self:setProgramInfo(state)
     end 
   end
 
+  print("PROGRAM, allocated", state.id)
+  self.programs[fullsrc] = state
+  return state
+end
+
+function lib:effectStateAllocate(effect)
+  local state = self.effects[effect] 
+  if state then return state end
+
+  local state = { program = self:programStateAllocate(effect) }
   self.effects[effect] = state
   return state
 end
@@ -587,7 +597,7 @@ function lib:effectBindUniforms(effect, estate, cam, o)
     m2w = m2w * o.geometry.pre_transform 
   end
   
-  for u, uspec in pairs(estate.uniforms) do 
+  for u, uspec in pairs(estate.program.uniforms) do 
     local loc = uspec.loc
     local info = uniformTypeInfo[uspec.type]
     local v = effect.uniform(cam, o, u)
@@ -646,7 +656,7 @@ function lib:setupDepthState(d)
 end
 
 function lib:setupEffect(effect, estate, current_program)
-  local program = estate.program 
+  local program = estate.program.id
   if program == -1 then return false end
   if program ~= current_program then lo.glUseProgram(program) end
 
@@ -745,7 +755,7 @@ function lib:renderQueueFlush(cam)
     for effect, batch in pairs(pass) do
       local estate = self.effects[effect] 
       if self:setupEffect(effect, estate, current_program) then  
-        current_program = estate.program
+        current_program = estate.program.id
         for _, o in ipairs(batch) do
           self:effectBindUniforms(effect, estate, cam, o)
           local gstate = self.geometries[o.geometry]
