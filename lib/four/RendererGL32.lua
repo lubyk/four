@@ -423,21 +423,28 @@ end
 function lib:geometryStateBind(gstate, estate)
   lo.glBindVertexArray(gstate.vao)
   for a, aspec in pairs(estate.attribs) do
-    if gstate.data_loc[a] ~= aspec.loc then  
+    if gstate.data_loc[a] ~= aspec.loc then 
       -- Program binding doesn't correspond to vao binding, rebind vao.
-      local data = gstate.data[a]
-      local ints = typeGLenumIsInt[data.scalar_type]
-      local loc = aspec.loc
-      lo.glBindBuffer(lo.GL_ARRAY_BUFFER, data.id)
-      lo.glEnableVertexAttribArray(loc)
-      if ints then
-        lo.glVertexAttribIPointer(loc, data.dim, data.scalar_type, 0, nil)
-      else
-        lo.glVertexAttribPointer(loc, data.dim, data.scalar_type, 
-                                 data.normalize, 0, nil)
+      -- and leave.
+      for a, aspec in pairs(estate.attribs) do
+        local data = gstate.data[a]
+        if data then
+          local ints = typeGLenumIsInt[data.scalar_type]
+          local loc = aspec.loc
+          lo.glBindBuffer(lo.GL_ARRAY_BUFFER, data.id)
+          lo.glEnableVertexAttribArray(loc)
+          if ints then
+            lo.glVertexAttribIPointer(loc, data.dim, data.scalar_type, 0, nil)
+          else
+            lo.glVertexAttribPointer(loc, data.dim, data.scalar_type, 
+                                     data.normalize, 0, nil)
+          end
+          gstate.data_loc[a] = loc
+        else 
+          self:log(string.format("Geometry is missing %s attribute", a))
+        end
       end
-      gstate.data_loc[a] = loc
-      self:logGlError()
+      break
     end
   end
 end
@@ -733,7 +740,6 @@ end
 function lib:renderQueueFlush(cam)
   self:setupCameraParameters(cam)
   self:clearFramebuffer(cam)
-  
   local current_program = -1
   for _, pass in ipairs(self.queue) do 
     for effect, batch in pairs(pass) do
