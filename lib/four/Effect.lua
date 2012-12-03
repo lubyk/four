@@ -153,25 +153,33 @@ end
 
 --[[--
   @Wireframe(def)@ renders triangle geometry as wireframe. @def@ keys:
-  * @fill@, a Color defining the triangle fill color (defaults 
+  * @fill_color@, a Color defining the triangle fill color (defaults 
     to Color.white ()).
-  * @wire@, a Color defining the wireframe color (default to Color.red().
+  * @wire_color@, a Color defining the wireframe color (default to Color.red().
+  * @wire_only@, draw only the wire frame.
+  * All other @Effect@ @def@ key apply.
 
   Effect adapted from http://cgg-journal.com/2008-2/06/index.html.
 --]]--
 function lib.Wireframe(def)
+  
   return Effect
   {
+    rasterization = def and def.rasterization or {},
+    depth = def and def.depth or {},
+    
     default_uniforms = 
       { model_to_clip = Effect.MODEL_TO_CLIP,
         resolution = Effect.CAMERA_RESOLUTION,
-        fill = def and def.fill or Color.white(),
-        wire = def and def.wire or Color.red(),
-        hidden_lines = true },
+        fill_color = def and def.fill_color or Color.white(),
+        wire_color = def and def.wire_color or Color.black(),
+        wire_width = def and def.wire_width or 1.0,
+        wire_only = def and def.wire_only or false },
       
     vertex = Effect.Shader [[
       uniform mat4 model_to_clip;
       in vec4 vertex;
+      out vec4 v_vertex;
       void main() { gl_Position = model_to_clip * vertex; }
     ]],  
 
@@ -208,22 +216,29 @@ function lib.Wireframe(def)
     ]],
 
     fragment = Effect.Shader [[
-      uniform bool hidden_lines;
-      uniform vec4 wire;
-      uniform vec4 fill; 
+      uniform bool wire_only;
+      uniform float wire_width;
+      uniform vec4 wire_color;
+      uniform vec4 fill_color; 
+
       noperspective in vec3 dist;
       out vec4 color;
+
       void main(void)
       {
         float d = min(dist[0],min(dist[1],dist[2]));
-        float I = exp2(-2*d*d);
-        if (!hidden_lines && I < 0.01) { discard; }
-        color = mix(fill, wire, I);
+        float I = exp2(-(2 / wire_width) * d * d);
+        if (wire_only)
+        {
+          color = I * wire_color;
+        } else {
+          color = vec4(I * wire_color.rgb + (1.0 - I) * fill_color.rgb, 
+                       fill_color.a);
+        }
       }
    ]]
 }
 end
-
 
 --[[--
   @Normals(def)@ renders the normals of geometry.
@@ -234,6 +249,9 @@ end
 function lib.Normals(def)
 return Effect
 {
+  rasterization = def and def.rasterization or {},
+  depth = def and def.depth or {},
+
   default_uniforms = 
     { model_to_cam = Effect.MODEL_TO_CAMERA,
       normal_to_cam = Effect.MODEL_NORMAL_TO_CAMERA,

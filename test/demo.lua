@@ -118,7 +118,7 @@ end
 --[[--
   @effectCycle(def)@ is an argument less function returning 
   new effects in a cyclic fashion. @def@ keys:
-  * @effecdts@, an array of argument less functions that returns effect
+  * @effects@, an array of argument less functions that returns effect
     objects. Default has the effect of @four.Effect@ TODO.
 --]]--
 function lib.effectCycler(def)
