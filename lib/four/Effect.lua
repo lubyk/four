@@ -6,12 +6,31 @@
 --]]--
 
 local lib = { type = 'four.Effect' }
-lib.__index = lib
 four.Effect = lib
-setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
 
 local Color = four.Color
 local Effect = lib
+
+-- Meta table to detect shader source changes. Allows the renderer to
+-- dynamically recompile the GPU program.
+
+local isShaderKey = { vertex = true, geometry = true, fragment = true }
+
+function lib.__index(t, k)
+  if k == "shaders" then return rawget(t, k)
+  elseif isShaderKey[k] then return t.shaders[k]
+  else return lib[k] end
+end
+
+function lib.__newindex(t, k, v)
+  if isShaderKey[k] then 
+    local shaders = t.shaders
+    shaders[k] = v 
+    t.program_changed = true
+  else t[k] = v end
+end
+
+setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
 
 -- h2. Render states
 
@@ -78,9 +97,12 @@ function lib.new(def)
   local self = 
     { default_uniforms = {},
       uniform = function(cam, renderable, name) return renderable[name] end,
-      vertex = lib.Shader [[void main() {}]],
-      geometry = nil, -- optional
-      fragment = lib.Shader [[void main() {}]],
+      shaders = 
+        { vertex = lib.Shader [[void main() {}]],
+          geometry = nil, -- optional
+          fragment = lib.Shader [[void main() {}]]},
+      program_changed = true, -- The renderer sets this to false once it got 
+                              -- the new program.
       rasterization = lib.defaultRasterization(),
       depth = lib.defaultDepth() }
   setmetatable(self, lib)

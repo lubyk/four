@@ -2,10 +2,8 @@
   h1. Shading functions 
  
 --]]--
-
-local lib = {}
-
 require 'lubyk' 
+local lib = {}
 local Effect = four.Effect
 
 lib.smoothcut = Effect.Shader [[

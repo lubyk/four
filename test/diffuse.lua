@@ -120,7 +120,7 @@ function event(app, e)
   end
   if e.MouseDown then c.StartRotation = true c.pos = e.pos end
   if e.MouseMove then c.Rotation = true c.pos = e.pos end
-  command(app, c)
+  if next(c) ~= nil then command(app, c) end
 end
 
 -- Application

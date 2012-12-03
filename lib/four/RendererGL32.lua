@@ -551,16 +551,16 @@ function lib:programStateAllocate(effect)
     end 
   end
 
-  print("PROGRAM, allocated", state.id)
   self.programs[fullsrc] = state
   return state
 end
 
 function lib:effectStateAllocate(effect)
-  local state = self.effects[effect] 
-  if state then return state end
+  local state = self.effects[effect]
+  if state and not effect.program_changed then return state end
 
   local state = { program = self:programStateAllocate(effect) }
+  effect.program_changed = false
   self.effects[effect] = state
   return state
 end
