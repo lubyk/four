@@ -639,8 +639,8 @@ function lib:setupDepthState(d)
     if d.offset.factor == 0 and d.offset.units == 0 then 
       lo.glDisable(lo.GL_POLYGON_OFFSET_FILL)
     else
-      glEnable(lo.GL_POLYGON_OFFSET_FILL)
-      glPolygonOffset(d.offset.factor, d.offset.units)
+      lo.glEnable(lo.GL_POLYGON_OFFSET_FILL)
+      lo.glPolygonOffset(d.offset.factor, d.offset.units)
     end
   end
 end
