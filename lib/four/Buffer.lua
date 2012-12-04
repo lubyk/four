@@ -260,7 +260,7 @@ function lib:dimExtents()
   for i = 1, self:length() do 
     local b = (i - 1) * dim 
     for d = 1, dim do
-      local v = t[b + i]
+      local v = t[b + d]
       if v < exts[d].min then exts[d].min = v end
       if v > exts[d].max then exts[d].max = v end
     end
