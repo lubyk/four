@@ -94,8 +94,8 @@ function lib:computeBoundRadius ()
   local verts = self.data.vertex
   if not verts then self.bound_radius = 0 else
     local function maxNorm2 (max, x, y, z)
-      local norm2 = x * x + y * y + z * z
-      if norm2 > max then return norm2 else return max end
+      local norm2 = x * x + y * y + z * z      
+      return norm2 > max and norm2 or max
     end
     self.bound_radius = math.sqrt(verts:fold3(maxNorm2, 0))
   end

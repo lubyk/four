@@ -239,8 +239,31 @@ function lib:foldV4(f, acc)
   local t = self.data
   local acc = acc 
   for i = 1, self:length() do 
-    local b = (i - 1) * tim
+    local b = (i - 1) * dim
     acc = f(acc, four.V4(t[b + 1], t[b + 2], t[b + 3], t[b + 4]))
   end
   return acc
+end
+
+-- h2. Data properties 
+
+--[[--
+ @self:dimExtents()@ is a table of size @self.dim@ each index
+ storing a table @{min = ..., max = ... }@ corresponding to 
+ the minimal and maximal scalar value in that dimension.
+--]]--
+function lib:dimExtents()
+  local dim = self.dim 
+  local t = self.data 
+  local exts = {}
+  for i = 1, dim do exts[i] = { max = -math.huge, min = math.huge } end
+  for i = 1, self:length() do 
+    local b = (i - 1) * dim 
+    for d = 1, dim do
+      local v = t[b + i]
+      if v < exts[d].min then exts[d].min = v end
+      if v > exts[d].max then exts[d].max = v end
+    end
+  end
+  return exts
 end
