@@ -144,37 +144,49 @@ function lib.Cuboid(w, h, d)
   if h then extents = V3(extents, h, d) end
   local x, y, z = V3.tuple(0.5 * extents)
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
-  local ns = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
-  local is = Buffer { dim = 1, scalar_type = Buffer.UNSIGNED_INT }
-  local vertices = { V3(-x, -y,  z),
+  local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
+  local vertices = { V3(-x, -y,  z), -- Front
                      V3( x, -y,  z),
-                     V3(-x,  y,  z),
                      V3( x,  y,  z),
+                     V3(-x,  y,  z),
+                     V3(-x, -y,  z), -- Bottom
+                     V3( x, -y,  z),
+                     V3( x, -y, -z),
+                     V3(-x, -y, -z),
+                     V3(-x, -y,  z), -- Left
+                     V3(-x, -y, -z),
+                     V3(-x,  y, -z),
+                     V3(-x,  y,  z),
+                     V3( x, -y,  z), -- Right
+                     V3( x, -y, -z),
+                     V3( x,  y, -z),
+                     V3( x,  y,  z),
+                     V3( x,  y,  z), -- Top
+                     V3( x,  y, -z),
+                     V3(-x,  y, -z),
+                     V3(-x,  y,  z),
+                     V3(-x,  y, -z), -- Rear
                      V3(-x, -y, -z),
                      V3( x, -y, -z),
-                     V3(-x,  y, -z),
-                     V3( x,  y, -z) }
+                     V3( x,  y, -z)}
 
-  for _, v in ipairs(vertices) do 
-    vs:pushV3(v)
-    ns:pushV3(V3.unit(v))
-  end
+  for _, v in ipairs(vertices) do vs:pushV3(v) end
 
-  is:push3D(0, 3, 2)    -- Faces (triangles)
-  is:push3D(0, 1, 3)
-  is:push3D(0, 5, 1)
-  is:push3D(0, 4, 5)
-  is:push3D(0, 6, 4)
-  is:push3D(0, 2, 6)
-  is:push3D(1, 7, 3)
-  is:push3D(1, 5, 7)
-  is:push3D(2, 7, 6)
-  is:push3D(2, 3, 7)
-  is:push3D(4, 7, 5)
-  is:push3D(4, 6, 7)
+  is:push3D(0, 2, 3)    -- Front 
+  is:push3D(0, 1, 2)
+  is:push3D(4, 7, 6)    -- Bottom
+  is:push3D(4, 6, 5)
+  is:push3D(8, 11, 10)  -- Left
+  is:push3D(8, 10, 9)
+  is:push3D(12, 14, 15) -- Right
+  is:push3D(12, 13, 14)
+  is:push3D(16, 17, 18) -- Top
+  is:push3D(16, 18, 19)
+  is:push3D(20, 23, 22) -- Rear
+  is:push3D(20, 22, 21)
 
   return lib.new ({ name = "four.cuboid", primitive = lib.TRIANGLES, 
-                    data = { vertex = vs, normal = ns }, index = is, 
+                    data = { vertex = vs }, index = is, 
                     extents = extents })
 end
 
