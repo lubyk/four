@@ -42,6 +42,7 @@ local effect = Effect
     out vec4 color;
     void main() 
     {
+      float time = time / 500;
       vec2 p = -1.0 + 2.0 * gl_FragCoord.xy / resolution.xy;
       float a = time*40.0;
       float d,e,f,g=1.0/40.0,h,i,r,q;

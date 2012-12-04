@@ -145,32 +145,31 @@ function lib.Cuboid(w, h, d)
   local x, y, z = V3.tuple(0.5 * extents)
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
-  local vertices = { V3(-x, -y,  z), -- Front
-                     V3( x, -y,  z),
-                     V3( x,  y,  z),
-                     V3(-x,  y,  z),
-                     V3(-x, -y,  z), -- Bottom
-                     V3( x, -y,  z),
-                     V3( x, -y, -z),
-                     V3(-x, -y, -z),
-                     V3(-x, -y,  z), -- Left
-                     V3(-x, -y, -z),
-                     V3(-x,  y, -z),
-                     V3(-x,  y,  z),
-                     V3( x, -y,  z), -- Right
-                     V3( x, -y, -z),
-                     V3( x,  y, -z),
-                     V3( x,  y,  z),
-                     V3( x,  y,  z), -- Top
-                     V3( x,  y, -z),
-                     V3(-x,  y, -z),
-                     V3(-x,  y,  z),
-                     V3(-x,  y, -z), -- Rear
-                     V3(-x, -y, -z),
-                     V3( x, -y, -z),
-                     V3( x,  y, -z)}
-
-  for _, v in ipairs(vertices) do vs:pushV3(v) end
+  
+  vs.data = { -x, -y,  z, -- Front
+               x, -y,  z,
+               x,  y,  z,
+              -x,  y,  z,
+              -x, -y,  z, -- Bottom
+               x, -y,  z,
+               x, -y, -z,
+              -x, -y, -z,
+              -x, -y,  z, -- Left
+              -x, -y, -z,
+              -x,  y, -z,
+              -x,  y,  z,
+               x, -y,  z, -- Right
+               x, -y, -z,
+               x,  y, -z,
+               x,  y,  z,
+               x,  y,  z, -- Top
+               x,  y, -z,
+              -x,  y, -z,
+              -x,  y,  z,
+              -x,  y, -z, -- Rear
+              -x, -y, -z,
+               x, -y, -z,
+               x,  y, -z }
 
   is:push3D(0, 2, 3)    -- Front 
   is:push3D(0, 1, 2)
