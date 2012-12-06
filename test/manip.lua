@@ -3,9 +3,11 @@
   Transform components manipulators. 
 --]]--
 
-local lib = { type = 'four.Manip' }
-lib.__index = lib
-four.Manip = lib
+-- local lib = { type = 'four.Manip' }
+-- lib.__index = lib
+-- four.Manip = lib
+
+local lib = {}
 
 local V2 = four.V2
 local V3 = four.V3
@@ -39,3 +41,4 @@ function lib.rotUpdate(r, v)
   return Quat.mul(Quat.ofV4(q), r.relative)
 end
 
+return lib

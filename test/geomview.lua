@@ -3,6 +3,7 @@
 require 'lubyk'
 local Demo = require 'demo'
 local Gooch = require 'gooch'
+local Manip = require 'manip'
 
 local V2 = four.V2
 local V3 = four.V3
@@ -11,7 +12,6 @@ local Transform = four.Transform
 local Geometry = four.Geometry
 local Effect = four.Effect
 local Camera = four.Camera 
-local Manip = four.Manip
 local Color = four.Color
 
 function WireHiQ() 

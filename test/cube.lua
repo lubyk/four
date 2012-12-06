@@ -1,5 +1,6 @@
 require 'lubyk'
 local Demo = require 'demo'
+local Manip = require 'manip'
 
 local V2 = four.V2
 local V3 = four.V3
@@ -7,7 +8,7 @@ local Quat = four.Quat
 local Transform = four.Transform
 local Effect = four.Effect
 local Camera = four.Camera 
-local Manip = four.Manip
+
 
 -- World
 
