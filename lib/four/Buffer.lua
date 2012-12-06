@@ -79,6 +79,12 @@ function lib:get4D(i)
   return self.data[b + 1], self.data[b + 2], self.data[b + 3], self.data[b + 4]
 end
 
+function lib:getV2(i) 
+  local b = (i - 1) * self.dim
+  return four.V2(self.data[b + 1], 
+                 self.data[b + 2])
+end
+
 function lib:getV3(i) 
   local b = (i - 1) * self.dim
   return four.V3(self.data[b + 1], 
@@ -168,6 +174,41 @@ end
 function lib:pushV3(v) self:push3D(four.V3.tuple(v)) end
 function lib:pushV4(v) self:push4D(four.V4.tuple(v)) end
 
+
+-- h2. Swapping and deleting
+
+-- @self:swap(i,j)@ swaps the element @i@ and @j@ in self. 
+function lib:swap(i,j)
+  local dim = self.dim 
+  local t = self.data 
+  local ib = (i - 1) * dim 
+  local jb = (j - 1) * dim
+  for d = 1, dim do 
+    local ii = ib + d
+    local jj = jb + d
+    local temp = t[ii]
+    t[ii] = t[jj] 
+    t[jj] = temp 
+  end
+end
+ 
+--[[--
+  @self:delete(i)@, deletes the element of @self@ at @i@.x
+  *Warning* Does not preserve the order of elements in the array.
+--]]--
+function lib:delete(i)
+ local dim = self.dim
+ local t = self.data 
+ local len = self:length() 
+
+ if len == 1 then self.data = {} 
+ else 
+   if i ~= len then self:swap(i, len) end
+   local lb = (len - 1) * dim
+   for d = 1, dim do t[lb + d] = nil end
+ end
+end
+
 -- h2. Traversing
 
 function lib:foldScalars(f, acc)
@@ -244,6 +285,66 @@ function lib:foldV4(f, acc)
   end
   return acc
 end
+
+--[[--
+  h2. Sorting
+  
+  Sorting methods use custom comparison function @cmp@. @cmp(x,y)@ is:
+  * -1 if @x@ is smaller than @y@
+  * 0, if @x@ equals @y@
+  * 1 if @x@ is greater than @y@
+--]]--
+
+local function generic_sort(b, get, set, cmp)
+  local qsort
+  qsort = function (b, s, e)
+    if(e - s < 2) then return end
+    local pivot = s
+    for i = s + 1, e do
+      iv = get(b, i)
+      pv = get(b, pivot)
+      succ_pivot = pivot + 1
+      if cmp(iv, pv) < 1 then
+        local spv = get(b, succ_pivot)
+        set(b, succ_pivot, pv)
+        if(i == succ_pivot) then
+          set(b, pivot, spv)
+        else
+          set(b, pivot, iv)
+          set(b, i, spv)
+        end
+        pivot = pivot + 1
+      end
+    end
+    qsort(b, s, pivot - 1)
+    qsort(b, succ_pivot, e)
+  end
+  qsort(b, 1, b:length())
+end
+
+--[[--
+  @self:sort1D(cmp)@ sorts the elements of the buffer in place 
+  using @cmp@ as a comparison function. 
+--]]--
+function lib:sort1D(cmp) generic_sort(self, lib.get1D, lib.set1D, cmp) end
+
+--[[--
+  @self:sortV2(cmp)@ sorts the V2 vectors of the buffer in place 
+  using @cmp@ with as a comparison function. 
+--]]--
+function lib:sortV2(cmp) generic_sort(self, lib.getV2, lib.setV2, cmp) end
+
+--[[--
+  @self:sortV3(cmp)@ sorts the V3 vectors of the buffer in place 
+  using @cmp@ as a comparison function. 
+--]]--
+function lib:sortV3(cmp) generic_sort(self, lib.getV3, lib.setV3, cmp) end
+
+--[[--
+  @self:sortV3(cmp)@ sorts the V4 vectors of the buffer in place 
+  using @cmp@ as a comparison function. 
+--]]--
+function lib:sortV4(cmp) generic_sort(self, lib.getV4, lib.setV4, cmp) end
 
 -- h2. Data properties 
 
