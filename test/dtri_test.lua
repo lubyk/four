@@ -33,20 +33,22 @@ function cmpx(v0, v1)
 end
 
 function tris () 
-  local pts = Utils.randomCuboidSamples(500, V3(-1, -1, 0), V3(1, 1, 0))
-  pts:push3D(-1, -1, 0)
-  pts:push3D(-1,  1, 0)
-  pts:push3D( 1, -1, 0)
-  pts:push3D( 1,  1, 0)
-  pts:sortV3(cmpx)
-  return Dtri.angulation(pts, true)
+  local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
+  local vs = Utils.randomCuboidSamples(500, V3(-1, -1, 0), V3(1, 1, 0))
+  vs:push3D(-1,  1, 0)
+  vs:push3D(-1, -1, 0)
+  vs:push3D( 1, -1, 0)
+  vs:push3D( 1,  1, 0)
+  vs:sortV3(cmpx)
+  Dtri.angulation(vs, is, true) 
+  return Geometry { primitive = Geometry.TRIANGLES, 
+                    data = { vertex = vs }, index = is }
 end
   
 geometries = { function () return tris () end }
 
 local nextGeometry = Demo.geometryCycler { normals = true,
                                            geometries = geometries }
-local angle = math.pi / 4
 
 local obj = 
   { transform = Transform (),

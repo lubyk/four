@@ -358,29 +358,44 @@ local bufferSpecForScalarType =
   [Buffer.INT] = { byte_count = 4, ffi_spec = "GLint[?]" },
   [Buffer.UNSIGNED_INT] = { byte_count = 4, ffi_spec = "GLint[?]" }}
 
-function lib:bufferStateAllocate(b, force)
-  local state = self.buffers[b]
-  if state and not force then return state end
+local bufferUsageHintType = 
+{ [Buffer.UPDATE_NEVER] = lo.GL_STATIC_DRAW,
+  [Buffer.UPDATE_SOMETIMES] = lo.GL_DYNAMIC_DRAW,
+  [Buffer.UPDATE_OFTEN] = lo.GL_STREAM_DRAW }
 
-  state = { id = gl.hi.glGenBuffer() }
-  local function finalize () gl.hi.glDeleteBuffer(state.id) end
-  state.finalizer = lk.Finalizer(finalize)
-  
+function lib:bufferStateAllocate(b, update)
+  local state = self.buffers[b]
+  if state and not update then return state end
+
+  if not state then 
+    state = { id = gl.hi.glGenBuffer() }
+    local function finalize () gl.hi.glDeleteBuffer(state.id) end
+    state.finalizer = lk.Finalizer(finalize)
+    self.buffers[b] = state
+  end
+
   local len = b:scalarLength()
   local gltype = typeGLenum[b.scalar_type]
   local spec = bufferSpecForScalarType[b.scalar_type]
   local bytes = spec.byte_count * len
   local data = ffi.new(spec.ffi_spec, len, b.data)
   lo.glBindBuffer(lo.GL_ARRAY_BUFFER, state.id)
-  lo.glBufferData(lo.GL_ARRAY_BUFFER, bytes, data, lo.GL_STATIC_DRAW)
-
-  self.buffers[b] = state
+  lo.glBufferData(lo.GL_ARRAY_BUFFER, bytes, data, 
+                  bufferUsageHintType[b.update])
+  assert(lo.glGetError () == lo.GL_NO_ERROR)
+  b.updated = false
   return state
 end
 
 function lib:geometryStateAllocate(g)
   local state = self.geometries[g]
-  if state and (g.immutable or not g.dirty) then return state end
+  if state then
+    for k, buffer in pairs(g.data) do 
+      if buffer.updated then self:bufferStateAllocate(buffer, true) end
+    end
+    if g.index.updated then self:bufferStateAllocate(g.index, true) end
+    return state 
+  end
 
   state = { vao = gl.hi.glGenVertexArray (),
             primitive = modeGLenum[g.primitive],
@@ -415,8 +430,6 @@ function lib:geometryStateAllocate(g)
   lo.glBindBuffer(lo.GL_ELEMENT_ARRAY_BUFFER, 0)
 
   self.geometries[g] = state
-  if (g.immutable) then g:disposeBuffers() end
-  g.dirty = false
   return state
 end 
   

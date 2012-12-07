@@ -23,14 +23,25 @@ lib.INT = 3
 lib.UNSIGNED_INT = 4
 
 --[[--
+  h2. Buffer usage hints
+  Defines how the data will be updated (hint for renderer).
+--]]--
+
+lib.UPDATE_NEVER = 1
+lib.UPDATE_SOMETIMES = 2
+lib.UPDATE_OFTEN = 3
+
+--[[--
   @Buffer(def)@ is a new buffer object. @def@ keys:
   * @dim@, the vectors dimension (defaults to @3@).
   * @scalar_type@, the vector's element type (defaults to @lib.FLOAT@).
   * @data@, an array of numbers (defaults to @{}@)
   * @normalize@, @true@ if the data should be normalized by the gpu (defaults
     to @false@).
-  * @immutable@, if @true@, @data@b is disposed after the first render 
-    (defaults to true).
+  * @update@, the update frequency (defaults to @UPDATE_NEVER@)
+  * @disposable@, if @true@, @data@ may be disposed by the renderer.
+  * @updated@, if @true@, @data@ will be read again by the renderer. The
+    renderer sets the flag to @false@ once he read the data.
 --]]--
 function lib.new(def)
   local self = 
@@ -38,7 +49,9 @@ function lib.new(def)
       scalar_type = lib.FLOAT,  
       data = {},
       normalize = false,
-      immutable = true }               
+      update = lib.UPDATE_NEVER,
+      disposable = true, 
+      updated = true }               
     setmetatable(self, lib)
     if def then self:set(def) end
     return self
@@ -49,12 +62,14 @@ function lib:set(def)
   if def.scalar_type then self.scalar_type = def.scalar_type end  
   if def.data then self.data = def.data end
   if def.normalize then self.normalize = def.normalize end
-  if def.immutable then self.immutable = def.immutable end
+  if def.update then self.update = def.update end
+  if def.disposable then self.disposable = def.disposable end
+  if def.updated then self.updated = def.updated end
 end
 
 function lib:length() return (#self.data / self.dim) end
 function lib:scalarLength() return #self.data end
-function lib:disposeBuffer() self.data = {} end
+function lib:disposeBuffer() if self.disposable then self.data = {} end end
 
 -- h2. Getters 
 
@@ -297,27 +312,27 @@ end
 
 local function generic_sort(b, get, set, cmp)
   local qsort
-  qsort = function (b, s, e)
-    if(e - s < 2) then return end
-    local pivot = s
-    for i = s + 1, e do
-      iv = get(b, i)
-      pv = get(b, pivot)
-      succ_pivot = pivot + 1
-      if cmp(iv, pv) < 1 then
-        local spv = get(b, succ_pivot)
-        set(b, succ_pivot, pv)
-        if(i == succ_pivot) then
-          set(b, pivot, spv)
-        else
-          set(b, pivot, iv)
-          set(b, i, spv)
+  qsort = function (b, l, r)
+    if l < r then
+      local pivot = math.floor(l + (r - l) / 2)
+      local pv = get(b, pivot) 
+      set(b, pivot, get(b, r))
+      set(b, r, pv) 
+      local loc = l
+      for i = l, r - 1 do 
+        local iv = get(b, i) 
+        if cmp(iv, pv) == - 1 then 
+          local temp = get(b, i)
+          set(b, i, get(b, loc))
+          set(b, loc, temp)
+          loc = loc + 1
         end
-        pivot = pivot + 1
       end
+      set(b, r, get(b, loc))
+      set(b, loc, pv)
+      qsort(b, l, loc - 1)
+      qsort(b, loc + 1, r)
     end
-    qsort(b, s, pivot - 1)
-    qsort(b, succ_pivot, e)
   end
   qsort(b, 1, b:length())
 end

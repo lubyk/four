@@ -57,28 +57,33 @@ local function inCircumCircle(px, py, x1, y1, x2, y2, x3, y3)
 end
 
 --[[--
-  @angulation(ps)@ returns a @Geometry@ object which is the triangulation
-  in xy coordinates of the (2D or 3D) point set @ps@.
+  @angulation(ps, tris, tri_min_first)@ writes a list of triangles in the 
+  @tris@ buffer which is the Delaunay triangulation in xy coordinates of the 
+  (2D or 3D) point set @ps@.
 
   If @tri_min_first@ is true the first index of triangles is the
   smallest of the three.
   
   *Warning* pts must be sorted in increasing x values.
 --]]--
-function lib.angulation(ps, tri_min_first)
+function lib.angulation(ps, tris, tri_min_first)
   local pcount = ps:length() 
   local exts = ps:dimExtents()
-  local tris = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
   local complete = {}
-  
+
+  local old_dim = tris.dim
+  tris.dim = 3
+  tris.updated = true
+  tris.data = {}
+
   local dmax = math.max(exts[1].max - exts[1].min, exts[2].max - exts[2].min)
   local xmid = 0.5 * (exts[1].max + exts[1].min)
   local ymid = 0.5 * (exts[2].max + exts[2].min)
 
   -- Temporarily add super triangle vertice at the end of the point buffer 
   ps:set2D(pcount + 1, xmid - 20 * dmax, ymid - dmax)
-  ps:set2D(pcount + 2, xmid + 20 * dmax, ymid - dmax)
-  ps:set2D(pcount + 3, xmid, ymid + 20 * dmax)
+  ps:set2D(pcount + 2, xmid, ymid + 20 * dmax)
+  ps:set2D(pcount + 3, xmid + 20 * dmax, ymid - dmax)
   
   -- Add CW super triangle to the triangles 
   tris:push3D(pcount + 0, pcount + 1, pcount + 2) -- indices are zero based
@@ -157,8 +162,7 @@ function lib.angulation(ps, tri_min_first)
   ps:set2D(pcount + 2, nil, nil)
   ps:set2D(pcount + 3, nil, nil)
 
-  return Geometry { primitive = Geometry.TRIANGLES, 
-                    data = { vertex = ps }, index = tris } 
+  tris.dim = old_dim 
 end
 
 return lib

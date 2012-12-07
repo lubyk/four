@@ -44,10 +44,11 @@ lib.TRIANGLES_ADJACENCY = 11
     actual sequence of primitives. *WARNING* indices are zero-based.
   * @pre_transform@, an M4 matrix that the renderer pre-multiplies to the 
     renderable's transform.
-  * @immutable@, if @true@, @data@ and @index@ buffers are disposed after 
-    the first render (defaults to true).
   * @name@, a user defined way of naming the geometry (may be used by
     the renderer to report errors about the object).
+
+  *Note* Once a geometry object was rendered it must be considered 
+  as immutable. The data of the underlying buffers may however change.
 --]]--
 function lib.new(def)
   local self = 
@@ -55,12 +56,9 @@ function lib.new(def)
       data = {},
       index = nil,
       pre_transform = nil,
-      immutable = true,
       name = "",
       offset = nil, -- 
-      bound_radius = nil,
-      dirty = false } -- Geometry is mutable and was touched. The renderer
-                      -- sets this to false once it got the new data.
+      bound_radius = nil }
     setmetatable(self, lib)
     if def then self:set(def) end
     return self
@@ -78,7 +76,7 @@ end
 
 -- h2. Geometry operations
 
--- @disposeBuffers()@ disposes @self.index@ and @self.data@ to 
+-- @disposeBuffers()@ disposes buffers that @self.index@ and @self.data@ to 
 -- @{}@. The renderer calls this function if @self.immutable@ is @true@.
 function lib:disposeBuffers() 
   for _, b in pairs(self.data) do b:disposeBuffer() end
@@ -263,10 +261,12 @@ end
 
 
 --[[--
-  @Plane(V2(w,h))@ is an Oxy plane of width @w@ and height @h@ centered
-  on the origin. 
+  @Plane(w, h)@ or @Plane(V2(w, h))@ is an Oxy plane of width @w@ and 
+  height @h@ centered on the origin. 
 --]]--                                                                
-function lib.Plane(extents)
+function lib.Plane(w, h)
+  local extents = w 
+  if h then extents = V2(w, h) end
   local hw, hh = V2.tuple(V2.half(extents))
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   local is = Buffer { dim = 1, scalar_type = Buffer.UNSIGNED_INT }

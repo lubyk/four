@@ -6,11 +6,12 @@ local Buffer = four.Buffer
 local V3 = four.V3
 
 --[[-- 
-@randomCuboidSamples(count, min, max)@ generates @count@ points uniformly in 
-the cuboid defined by the two extreme points @min@ and @max@.
+@randomCuboidSamples(count, min, max, pts)@ is a Buffer with @count@ random 
+points distributed uniformly in the cuboid defined by the two extreme 
+points @min@ and @max@. If @pts@ is present, points are added to @pts@.
 --]]--
-function lib.randomCuboidSamples(count, min, max)
-  local b = Buffer { dim = 3, scalar_type = Buffer.FLOAT }
+function lib.randomCuboidSamples(count, min, max, pts)
+  local b = pts or Buffer { dim = 3, scalar_type = Buffer.FLOAT }
   local xmin, ymin, zmin = V3.tuple(min)
   local xmax, ymax, zmax = V3.tuple(max)
   local min = math.min(xmin, ymin, zmin)
