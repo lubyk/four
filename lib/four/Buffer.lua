@@ -170,7 +170,7 @@ end
 
 function lib:push2D(x, y)
   local t = self.data
-  local s = #self.data
+  local s = #t
   t[s + 1] = x; t[s + 2] = y; 
 end
 
@@ -380,7 +380,7 @@ local sort_set = { lib.set1D, lib.setV2, lib.setV3, lib.setV4 }
 --]]--
 function lib:sort(cmp, get)  
   local set = sort_set[self.dim]
-  local get = sort_set[self.dim]
+  local get = sort_get[self.dim]
   local cget = get or sort_get[self.dim]
   generic_sort_inplace(self, cmp, cget, get, set)
 end

@@ -380,6 +380,8 @@ function lib:bufferStateAllocate(b, update)
   local bytes = spec.byte_count * len
   local data = ffi.new(spec.ffi_spec, len, b.data)
   lo.glBindBuffer(lo.GL_ARRAY_BUFFER, state.id)
+  
+  -- TODO if we don't change size use glSubBufferData
   lo.glBufferData(lo.GL_ARRAY_BUFFER, bytes, data, 
                   bufferUsageHintType[b.update])
   assert(lo.glGetError () == lo.GL_NO_ERROR)
