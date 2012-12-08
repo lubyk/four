@@ -310,18 +310,51 @@ end
   * 1 if @x@ is greater than @y@
 --]]--
 
-local function generic_sort(b, get, set, cmp)
+local function generic_sort_order(b, cmp, get)
+  local order = {}
+  local qsort
+  qsort = function (order, b, l, r)
+    if l < r then
+      local pivot = math.floor(l + (r - l) / 2)
+      local pi = order[pivot]
+      local pvalue = get(b, pi)
+      order[pivot] = order[r]
+      order[r] = pi
+      local loc = l
+      for k = l, r - 1 do 
+        local ki = order[k]
+        local kvalue = get(b, ki)
+        if cmp(kvalue, pvalue) == -1 then
+          order[k] = order[loc]
+          order[loc] = ki
+          loc = loc + 1
+        end
+      end
+      order[r] = order[loc]
+      order[loc] = pi
+      qsort(order, b, l, loc - 1)
+      qsort(order, b, loc + 1, r)
+    end
+  end
+  for i = 1, b:length() do order[i] = i end
+  qsort(order, b, 1, b:length())
+  return order
+end
+
+local function generic_sort_inplace(b, cmp, cget, get, set)
   local qsort
   qsort = function (b, l, r)
     if l < r then
       local pivot = math.floor(l + (r - l) / 2)
+      local pvc = cget(b, pivot)
       local pv = get(b, pivot) 
       set(b, pivot, get(b, r))
       set(b, r, pv) 
       local loc = l
       for i = l, r - 1 do 
+        local ivc = cget(b, i)
         local iv = get(b, i) 
-        if cmp(iv, pv) == - 1 then 
+        if cmp(ivc, pvc) == - 1 then 
           set(b, i, get(b, loc))
           set(b, loc, iv)
           loc = loc + 1
@@ -336,29 +369,31 @@ local function generic_sort(b, get, set, cmp)
   qsort(b, 1, b:length())
 end
 
---[[--
-  @self:sort1D(cmp)@ sorts the elements of the buffer in place 
-  using @cmp@ as a comparison function. 
---]]--
-function lib:sort1D(cmp) generic_sort(self, lib.get1D, lib.set1D, cmp) end
+local sort_get = { lib.get1D, lib.getV2, lib.getV3, lib.getV4 }
+local sort_set = { lib.set1D, lib.setV2, lib.setV3, lib.setV4 }
 
 --[[--
-  @self:sortV2(cmp)@ sorts the V2 vectors of the buffer in place 
-  using @cmp@ with as a comparison function. 
+  @self:sort(cmp [, get])@ sorts the elements of the buffer in place using
+  @cmp@ as a comparison function. @cmp@ is given objects returned by @get@
+  (defaults depends on @self.dim@, number for @1@, V2 for @2@, V3 for @3@, 
+   V4 for @4@)
 --]]--
-function lib:sortV2(cmp) generic_sort(self, lib.getV2, lib.setV2, cmp) end
+function lib:sort(cmp, get)  
+  local set = sort_set[self.dim]
+  local get = sort_set[self.dim]
+  local cget = get or sort_get[self.dim]
+  generic_sort_inplace(self, cmp, cget, get, set)
+end
 
 --[[--
-  @self:sortV3(cmp)@ sorts the V3 vectors of the buffer in place 
-  using @cmp@ as a comparison function. 
+  @self:sortOrder(cmp [, get])@ is like @self:sort@ excepts elements of 
+  the buffer are kept in place and an array of indexes defining 
+  the order is returned. 
 --]]--
-function lib:sortV3(cmp) generic_sort(self, lib.getV3, lib.setV3, cmp) end
-
---[[--
-  @self:sortV3(cmp)@ sorts the V4 vectors of the buffer in place 
-  using @cmp@ as a comparison function. 
---]]--
-function lib:sortV4(cmp) generic_sort(self, lib.getV4, lib.setV4, cmp) end
+function lib:sortOrder(cmp, get)
+  local get = get or sort_get[self.dim]
+  return generic_sort_order(self, cmp, get)
+end
 
 -- h2. Data properties 
 
