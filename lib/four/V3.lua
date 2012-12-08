@@ -221,6 +221,25 @@ function lib.le(u, v, le)
   else return u[1] <= v[1] and u[2] <= v[2] and u[3] <= v[3] end
 end
 
+--[[--
+  @compare(u, v [, cmp])@ is:
+  * @-1@ if @u@ is smaller than @v@
+  * @0@ if @u@ is equal to @v@
+  * @1@ if @u@ is greater than @v@
+  where the order is the lexicographic order defined by using @cmp@
+  on the components (@cmp@ defaults to the standard order on floats).
+--]]--
+function lib.compare(u, v, cmp)
+  local cmp = cmp or function (a, b) if a < b then return -1 
+                                     elseif a > b then return 1 
+                                     else return 0 end
+                     end
+  local c 
+  c = cmp(u[1], v[1]) if c ~= 0 then return c end
+  c = cmp(u[2], v[2]) if c ~= 0 then return c end
+  c = cmp(u[3], v[3]) return c
+end
+
 
 -- h2. Operators
 
