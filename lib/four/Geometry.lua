@@ -269,14 +269,15 @@ function lib.Plane(w, h)
   if h then extents = V2(w, h) end
   local hw, hh = V2.tuple(V2.half(extents))
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
-  local is = Buffer { dim = 1, scalar_type = Buffer.UNSIGNED_INT }
+  local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
 
   vs:push3D(-hw, -hh, 0)
   vs:push3D(hw, -hh, 0)
   vs:push3D(hw, hh, 0)
   vs:push3D(-hw, hh, 0)
-  is:push3D(0, 2, 3)
   is:push3D(0, 1, 2)
+  is:push3D(0, 2, 3)
+
 
   return lib.new({ name = "four.plane", primitive = lib.TRIANGLES,
                    data = { vertex = vs }, index = is, 
