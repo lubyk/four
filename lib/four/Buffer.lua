@@ -156,19 +156,19 @@ function lib:setV4(i, v) self:set4D(i, four.V4.tuple(v)) end
    doesn't care about buffer dimension.
 --]]--
 
-function lib:push(i, ...)
+function lib:push(...)
   local t = self.data 
   local s = #t
-  for i, v in ipairs(...) do t[s + i] = v end
+  for i, v in ipairs{...} do t[s + i] = v end
 end
 
-function lib:push1D(i, x)
+function lib:push1D(x)
   local t = self.data 
   local s = #t
   t[s + 1] = x; 
 end
 
-function lib:push2D(i, x, y)
+function lib:push2D(x, y)
   local t = self.data
   local s = #self.data
   t[s + 1] = x; t[s + 2] = y; 
@@ -322,9 +322,8 @@ local function generic_sort(b, get, set, cmp)
       for i = l, r - 1 do 
         local iv = get(b, i) 
         if cmp(iv, pv) == - 1 then 
-          local temp = get(b, i)
           set(b, i, get(b, loc))
-          set(b, loc, temp)
+          set(b, loc, iv)
           loc = loc + 1
         end
       end
