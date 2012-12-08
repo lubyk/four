@@ -21,12 +21,12 @@ function should.converters()
 end
 
 function should.constants ()
-  assertValueEqual(V3(0, 0, 0), V3.o)
-  assertValueEqual(V3(1, 0, 0), V3.ox)
-  assertValueEqual(V3(0, 1, 0), V3.oy)
-  assertValueEqual(V3(0, 0, 1), V3.oz)
-  assertValueEqual(V3(math.huge, math.huge, math.huge), V3.huge)
-  assertValueEqual(V3(-math.huge, -math.huge, -math.huge), V3.neg_huge)
+  assertValueEqual(V3(0, 0, 0), V3.zero())
+  assertValueEqual(V3(1, 0, 0), V3.ox())
+  assertValueEqual(V3(0, 1, 0), V3.oy())
+  assertValueEqual(V3(0, 0, 1), V3.oz())
+  assertValueEqual(V3(math.huge, math.huge, math.huge), V3.huge ())
+  assertValueEqual(V3(-math.huge, -math.huge, -math.huge), V3.neg_huge ())
 end
 
 function should.functions ()
@@ -43,18 +43,18 @@ function should.functions ()
   assertValueEqual(V3(3, 2, 1), V3.div(v4, v2))
   assertValueEqual(V3(3, 6, 9), V3.smul(3, v1))
   assertValueEqual(V3(6, 5, 3), V3.half(v4))
-  assertValueEqual(V3.oz, V3.cross(V3.ox, V3.oy))
-  assertValueEqual(1, V3.dot(V3.ox, V3.ox)) -- find better example
-  assertValueEqual(1, V3.norm(V3.ox)) -- find better example
+  assertValueEqual(V3.oz (), V3.cross(V3.ox (), V3.oy ()))
+  assertValueEqual(1, V3.dot(V3.ox (), V3.ox ())) -- find better example
+  assertValueEqual(1, V3.norm(V3.ox ())) -- find better example
   assertValueEqual(true, math.abs(V3.norm (V3.unit(v1)) - 1) < EPS)
   assertValueEqual(V3(2, 3, 1), V3.homogene (v5))
-  assertValueEqual(V3.oz, V3.sphereUnit(0.5 * math.pi, 0)) -- brittle test
+  assertValueEqual(V3.oz (), V3.sphereUnit(0.5 * math.pi, 0)) -- brittle test
   assertValueEqual(V3(1, 4, 6), V3.mix(V3(-2, 2, 4), V3(4, 6, 8), 0.5))
-  assertError("TODO", function () ltr(nil, v1) end)
-  assertError("TODO", function () tr(nil, v1) end)
+--  assertError("TODO", function () ltr(nil, v1) end)
+--  assertError("TODO", function () tr(nil, v1) end)
 end
 
-function should.traverals ()
+function should.traversals ()
   -- TODO
 end
 
