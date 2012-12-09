@@ -181,8 +181,9 @@ end
 
 -- @renderable(cam, o)@ is @true@ if @o@ can be rendered with @cam@.
 function lib:isRenderable(cam, o)
+  local visible = o.visible == nil or o.visible
   local effect = cam.effect_override or o.effect
-  return o.geometry and effect
+  return visible and o.geometry and effect
 end
 
 -- @render(cam, objs)@ renders the renderables in @objs@ with @cam@.
