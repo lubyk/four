@@ -96,15 +96,27 @@ function lib.statsTable ()
       frame_time = 0,            -- duration of last frame
       max_frame_time = -math.huge,     
       min_frame_time = math.huge,
-      frame_vertex_count = 0,     -- vertex count of current frame
-      frame_face_count = 0 }      -- face count of current frame
+      vertices = 0,              -- vertex count of last frame
+      _vertices = 0,             -- vertex count of current frame
+      max_vertices = -math.huge,
+      min_vertices = math.huge,
+      faces = 0,                 -- face count of last frame
+      _faces = 0,                -- vertex count of current frame
+      max_faces = -math.huge,
+      min_faces = math.huge }
 end
 
 function lib:resetStats() self.stats = lib.statsTable () end
 function lib:updateStats(now) 
   local stats = self.stats
-  stats.frame_vertex_count = 0;
-  stats.frame_face_count = 0;
+  stats.vertices = stats._vertices
+  stats.faces = stats._faces
+  stats.max_vertices = math.max(stats.vertices, stats.max_vertices)
+  stats.min_vertices = math.min(stats.vertices, stats.min_vertices)
+  stats.max_faces = math.max(stats.faces, stats.max_faces)
+  stats.min_faces = math.min(stats.faces, stats.min_faces)
+  stats._vertices = 0;
+  stats._faces = 0;
   if not stats.frame_stamp then 
     stats.frame_stamp = now
     stats.sample_stamp = now
@@ -127,7 +139,7 @@ end
 
 function lib:addGeometryStats(g)
   local stats = self.stats
-  local v_count = g.index:length()
+  local v_count = g.index:scalarLength()
   local f_count = 0
   if g.primitive == Geometry.TRIANGLES then f_count = v_count / 3
   elseif g.primitive == Geometry.TRIANGLE_STRIP then f_count = v_count - 2
@@ -136,8 +148,8 @@ function lib:addGeometryStats(g)
   elseif g.primitive == Geometry.TRIANGLE_STRIP_ADJACENCY then 
     fcount = v_count / 2 - 4
   end
-  stats.frame_vertex_count = stats.frame_vertex_count + v_count
-  stats.frame_face_count = stats.frame_face_count + f_count
+  stats._vertices = stats._vertices + v_count
+  stats._faces = stats._faces + f_count
 end
 
 -- h2. Renderer log
@@ -163,6 +175,21 @@ function lib:logInfo(verbose)
     end
   end
 end
+
+function lib:logStats()
+  local stats = self.stats
+  local s = string.format
+  self:log("Renderer stats (min/max)")
+  self:log(s("+ %dHz (%d/%d)", stats.frame_hz, 
+             stats.min_frame_hz, stats.max_frame_hz))
+  self:log(s("+ %.1fms frame time (%.1f/%.1f)", 
+             stats.frame_time, stats.min_frame_time, stats.max_frame_time))
+  self:log(s("+ %d frame vertices (%d/%d)", 
+             stats.vertices, stats.min_vertices, stats.max_vertices))
+  self:log(s("+ %d frame faces (%d/%d)", 
+             stats.faces, stats.min_faces, stats.max_faces))
+end
+
 
 -- h2. Screen coordinates
 
