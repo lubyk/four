@@ -11,7 +11,7 @@ local Models = require 'Models'
 local V2 = four.V2
 local Geometry = four.Geometry
 local Renderer = four.Renderer
-local Hds = require 'hds'
+local Geokit = require 'geokit'
 
 -- h2. Application object to simplify demos
 
@@ -110,9 +110,8 @@ function lib.geometryCycler(def)
     id = (id + 1) % #geoms
     local g = geoms[id + 1] ()
     if normals then g:computeVertexNormals() end
-    if adjacency then 
-      hds = Hds.FromTriangles(g.index)
-      g.index = Hds.trianglesAdjacencyIndex(hds)
+    if adjacency then
+      g.index = Geokit.trianglesAdjacencyIndex(g.index)
       g.primitive = Geometry.TRIANGLES_ADJACENCY
     end
     return g

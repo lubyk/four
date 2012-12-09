@@ -2,18 +2,18 @@
 
 require 'lubyk'
 
-local Hds = require 'hds'
+local Geokit = require 'geokit'
 local Geometry = four.Geometry
 
 
-local should = test.Suite("four")
+local should = test.Suite("geokit")
 
 function should.planeHDS()
   -- N.B. these assertions depend on the index given by Plane and 
   -- the way hdsFromTriangles operates. 
 
   local p = Geometry.Plane(1,2)
-  local hds = Hds.FromTriangles(p.index)
+  local hds = Geokit.hdsFromTriangles(p.index)
   assertEqual(hds.vertex[1], 1)  
   assertEqual(hds.vertex[2], 2)
   assertEqual(hds.vertex[3], 3)
@@ -55,8 +55,8 @@ end
 
 function should.planeTrianglesAdjacency()
   local p = Geometry.Plane(1,2)
-  local hds = Hds.FromTriangles(p.index)
-  local i = Hds.trianglesAdjacencyIndex(hds)
+  local hds = Geokit.hdsFromTriangles(p.index)
+  local i = Geokit.trianglesHdsToAdjacencyIndex(hds)
 
   assertEqual(i:getScalar(1), 0)
   assertEqual(i:getScalar(2), 0)
@@ -71,8 +71,6 @@ function should.planeTrianglesAdjacency()
   assertEqual(i:getScalar(10), 2)
   assertEqual(i:getScalar(11), 3)
   assertEqual(i:getScalar(12), 3)
-
-  
 end
 
 

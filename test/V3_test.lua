@@ -3,7 +3,7 @@
 --]]--
 
 require 'lubyk'
-local should = test.Suite("four")
+local should = test.Suite("V3")
 
 local V3 = four.V3
 
