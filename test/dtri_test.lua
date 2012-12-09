@@ -33,14 +33,12 @@ function cmpx(v0, v1)
 end
 
 function tris () 
-  local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
-  local vs = Utils.randomCuboidSamples(500, V3(-1, -1, 0), V3(1, 1, 0))
-  vs:push3D(-1,  1, 0)
-  vs:push3D(-1, -1, 0)
-  vs:push3D( 1, -1, 0)
-  vs:push3D( 1,  1, 0)
-  vs:sortV3(cmpx)
-  Dtri.angulation(vs, is, true) 
+  local vs = Utils.randomCuboidSamples(1000, V3(-1.5, -1, 0), V3(1.5, 1, 0))
+  vs:push3D(-1.5,  1, 0)
+  vs:push3D(-1.5, -1, 0)
+  vs:push3D( 1.5, -1, 0)
+  vs:push3D( 1.5,  1, 0)
+  local is = Dtri.angulation(vs, nil, true)
   return Geometry { primitive = Geometry.TRIANGLES, 
                     data = { vertex = vs }, index = is }
 end

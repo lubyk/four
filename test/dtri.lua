@@ -3,6 +3,7 @@
 
 require 'lubyk'
 
+local V3 = four.V3
 local Buffer = four.Buffer
 local Geometry = four.Geometry 
 local lib = {} 
@@ -56,25 +57,36 @@ local function inCircumCircle(px, py, x1, y1, x2, y2, x3, y3)
   return (d - rsquared <= TRI_EPS), (xc < px and dx * dx > rsquared)
 end
 
+
+local function xcmp(x0, x1) 
+  if x0 < x1 then return -1 
+  elseif x1 > x0 then return 1 
+  else return 0 end
+end
+
+
 --[[--
-  @angulation(ps, tris, tri_min_first)@ writes a list of triangles in the 
-  @tris@ buffer which is the Delaunay triangulation in xy coordinates of the 
-  (2D or 3D) point set @ps@.
+  @angulation(ps [, index [, sort] ])@ is a Buffer (zero-based) index 
+  representing the Delaunay triangulation in xy coordinates of the 2D or 
+  3D point set @ps@. 
 
-  If @tri_min_first@ is true the first index of triangles is the
-  smallest of the three.
-  
-  *Warning* pts must be sorted in increasing x values.
+  If @index@ is present, this object returned (@index.dim@ must be 3, and 
+  @index.data@ is overwritten).
+
+  If @sort@ is @true@, the triangles are specified so that the first
+  index is the smallest one, and the triangles are sorted 
+  lexicographically. 
 --]]--
-function lib.angulation(ps, tris, tri_min_first)
-  local pcount = ps:length() 
-  local exts = ps:dimExtents()
-  local complete = {}
-
-  local old_dim = tris.dim
-  tris.dim = 3
+function lib.angulation(ps, index, sort)
+  local tris = index or Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
+  assert(tris.dim == 3)
   tris.updated = true
   tris.data = {}
+
+  local pcount = ps:length() 
+  local xorder = ps:sortOrder(xcmp, Buffer.get1D)
+  local exts = ps:dimExtents()
+  local complete = {}
 
   local dmax = math.max(exts[1].max - exts[1].min, exts[2].max - exts[2].min)
   local xmid = 0.5 * (exts[1].max + exts[1].min)
@@ -90,7 +102,7 @@ function lib.angulation(ps, tris, tri_min_first)
   complete[1] = false
 
   for i = 1, pcount do 
-    local px, py = ps:get2D(i)
+    local px, py = ps:get2D(xorder[i])
     local edges = {}
     local j = 0
     while j < tris:length() do 
@@ -134,8 +146,8 @@ function lib.angulation(ps, tris, tri_min_first)
       if edges[j][1] ~= -1 and edges[j][2] ~= -1 then 
         local k1 = edges[j][1]
         local k2 = edges[j][2]
-        local k3 = i - 1
-        if tri_min_first then
+        local k3 = xorder[i] - 1
+        if sort then
           local min = math.min(k1, k2, k3)
           if min == k2 then k2 = k3 k3 = k1 k1 = min
           elseif min == k3 then k3 = k2 k2 = k1 k1 = min else end
@@ -162,7 +174,9 @@ function lib.angulation(ps, tris, tri_min_first)
   ps:set2D(pcount + 2, nil, nil)
   ps:set2D(pcount + 3, nil, nil)
 
-  tris.dim = old_dim 
+  if (sort) then tris:sort(V3.compare) end
+  
+  return tris
 end
 
 return lib
