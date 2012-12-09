@@ -77,7 +77,7 @@ end
   *Warning*. Assumes that @hds@ is describing triangles. 
 --]]--
 function lib.trianglesAdjacencyIndex(hds, is)
-  local is = is or Buffer { dim = 1, scalar_type = Buffer.UNSIGNED_INT }
+  local is = is or Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
   is.data = {} 
   is.updated = true
   

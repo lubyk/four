@@ -94,8 +94,8 @@ function lib.angulation(ps, index, sort)
 
   -- Temporarily add super triangle vertice at the end of the point buffer 
   ps:set2D(pcount + 1, xmid - 20 * dmax, ymid - dmax)
-  ps:set2D(pcount + 2, xmid, ymid + 20 * dmax)
-  ps:set2D(pcount + 3, xmid + 20 * dmax, ymid - dmax)
+  ps:set2D(pcount + 2, xmid + 20 * dmax, ymid - dmax)
+  ps:set2D(pcount + 3, xmid, ymid + 20 * dmax)
   
   -- Add CW super triangle to the triangles 
   tris:push3D(pcount + 0, pcount + 1, pcount + 2) -- indices are zero based
@@ -149,8 +149,16 @@ function lib.angulation(ps, index, sort)
         local k3 = xorder[i] - 1
         if sort then
           local min = math.min(k1, k2, k3)
-          if min == k2 then k2 = k3 k3 = k1 k1 = min
-          elseif min == k3 then k3 = k2 k2 = k1 k1 = min else end
+          if min == k2 then 
+            k2 = k3 
+            k3 = k1 
+            k1 = min
+          elseif min == k3 then 
+            k3 = k2 
+            k2 = k1 
+            k1 = min 
+          else -- correct order 
+          end
         end
         tris:push3D(k1, k2, k3)
         complete[tris:length()] = false
@@ -174,8 +182,8 @@ function lib.angulation(ps, index, sort)
   ps:set2D(pcount + 2, nil, nil)
   ps:set2D(pcount + 3, nil, nil)
 
-  if (sort) then tris:sort(V3.compare) end
-  
+  if sort then tris:sort(V3.compare) end
+
   return tris
 end
 
