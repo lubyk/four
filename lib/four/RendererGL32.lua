@@ -395,7 +395,10 @@ function lib:geometryStateAllocate(g)
     for k, buffer in pairs(g.data) do 
       if buffer.updated then self:bufferStateAllocate(buffer, true) end
     end
-    if g.index.updated then self:bufferStateAllocate(g.index, true) end
+    if g.index.updated then 
+      self:bufferStateAllocate(g.index, true) 
+      state.index_length = g.index:scalarLength()
+    end
     return state 
   end
 
