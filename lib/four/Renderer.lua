@@ -29,19 +29,15 @@ lib.DEFAULT = lib.GL32
   @Renderer(def)@ is a new renderer. @def@ keys:
   * @backend@, the renderer backend (defaults to @GL32@).
   * @size@, a @V2@ defining the viewport size (defaults to V2(480,270).
-  * @log_fun@, the renderer logging function (defaults to @print@).
-  * @error_line_pattern@, a string used to parse GPU compiler logs,
-    Must split a line in three part, before the GLSL file,
-    the file (a number), after the file. The number is then substituted
-    with the appriorate 
-    TODO find something generic
+  * @error_line_pattern@, a string used to parse GPU compiler logs.
+    Must split a line in three part, before the GLSL file number,
+    the file number, after the file number.
 --]]-- 
 function lib.new(def)
   local self = 
     {  backend = lib.DEFAULT,   
        frame_start_time = -1,
        size = V2(480, 270),     
-       log_fun = print,         
        stats = lib.statsTable (), 
        error_line_pattern = "([^:]+: *)(%d+)(:.*)",
        debug = true,            -- More logging/diagnostics
@@ -56,7 +52,9 @@ end
 function lib:set(def) 
   if def.backend then self.backend = def.backend end
   if def.size then self.size = def.size end
-  if def.log_fun then self.log_fun = log_fun end
+  if def.error_line_pattern then
+    self.error_line_pattern = def.error_line_pattern 
+  end
 end
 
 function lib:_setBackend()
@@ -144,7 +142,12 @@ end
 
 -- h2. Renderer log
 
-function lib:log(s) self.log_fun(s) end
+--[[--
+  @self:log(msg)@ is called by the backend renderer to log message 
+  @msg@. Clients can override the function to redirect the renderer 
+  log (the default implementation @print@s the message).
+--]]--
+function lib:log(msg) print(msg) end
 function lib:logInfo(verbose)
   local info = self:info() 
   local verbose = long and true
