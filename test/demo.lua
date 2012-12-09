@@ -11,6 +11,7 @@ local Models = require 'Models'
 local V2 = four.V2
 local Geometry = four.Geometry
 local Renderer = four.Renderer
+local Hds = require 'hds'
 
 -- h2. Application object to simplify demos
 
@@ -99,6 +100,7 @@ end
 function lib.geometryCycler(def)
   local id = -1
   local normals = def.normals or false
+  local adjacency = def.adjacency or false
   local geoms = def.geometries or 
     { function () return Geometry.Cube(1) end,
       function () return Geometry.Sphere(0.5, 4) end,
@@ -108,6 +110,11 @@ function lib.geometryCycler(def)
     id = (id + 1) % #geoms
     local g = geoms[id + 1] ()
     if normals then g:computeVertexNormals() end
+    if adjacency then 
+      hds = Hds.FromTriangles(g.index)
+      g.index = Hds.trianglesAdjacencyIndex(hds)
+      g.primitive = Geometry.TRIANGLES_ADJACENCY
+    end
     return g
   end
   return next
