@@ -117,13 +117,18 @@ end
 
 -- h2. Setters
 
-function lib:setScalar(i, x) self.data[i] = x end
+function lib:setScalar(i, x) 
+  self.updated = true
+  self.data[i] = x 
+end
 function lib:set1D(i, x)
+  self.updated = true
   local b = (i - 1) * self.dim 
   self.data[b + 1] = x; 
 end
 
 function lib:set2D(i, x, y)
+  self.updated = true
   local b = (i - 1) * self.dim 
   local t = self.data
   t[b + 1] = x; 
@@ -131,6 +136,7 @@ function lib:set2D(i, x, y)
 end
 
 function lib:set3D(i, x, y, z)
+  self.updated = true
   local b = (i - 1) * self.dim 
   local t = self.data
   t[b + 1] = x; 
@@ -139,6 +145,7 @@ function lib:set3D(i, x, y, z)
 end
 
 function lib:set4D(i, x, y, z, w)
+  self.updated = true
   local b = (i - 1) * self.dim 
   local t = self.data 
   t[b + 1] = x; 
@@ -147,8 +154,14 @@ function lib:set4D(i, x, y, z, w)
   t[b + 4] = w;
 end
 
-function lib:setV3(i, v) self:set3D(i, four.V3.tuple(v)) end
-function lib:setV4(i, v) self:set4D(i, four.V4.tuple(v)) end
+function lib:setV3(i, v) 
+  self.updated = true
+  self:set3D(i, four.V3.tuple(v)) 
+end
+function lib:setV4(i, v) 
+  self.updated = true
+  self:set4D(i, four.V4.tuple(v)) 
+end
 
 --[[--
    h2. Append 
@@ -157,43 +170,56 @@ function lib:setV4(i, v) self:set4D(i, four.V4.tuple(v)) end
 --]]--
 
 function lib:push(...)
+  self.updated = true
   local t = self.data 
   local s = #t
   for i, v in ipairs{...} do t[s + i] = v end
 end
 
 function lib:push1D(x)
+  self.updated = true
   local t = self.data 
   local s = #t
   t[s + 1] = x; 
 end
 
 function lib:push2D(x, y)
+  self.updated = true
   local t = self.data
   local s = #t
   t[s + 1] = x; t[s + 2] = y; 
 end
 
 function lib:push3D(x, y, z)
+  self.updated = true
   local t = self.data
   local s = #t
   t[s + 1] = x; t[s + 2] = y; t[s + 3] = z;
 end
 
 function lib:push4D(x, y, z, w)
+  self.updated = true
   local t = self.data
   local s = #t
   t[s + 1] = x; t[s + 2] = y; t[s + 3] = z; t[s + 4] = w;
 end
 
-function lib:pushV3(v) self:push3D(four.V3.tuple(v)) end
-function lib:pushV4(v) self:push4D(four.V4.tuple(v)) end
+function lib:pushV3(v) 
+  self.updated = true
+  self:push3D(four.V3.tuple(v)) 
+end
+
+function lib:pushV4(v) 
+  self.updated = true
+  self:push4D(four.V4.tuple(v)) 
+end
 
 
 -- h2. Swapping and deleting
 
 -- @self:swap(i,j)@ swaps the element @i@ and @j@ in self. 
 function lib:swap(i,j)
+  self.updated = true
   local dim = self.dim 
   local t = self.data 
   local ib = (i - 1) * dim 
@@ -212,6 +238,7 @@ end
   *Warning* Does not preserve the order of elements in the array.
 --]]--
 function lib:delete(i)
+ self.updated = true
  local dim = self.dim
  local t = self.data 
  local len = self:length() 
