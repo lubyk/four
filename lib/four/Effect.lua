@@ -57,14 +57,15 @@ h3. Depth state
 *Note.* Depth clearing and depth range are specified by the Camera object.
 
 Depth state is described by a table with the following keys:
-  * @enable@, @true@ if z-test should be performed (defaults to @true@)
+  * @test@, @true@ if z-test should be performed (defaults to @true@)
   * @func@, comparison function (defaults to @DEPTH_FUNC_LESS@)
+  * @write@, @true@ if z buffer should be written to (default to @true@)
   * @offset@, depth offset (defaults to @{ factor = 0, units = 0 }@), 
     see doc of glPolygonOffset.
 --]]--
 
 function lib.defaultDepth() 
-  return { enable = true, func = lib.DEPTH_FUNC_LESS,
+  return { test = true, func = lib.DEPTH_FUNC_LESS, write = true,
            offset = { factor = 0, units = 0 } }
 end
 
@@ -124,8 +125,9 @@ function lib:set(def)
     end
   end
   if def.depth ~= nil then 
-    if def.depth.enable ~= nil then self.depth.enable = def.depth.enable end
+    if def.depth.test ~= nil then self.depth.test = def.depth.test end
     if def.depth.func ~= nil then self.depth.func = def.depth.func end
+    if def.depth.write ~= nil then self.depth.write = def.depth.write end
     if def.depth.offset ~= nil then self.depth.offset = def.depth.offset end
   end
 end
@@ -136,8 +138,7 @@ end
 function lib.Shader(src) 
   local trace = lk.split(debug.traceback(),'\n\t')[3]
   local file, last_line = string.match(trace, '^([^:]+):([^:]+):')
-  local src_line_count = #lk.split(src, '\n')
-  
+  local src_line_count = #lk.split(src, '\n')  
   return { file = file, line = last_line - src_line_count, fragment = src }
 end
 
@@ -152,6 +153,7 @@ lib.WORLD_TO_CAMERA = { special_uniform = true }
 lib.CAMERA_TO_CLIP = { special_uniform = true } 
 lib.CAMERA_RESOLUTION = { special_uniform = true } 
 lib.RENDER_FRAME_START_TIME = { special_uniform = true }
+
 
 -- h2. Effect shaders
 

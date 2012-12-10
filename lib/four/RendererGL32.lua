@@ -332,6 +332,7 @@ end
 
 function lib:initGlState()  
   lo.glFrontFace(lo.GL_CCW)
+  lo.glDisable(lo.GL_CULL_FACE)
 
   -- TODO move that to blend state
   lo.glBlendEquation(lo.GL_FUNC_ADD)
@@ -655,13 +656,17 @@ function lib:setupRasterizationState(r)
     lo.glDisable(lo.GL_CULL_FACE)
   else 
     lo.glEnable(lo.GL_CULL_FACE)
-    if r.cull_face == Effect.CULL_FRONT then lo.glCullFace(lo.GL_FRONT)
-    else lo.glCullFace(lo.GL_BACK) end
+    if r.cull_face == Effect.CULL_FRONT then 
+      lo.glCullFace(lo.GL_FRONT)
+    else 
+      lo.glCullFace(lo.GL_BACK) 
+    end
   end
 end
 
 function lib:setupDepthState(d)
-  if not d.enable then lo.glDisable(lo.GL_DEPTH_TEST) 
+  if not d.test then
+    lo.glDisable(lo.GL_DEPTH_TEST) 
   else 
     lo.glEnable(lo.GL_DEPTH_TEST)
     lo.glDepthFunc(depthFuncGLenum[d.func])
@@ -672,6 +677,9 @@ function lib:setupDepthState(d)
       lo.glPolygonOffset(d.offset.factor, d.offset.units)
     end
   end
+
+  if d.write then lo.glDepthMask(lo.GL_TRUE) 
+  else lo.glDepthMask(lo.GL_FALSE) end
 end
 
 function lib:setupEffect(effect, estate, current_program)
@@ -706,6 +714,7 @@ function lib:clearFramebuffer(cam)
   end
 
   if depth then
+    print("CLEAR")
     lo.glClearDepth(depth)
     cbits = cbits + lo.GL_DEPTH_BUFFER_BIT
   end
