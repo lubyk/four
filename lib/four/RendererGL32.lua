@@ -682,13 +682,13 @@ function lib:setupDepthState(d)
   else lo.glDepthMask(lo.GL_FALSE) end
 end
 
-function lib:setupEffect(effect, estate, current_program)
+function lib:setupEffect(effect, estate)
   local program = estate.program.id
   if program == -1 then return false end
-  if program ~= current_program then lo.glUseProgram(program) end
 
   -- FIXME if all these GL calls are too expensive track current state in 
   -- the renderer.
+  lo.glUseProgram(program)
   self:setupRasterizationState(effect.rasterization)
   self:setupDepthState(effect.depth)
   return true
@@ -714,7 +714,6 @@ function lib:clearFramebuffer(cam)
   end
 
   if depth then
-    print("CLEAR")
     lo.glClearDepth(depth)
     cbits = cbits + lo.GL_DEPTH_BUFFER_BIT
   end
@@ -762,9 +761,10 @@ function lib:renderQueueAdd(cam, o)
     if e.type and e.type == 'four.Effect' then 
       local estate = self:effectStateAllocate(e) 
       pass = pass + 1
-      self.queue[pass] = self.queue[pass] or {} 
-      self.queue[pass][e] = self.queue[pass][e] or {}
-      table.insert(self.queue[pass][e], o)
+      self.queue[pass] = self.queue[pass] or { opak = {}, nopak = {} } 
+      local q = e.opaque and self.queue[pass].opak or self.queue[pass].nopak 
+      q[e] = q[e] or {} 
+      table.insert(q[e], o)
     else
       for _, ep in ipairs(e) do addPasses(ep) end
     end
@@ -775,27 +775,28 @@ function lib:renderQueueAdd(cam, o)
   addPasses(effect)
 end
 
+function lib:renderBatch(effect, batch) 
+  local estate = self.effects[effect] 
+  if self:setupEffect(effect, estate) then
+    for _, o in ipairs(batch) do
+      self:effectBindUniforms(effect, estate, cam, o)
+      local gstate = self.geometries[o.geometry]
+      self:geometryStateBind(gstate, estate)
+      lo.glDrawElements(gstate.primitive, gstate.index_length, 
+                        gstate.index_scalar_type, nil)
+      lo.glBindVertexArray(0)
+    end
+  end
+end
+
+
 function lib:renderQueueFlush(cam)
   self:setupCameraParameters(cam)
   self:clearFramebuffer(cam)
-  local current_program = -1
   for _, pass in ipairs(self.queue) do 
-    for effect, batch in pairs(pass) do
-      local estate = self.effects[effect] 
-      if self:setupEffect(effect, estate, current_program) then  
-        current_program = estate.program.id
-        for _, o in ipairs(batch) do
-          self:effectBindUniforms(effect, estate, cam, o)
-          local gstate = self.geometries[o.geometry]
-          self:geometryStateBind(gstate, estate)
-          lo.glDrawElements(gstate.primitive, gstate.index_length, 
-                            gstate.index_scalar_type, nil)
-          lo.glBindVertexArray(0)
-        end
-      end
-    end
+    for e, batch in pairs(pass.opak) do self:renderBatch(e, batch) end
+    for e, batch in pairs(pass.nopak) do self:renderBatch(e, batch) end
   end
-
   self.queue = {}
   if self.super.debug then self:logGlError() end
 end

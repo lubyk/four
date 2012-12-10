@@ -82,7 +82,6 @@ lib.DEPTH_FUNC_ALWAYS = 8
 
 --[[-- 
   @Effect(def)@ is a new effect object. @def@ keys:
-  * @version@, the GLSL version string (defaults to @"150"@).
   * @default_uniforms@, key/value table, defining default values for uniforms.
   * @uniform@, uniform lookup function invoked before rendering a renderable.
     defaults to @function(cam, renderable, name) = return renderable[name]@. 
@@ -93,6 +92,8 @@ lib.DEPTH_FUNC_ALWAYS = 8
   * @depth@, depth state keys to override the defaults (see Depth state).
   * @rasterization@, rasterization state keys to override the defaults 
     (see Rasterization state).
+  * @opaque@, defines whether the effect is opaque. Renderables with 
+    opaque effects are rendered before non-opaque ones.
 --]]--
 function lib.new(def)
   local self = 
@@ -104,6 +105,7 @@ function lib.new(def)
           fragment = lib.Shader [[void main() {}]]},
       program_changed = true, -- The renderer sets this to false once it got 
                               -- the new program.
+      opaque = true,
       rasterization = lib.defaultRasterization(),
       depth = lib.defaultDepth() }
   setmetatable(self, lib)
@@ -130,6 +132,7 @@ function lib:set(def)
     if def.depth.write ~= nil then self.depth.write = def.depth.write end
     if def.depth.offset ~= nil then self.depth.offset = def.depth.offset end
   end
+  if def.opaque ~= nil then self.opaque = def.opaque end
 end
 
 
@@ -191,9 +194,10 @@ function lib.Wireframe(def)
   
   return Effect
   {
-    rasterization = def and def.rasterization or {},
-    depth = def and def.depth or {},
-    
+    rasterization = def and def.rasterization,
+    depth = def and def.depth,
+    opaque = def and def.opaque,
+
     default_uniforms = 
       { model_to_clip = Effect.MODEL_TO_CLIP,
         resolution = Effect.CAMERA_RESOLUTION,
@@ -275,8 +279,9 @@ end
 function lib.Normals(def)
 return Effect
 {
-  rasterization = def and def.rasterization or {},
-  depth = def and def.depth or {},
+  rasterization = def and def.rasterization,
+  depth = def and def.depth,
+  opaque = def and def.opaque,
 
   default_uniforms = 
     { model_to_cam = Effect.MODEL_TO_CAMERA,
