@@ -58,13 +58,13 @@ function lib.new(def)
 end
 
 function lib:set(def) 
-  if def.dim then self.dim = def.dim end
-  if def.scalar_type then self.scalar_type = def.scalar_type end  
-  if def.data then self.data = def.data end
-  if def.normalize then self.normalize = def.normalize end
-  if def.update then self.update = def.update end
-  if def.disposable then self.disposable = def.disposable end
-  if def.updated then self.updated = def.updated end
+  if def.dim ~= nil then self.dim = def.dim end
+  if def.scalar_type ~= nil then self.scalar_type = def.scalar_type end  
+  if def.data ~= nil then self.data = def.data end
+  if def.normalize ~= nil then self.normalize = def.normalize end
+  if def.update ~= nil then self.update = def.update end
+  if def.disposable ~= nil then self.disposable = def.disposable end
+  if def.updated ~= nil then self.updated = def.updated end
 end
 
 function lib:length() return (#self.data / self.dim) end

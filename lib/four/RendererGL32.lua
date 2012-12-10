@@ -661,7 +661,8 @@ function lib:setupRasterizationState(r)
 end
 
 function lib:setupDepthState(d)
-  if not d.enable then lo.glDisable(lo.GL_DEPTH_TEST) else 
+  if not d.enable then lo.glDisable(lo.GL_DEPTH_TEST) 
+  else 
     lo.glEnable(lo.GL_DEPTH_TEST)
     lo.glDepthFunc(depthFuncGLenum[d.func])
     if d.offset.factor == 0 and d.offset.units == 0 then 

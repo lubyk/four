@@ -97,16 +97,16 @@ end
 
 function lib:set(def)
   local tv = self.tv 
-  if def.pos then tv.dirty_matrix = true tv.pos = def.pos end
-  if def.rot then tv.dirty_matrix = true tv.rot = def.rot end
-  if def.scale  then tv.dirty_matrix = true tv.scale = def.scale end
-  if def.matrix then 
+  if def.pos ~= nil then tv.dirty_matrix = true tv.pos = def.pos end
+  if def.rot ~= nil then tv.dirty_matrix = true tv.rot = def.rot end
+  if def.scale ~= nil then tv.dirty_matrix = true tv.scale = def.scale end
+  if def.matrix ~= nil then 
     if tv.dirty_matrix then error(err_ambig) else
       tv.dirty_decomp = true 
       tv.matrix = def.matrix
     end
   end
-  if def.deps then self.deps = def.deps end    
+  if def.deps ~= nil then self.deps = def.deps end    
 end
 
 function lib:insertDep(d) table.insert(self.tv.tdeps, dep) end

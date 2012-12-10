@@ -111,20 +111,22 @@ function lib.new(def)
 end
 
 function lib:set(def) 
-  if def.default_uniforms then self.default_uniforms = def.default_uniforms end
-  if def.uniform then self.uniform = def.uniform end
-  if def.vertex then self.vertex = def.vertex end
-  if def.geometry then self.geometry = def.geometry end
-  if def.fragment then self.fragment = def.fragment end
-  if def.rasterization then 
-    if def.rasterization.cull_face then 
+  if def.default_uniforms ~= nil then 
+    self.default_uniforms = def.default_uniforms 
+  end
+  if def.uniform ~= nil then self.uniform = def.uniform end
+  if def.vertex ~= nil then self.vertex = def.vertex end
+  if def.geometry ~= nil then self.geometry = def.geometry end
+  if def.fragment ~= nil then self.fragment = def.fragment end
+  if def.rasterization ~= nil then 
+    if def.rasterization.cull_face ~= nil then 
       self.rasterization.cull_face = def.rasterization.cull_face 
     end
   end
-  if def.depth then 
-    if def.depth.enable then self.depth.enable = def.depth.enable end
-    if def.depth.func then self.depth.func = def.depth.func end
-    if def.depth.offset then self.depth.offset = def.depth.offset end
+  if def.depth ~= nil then 
+    if def.depth.enable ~= nil then self.depth.enable = def.depth.enable end
+    if def.depth.func ~= nil then self.depth.func = def.depth.func end
+    if def.depth.offset ~= nil then self.depth.offset = def.depth.offset end
   end
 end
 

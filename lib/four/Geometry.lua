@@ -65,13 +65,13 @@ function lib.new(def)
 end
 
 function lib:set(def)
-  if def.primitive then self.primitive = def.primitive end
-  if def.data then self.data = def.data end  
-  if def.index then self.index = def.index
+  if def.primitive ~= nil then self.primitive = def.primitive end
+  if def.data ~= nil then self.data = def.data end  
+  if def.index ~= nil then self.index = def.index
   else error ("index is a required Geometry initialization key") end
-  if def.pre_transform then self.pre_transform = def.pre_transform end
-  if def.immutable then self.immutable = def.immutable end
-  if def.name then self.name = def.name end
+  if def.pre_transform ~= nil then self.pre_transform = def.pre_transform end
+  if def.immutable ~= nil then self.immutable = def.immutable end
+  if def.name ~= nil then self.name = def.name end
 end
 
 -- h2. Geometry operations

@@ -122,24 +122,26 @@ function lib.new(def)
 end
 
 function lib:set(def) 
-  if def.transform then self.transform = def.transform end
-  if def.projection then self.projection = def.projection end
-  if def.range then self.range = def.range end
-  if def.fov then self.fov = def.fov end
-  if def.aspect then self.aspect = def.aspect end
-  if def.projection_matrix then 
+  if def.transform ~= nil then self.transform = def.transform end
+  if def.projection ~= nil then self.projection = def.projection end
+  if def.range ~= nil then self.range = def.range end
+  if def.fov ~= nil then self.fov = def.fov end
+  if def.aspect ~= nil then self.aspect = def.aspect end
+  if def.projection_matrix ~= nil then 
     self.projection_matrix = def.projection_matrix 
   end
-  if def.background then 
-    if def.background.color then 
+  if def.background ~= nil then 
+    if def.background.color ~= nil then 
       self.background.color = def.background.color 
     end
-    if def.background.depth then 
+    if def.background.depth ~= nil then 
       self.background.depth = def.background.depth 
     end
   end
-  if def.viewport then self.viewport = def.viewport end
-  if def.effect_override then self.effect_override = def.effect_override end
+  if def.viewport ~= nil then self.viewport = def.viewport end
+  if def.effect_override ~= nil then 
+    self.effect_override = def.effect_override 
+  end
 end
 
 --[[--
