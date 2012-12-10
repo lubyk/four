@@ -4,8 +4,7 @@ require 'lubyk'
 local Demo = require 'demo'
 local Manip = require 'manip'
 local Gooch = require 'gooch'
-local Dtri = require 'dtri'
-local Utils = require 'utils'
+local Geokit = require 'geokit'
 
 local V2 = four.V2
 local V3 = four.V3
@@ -17,36 +16,30 @@ local Effect = four.Effect
 local Camera = four.Camera
 local Color = four.Color
 
-local effects = 
-  { Effect.Wireframe,
-    Effect.Normals, 
-    Gooch.effect }  
-
-local nextEffect = Demo.effectCycler { effects = effects } 
-
 -- World
 
-function cmpx(v0, v1)
-  if V3.x(v0) < V3.x(v1) then return -1 
-  elseif V3.x(v0) > V3.x(v1) then return 1 
-  else return 0 end
-end
+local rseed = os.time()
+math.randomseed(rseed)
 
 function tris () 
-  local vs = Utils.randomCuboidSamples(1000, V3(-1.5, -1, 0), V3(1.5, 1, 0))
+  local vs = Geokit.sampleCuboid(1000, V3(-1.5, -1, 0), V3(1.5, 1, 0))
   vs:push3D(-1.5,  1, 0)
   vs:push3D(-1.5, -1, 0)
   vs:push3D( 1.5, -1, 0)
   vs:push3D( 1.5,  1, 0)
-  local is = Dtri.angulation(vs, nil, true)
+  local is = Geokit.triangulation(vs)
   return Geometry { primitive = Geometry.TRIANGLES, 
                     data = { vertex = vs }, index = is }
 end
   
-geometries = { function () return tris () end }
-
+local geometries = { function () return tris () end }
 local nextGeometry = Demo.geometryCycler { normals = true,
                                            geometries = geometries }
+
+-- Render
+
+local effects = { Effect.Wireframe, Effect.Normals, Gooch.effect }  
+local nextEffect = Demo.effectCycler { effects = effects } 
 
 local obj = 
   { transform = Transform (),
@@ -61,7 +54,8 @@ local camera = Camera
 -- Interaction
 
 function command(app, c)
-  if c.ExitFullscreen then app.win:showFullScreen(false)
+  if false then
+  elseif c.ExitFullscreen then app.win:showFullScreen(false)
   elseif c.ToggleFullscreen then app.win:swapFullScreen()
   elseif c.Resize then camera.aspect = V2.x(app.size) / V2.y(app.size)
   elseif c.CycleGeometry then obj.geometry = nextGeometry()
@@ -106,6 +100,7 @@ end
 -- Application
 
 local app = Demo.App { event = event, camera = camera, objs = { obj } }
-math.randomseed(os.time())
 app.init()
+
+print(string.format("Random seed = %d", rseed))
 run ()
