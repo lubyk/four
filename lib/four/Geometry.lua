@@ -274,12 +274,14 @@ function Plane(extents, segs)
   local x0 = -0.5 * w
   local y0 = -0.5 * h
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
+  local uv = Buffer { dim = 2, scalar_type = Buffer.FLOAT }
   local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
 
   -- Vertices
   for y = 0, yseg do 
     for x = 0, xseg do
       vs:push3D(x0 + x * dx, y0 + y * dy, 0) 
+      uv:push2D(x / xseg, y / yseg)
     end
   end
   
@@ -293,6 +295,6 @@ function Plane(extents, segs)
   end
   
   return lib.new { name = "four.plane", primitive = lib.TRIANGLES,
-                   data = { vertex = vs }, index = is, 
+                   data = { vertex = vs, uv = uv }, index = is, 
                    extents = extents } 
 end
