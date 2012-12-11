@@ -193,8 +193,8 @@ end
 
   Effect adapted from http://cgg-journal.com/2008-2/06/index.html.
 --]]--
+-- TODO use discard ? 
 function lib.Wireframe(def)
-  
   return Effect
   {
     rasterization = def and def.rasterization,
@@ -209,14 +209,14 @@ function lib.Wireframe(def)
         wire_width = def and def.wire_width or 1.0,
         wire_only = def and def.wire_only or false },
       
-    vertex = Effect.Shader [[
+    vertex = def and def.vertex or Effect.Shader [[
       uniform mat4 model_to_clip;
       in vec4 vertex;
       out vec4 v_vertex;
       void main() { gl_Position = model_to_clip * vertex; }
     ]],  
 
-    geometry = Effect.Shader [[
+    geometry = def and def.geometry or Effect.Shader [[
       uniform vec2 resolution;
       layout(triangles) in;
       layout(triangle_strip, max_vertices=3) out;
@@ -248,7 +248,7 @@ function lib.Wireframe(def)
       }
     ]],
 
-    fragment = Effect.Shader [[
+    fragment = def and def.fragment or Effect.Shader [[
       uniform bool wire_only;
       uniform float wire_width;
       uniform vec4 wire_color;
@@ -294,7 +294,7 @@ return Effect
       normal_color_start = def and def.normal_color_start or Color.black(),
       normal_color_end = def and def.normal_color_end or Color.white() },
     
-  vertex = Effect.Shader [[
+  vertex = def and def.vertex or Effect.Shader [[
     uniform mat4 model_to_cam; 
     uniform mat3 normal_to_cam; 
     uniform float normal_scale;
@@ -310,7 +310,7 @@ return Effect
     }
   ]],  
   
-  geometry = Effect.Shader [[
+  geometry = def and def.geometry or Effect.Shader [[
     uniform mat4 cam_to_clip;
     uniform vec4 normal_color_start; 
     uniform vec4 normal_color_end; 
@@ -339,7 +339,7 @@ return Effect
     }
   ]],
   
-  fragment = Effect.Shader [[
+  fragment = def and def.fragment or Effect.Shader [[
     in vec4 g_color;
     out vec4 f_color;
     void main(void) { f_color = g_color; }

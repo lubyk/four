@@ -265,7 +265,7 @@ end
   height @h@ centered on the origin. The plane is divided in @xseg@
   segments along the x-axis and @yseg@ along the y-axis (both default to @1@). 
 --]]--                                                                
-function Plane(extents, segs)
+function lib.Plane(extents, segs)
   local segs = segs or V2(1,1)
   local w, h = V2.tuple(extents)
   local xseg, yseg = V2.tuple(segs)
