@@ -261,27 +261,38 @@ end
 
 
 --[[--
-  @Plane(w, h)@ or @Plane(V2(w, h))@ is an Oxy plane of width @w@ and 
-  height @h@ centered on the origin. 
+  @Plane(V2(w, h) [, V2(xseg, yseg))@ is an Oxy plane of width @w@ and 
+  height @h@ centered on the origin. The plane is divided in @xseg@
+  segments along the x-axis and @yseg@ along the y-axis (both default to @1@). 
 --]]--                                                                
-function lib.Plane(w, h)
-  local extents = w 
-  if h then extents = V2(w, h) end
-  local hw, hh = V2.tuple(V2.half(extents))
+function Plane(extents, segs)
+  local segs = segs or V2(1,1)
+  local w, h = V2.tuple(extents)
+  local xseg, yseg = V2.tuple(segs)
+  local dx = w / xseg
+  local dy = h / yseg
+  local x0 = -0.5 * w
+  local y0 = -0.5 * h
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
 
-  vs:push3D(-hw, -hh, 0)
-  vs:push3D(hw, -hh, 0)
-  vs:push3D(hw, hh, 0)
-  vs:push3D(-hw, hh, 0)
-  is:push3D(0, 1, 2)
-  is:push3D(0, 2, 3)
-
-
-  return lib.new({ name = "four.plane", primitive = lib.TRIANGLES,
+  -- Vertices
+  for y = 0, yseg do 
+    for x = 0, xseg do
+      vs:push3D(x0 + x * dx, y0 + y * dy, 0) 
+    end
+  end
+  
+  -- Index (zero-based)
+  local function vindex(x, y) return y * (xseg + 1) + x end
+  for y = 0, yseg - 1 do 
+    for x = 0, xseg - 1 do 
+      is:push3D(vindex(x, y), vindex(x + 1, y), vindex(x + 1, y + 1))
+      is:push3D(vindex(x, y), vindex(x + 1, y + 1), vindex(x, y + 1))
+    end
+  end
+  
+  return lib.new { name = "four.plane", primitive = lib.TRIANGLES,
                    data = { vertex = vs }, index = is, 
-                   extents = extents })
+                   extents = extents } 
 end
-
-

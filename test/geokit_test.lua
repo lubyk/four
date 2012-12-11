@@ -12,7 +12,7 @@ function should.planeHDS()
   -- N.B. these assertions depend on the index given by Plane and 
   -- the way hdsFromTriangles operates. 
 
-  local p = Geometry.Plane(1,2)
+  local p = Geometry.Plane(V2(1,2))
   local hds = Geokit.hdsFromTriangles(p.index)
   assertEqual(hds.vertex[1], 1)  
   assertEqual(hds.vertex[2], 2)
@@ -54,7 +54,7 @@ function should.planeHDS()
 end
 
 function should.planeTrianglesAdjacency()
-  local p = Geometry.Plane(1,2)
+  local p = Geometry.Plane(V2(1,2))
   local hds = Geokit.hdsFromTriangles(p.index)
   local i = Geokit.trianglesHdsToAdjacencyIndex(hds)
 
