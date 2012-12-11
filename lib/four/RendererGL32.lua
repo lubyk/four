@@ -385,7 +385,6 @@ function lib:bufferStateAllocate(b, update)
   -- TODO if we don't change size use glSubBufferData
   lo.glBufferData(lo.GL_ARRAY_BUFFER, bytes, data, 
                   bufferUsageHintType[b.update])
-  assert(lo.glGetError () == lo.GL_NO_ERROR)
   b.updated = false
   return state
 end
@@ -687,7 +686,7 @@ function lib:setupEffect(effect, estate)
   if program == -1 then return false end
 
   -- FIXME if all these GL calls are too expensive track current state in 
-  -- the renderer.
+  -- the renderer. Same goes for setupXXState()
   lo.glUseProgram(program)
   self:setupRasterizationState(effect.rasterization)
   self:setupDepthState(effect.depth)

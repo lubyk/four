@@ -164,16 +164,19 @@ local function makeSource(preamble, src)
   local frags = src.fragment and { src } or src
   local src = { preamble }
   local files = {}
-  for i, f in ipairs(frags) do 
+  for i, f in ipairs(frags) do
     src[i + 1] = string.format("#line %d %d\n%s", f.line, i, f.fragment)
     files[i] = f.file
+  end
+  if #files == 0 then -- TODO can we do something better here ? 
+    error ("A shader source contains no fragments or a nil")
   end
   return { src = table.concat(src,"\n"), files = files }
 end
 
 function lib:vertexShaderSource(pre) return makeSource(pre, self.vertex) end
 function lib:fragmentShaderSource(pre) return makeSource(pre, self.fragment) end
-function lib:geometryShaderSource(pre) 
+function lib:geometryShaderSource(pre)
   return self.geometry and makeSource(pre, self.geometry) or nil
 end
 
