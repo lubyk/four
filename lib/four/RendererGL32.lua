@@ -621,14 +621,16 @@ function lib:effectBindUniforms(effect, estate, cam, o)
     local v = effect.uniform(cam, o, u)
     if v == nil then v = effect.default_uniforms[u] end
     
-    -- TODO do we do type checks here 
+    -- TODO do we do type checks here ?
+    -- TODO better error if arbitrary objects is passed.
     local vt = type(v)
     if vt == "boolean" then v = { v and 1 or 0 } 
     elseif vt == "number" then v = { v } 
     elseif vt == "table" then 
-      if v.special_uniform then v = self:getSpecialUniform(v, m2w) end
+      if v.special_uniform then v = self:getSpecialUniform(v, m2w)
+      elseif v.type == 'four.Transform' then v = v.matrix end
     end
-    
+
     if not v then 
       self:log(string.format("No value found for uniform: %s %s", info.glsl, u))
     elseif uspec.size ~= 1 then
