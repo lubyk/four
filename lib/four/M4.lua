@@ -278,7 +278,7 @@ end
 -- `rigid(d, axis, theta)` is the rigid body transformation of 3D space
 -- that rotates by `axis`,`angle` and then translate by `d`
 function lib.rigid(d, axis, theta) 
-  local r = lib.rot_axis3D(axis, theta)
+  local r = lib.rotAxis(axis, theta)
   r[13] = d[1]; -- set translation in col 4
   r[14] = d[2]; 
   r[15] = d[3];

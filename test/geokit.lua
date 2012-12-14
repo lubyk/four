@@ -1,5 +1,6 @@
 --[[--
   A few useful geometrical tools.
+  * Find the circumcenter of 3 points in 3D
   * Delaunay triangulation
   * Half-edge data structure 
   * Triangulation adjacency computation.
@@ -21,6 +22,22 @@ local Geometry = four.Geometry
 --]]--
 
 local TRI_EPS = 1e-5
+
+--[[--
+  @circumcenter(p, q, r) returns the center of the 3D triangle
+  defined by the V3 @p@, @q@ and @r@.
+--]]--
+function lib.circumcenter(p, q, r) -- in 3D
+  -- See Geometric Data Structures for Computer Graphics, 
+  -- E. Langetepe, G. Zachman pp. 259.
+  local pMr = p - r
+  local qMr = q - r
+  local pMrlen2 = V3.norm2(pMr)
+  local qMrlen2 = V3.norm2(qMr)
+  local pMrXqMr = V3.cross(pMr, qMr) 
+  local f = 1 / (2 * V3.norm2(pMrXqMr))
+  return r + f * V3.cross(pMrlen2 * qMr - qMrlen2 * pMr, pMrXqMr)
+end
 
 --[[--
   @inCircumCircle(px, py, x1, y1, x2, y2, x3, y3)@ is @(inside, right)@ where
@@ -296,6 +313,7 @@ function lib.trianglesAdjacencyIndex(tris, is)
   local hds = lib.hdsFromTriangles(tris)
   lib.trianglesHdsToAdjacencyIndex(hds, is)
 end
+
 
 -- h2. Volume sampling
 
