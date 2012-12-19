@@ -339,10 +339,10 @@ function lib:initGlState()
   lo.glFrontFace(lo.GL_CCW)
   lo.glDisable(lo.GL_CULL_FACE)
 
-  -- TODO move that to blend state
+  -- TODO move that to blend state or NOT
+  lo.glEnable(lo.GL_BLEND)
   lo.glBlendEquation(lo.GL_FUNC_ADD)
   lo.glBlendFunc(lo.GL_SRC_ALPHA, lo.GL_ONE_MINUS_SRC_ALPHA)
-  lo.glEnable(lo.GL_BLEND)
 end
 
 function lib:getGlLimits()
@@ -736,7 +736,7 @@ function lib:clearFramebuffer(cam)
   local cbits = 0 
   local color = cam.background.color 
   local depth = cam.background.depth
-  local stencil = cam.background.sentil 
+  local stencil = cam.background.stencil 
 
   if color then 
     local r, g, b, a = V4.tuple(color)
@@ -746,6 +746,7 @@ function lib:clearFramebuffer(cam)
 
   if depth then
     lo.glClearDepth(depth)
+    lo.glDepthMask(lo.GL_TRUE) -- if set to lo.GL_FALSE, clearing has no effect.
     cbits = cbits + lo.GL_DEPTH_BUFFER_BIT
   end
 

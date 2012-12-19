@@ -35,11 +35,11 @@ setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
 -- h2. Render states
 
 --[[--
-h3. Rasterization state
+  h3. Rasterization state
 
-*Note*. Faces with a counter clock-wise orientation are front faces.
+  *Note*. Faces with a counter clock-wise orientation are front faces.
 
-Rasterization state is described by a table with the following keys:
+  Rasterization state is described by a table with the following keys:
   * @face_cull@, faces to cull (defaults to @CULL_NONE@).
 --]]--
 
@@ -52,20 +52,20 @@ lib.CULL_FRONT = 2
 lib.CULL_BACK = 3
 
 --[[--
-h3. Depth state
+  h3. Depth state
 
-*Note.* Depth clearing and depth range are specified by the Camera object.
+  *Note.* Depth clearing and depth range are specified by the Camera object.
 
-Depth state is described by a table with the following keys:
+  Depth state is described by a table with the following keys:
   * @test@, @true@ if z-test should be performed (defaults to @true@)
-  * @func@, comparison function (defaults to @DEPTH_FUNC_LESS@)
+  * @func@, comparison function (defaults to @DEPTH_FUNC_LEQUAL@)
   * @write@, @true@ if z buffer should be written to (default to @true@)
   * @offset@, depth offset (defaults to @{ factor = 0, units = 0 }@), 
     see doc of glPolygonOffset.
 --]]--
 
 function lib.defaultDepth() 
-  return { test = true, func = lib.DEPTH_FUNC_LESS, write = true,
+  return { test = true, func = lib.DEPTH_FUNC_LEQUAL, write = true,
            offset = { factor = 0, units = 0 } }
 end
 

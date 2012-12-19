@@ -41,9 +41,10 @@ lib.UPDATE_OFTEN = 3
   * @normalize@, @true@ if the data should be normalized by the gpu (defaults
     to @false@).
   * @update@, the update frequency (defaults to @UPDATE_NEVER@)
-  * @disposable@, if @true@, @data@ may be disposed by the renderer.
+  * @disposable@, if @true@, @data@ may be disposed by the renderer (defaults 
+    to @true@).
   * @updated@, if @true@, @data@ will be read again by the renderer. The
-    renderer sets the flag to @false@ once he read the data.
+    renderer sets the flag back to @false@ once it read the data.
 --]]--
 function lib.new(def)
   local self = 
