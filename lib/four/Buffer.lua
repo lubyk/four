@@ -21,6 +21,8 @@ lib.FLOAT = 1
 lib.DOUBLE = 2
 lib.INT = 3
 lib.UNSIGNED_INT = 4
+lib.BYTE = 5
+lib.UNSIGNED_BYTE = 6
 
 --[[--
   h2. Buffer usage hints

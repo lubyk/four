@@ -51,13 +51,18 @@ local typeGLenum =
   { [Buffer.FLOAT] = lo.GL_FLOAT,
     [Buffer.DOUBLE] = lo.GL_DOUBLE,
     [Buffer.INT] = lo.GL_INT,
-    [Buffer.UNSIGNED_INT] = lo.GL_UNSIGNED_INT }
+    [Buffer.UNSIGNED_INT] = lo.GL_UNSIGNED_INT, 
+    [Buffer.BYTE] = lo.GL_BYTE, 
+    [Buffer.UNSIGNED_BYTE] = lo.GL_UNSIGNED_BYTE
+}
 
 local typeGLenumIsInt =
   { [lo.GL_FLOAT] = false,
     [lo.GL_DOUBLE] = false,
     [lo.GL_INT] = true,
-    [lo.GL_UNSIGNED_INT] = true }
+    [lo.GL_UNSIGNED_INT] = true,
+    [lo.GL_BYTE] = true,
+    [lo.GL_UNSIGNED_BYTE] = true }
 
 local modeGLenum =
   { [Geometry.POINTS] = lo.GL_POINTS,
@@ -357,7 +362,9 @@ local bufferSpecForScalarType =
 { [Buffer.FLOAT] = { byte_count = 4, ffi_spec = "GLfloat[?]" },
   [Buffer.DOUBLE] = { byte_count = 8, ffi_spec = "GLdouble[?]" },
   [Buffer.INT] = { byte_count = 4, ffi_spec = "GLint[?]" },
-  [Buffer.UNSIGNED_INT] = { byte_count = 4, ffi_spec = "GLint[?]" }}
+  [Buffer.UNSIGNED_INT] = { byte_count = 4, ffi_spec = "GLuint[?]" },
+  [Buffer.BYTE] = { byte_count = 1, ffi_spec = "GLbyte[?]" }, 
+  [Buffer.UNSIGNED_BYTE] = { byte_count = 1, ffi_spec = "GLubyte[?]" } }
 
 local bufferUsageHintType = 
 { [Buffer.UPDATE_NEVER] = lo.GL_STATIC_DRAW,
