@@ -153,6 +153,7 @@ lib.MODEL_TO_CAMERA = { special_uniform = true }
 lib.MODEL_TO_CLIP = { special_uniform = true } 
 lib.MODEL_NORMAL_TO_CAMERA = { special_uniform = true } 
 lib.WORLD_TO_CAMERA = { special_uniform = true } 
+lib.WORLD_TO_CLIP = { special_uniform = true } 
 lib.CAMERA_TO_CLIP = { special_uniform = true } 
 lib.CAMERA_RESOLUTION = { special_uniform = true } 
 lib.RENDER_FRAME_START_TIME = { special_uniform = true }

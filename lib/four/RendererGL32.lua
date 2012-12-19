@@ -592,6 +592,8 @@ function lib:getSpecialUniform(u, m2w)
     return self.camera_to_clip * self.world_to_camera * m2w
   elseif u == Effect.WORLD_TO_CAMERA then 
     return self.world_to_camera
+  elseif u == Effect.WORLD_TO_CLIP then
+    return self.camera_to_clip * self.world_to_camera
   elseif u == Effect.CAMERA_TO_CLIP then 
     return self.camera_to_clip
   elseif u == Effect.MODEL_NORMAL_TO_CAMERA then
