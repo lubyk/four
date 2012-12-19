@@ -524,12 +524,25 @@ function lib:setProgramInfo(pstate)
   for i = 0, u_count - 1, 1 do 
     lo.glGetActiveUniform(p, i, max_len, len, size, type, s)
     local name = ffi.string (s, len[0])
-    local type_info = uniformTypeInfo[type[0]]
-    if type_info.unsupported then 
+    local type = type[0]
+    local type_info = uniformTypeInfo[type]
+    local size = size[0]
+    if type_info == nil or type_info.unsupported then 
       self:log(string.format("Unsupported uniform type: %s", type_info.glsl))
     else
-      local loc = lo.glGetUniformLocation(p, name)
-      pstate.uniforms[name] = { loc = loc, type = type[0], size = size[0] }
+      if string.find(name, "%[%d%]") == nil then
+        local loc = lo.glGetUniformLocation(p, name)
+        pstate.uniforms[name] = { loc = loc, type = type, size = size }
+      else
+        -- Array of uniforms
+        local n, _ = string.gsub(name, "%[%d%]", "")
+        pstate.uniforms[n] = {} 
+        for i = 1,size do 
+          local aname = string.gsub(name, "%d", i - 1)
+          local loc = lo.glGetUniformLocation(p, aname)
+          pstate.uniforms[n][i] = { loc = loc, type = type, size = 1 }
+        end
+      end
     end
   end
 end
@@ -611,46 +624,54 @@ function lib:getSpecialUniform(u, m2w)
   return nil
 end
 
+function lib:effectBindUniform(effect, m2w, o, uspec, u, i)
+  local loc = uspec.loc
+  local info = uniformTypeInfo[uspec.type]
+  local v = effect.uniform(effect, cam, o, u)
+  if v == nil then v = effect.default_uniforms[u] end
+  if v and i then v = v[i] end -- TODO better error if v is not array.
+
+  -- TODO do we do type checks here ?
+  -- TODO better error if arbitrary objects is passed.
+  local vt = type(v)
+  if vt == "boolean" then v = { v and 1 or 0 } 
+  elseif vt == "number" then v = { v } 
+  elseif vt == "table" then 
+    if v.special_uniform then v = self:getSpecialUniform(v, m2w)
+    elseif v.type == 'four.Transform' then v = v.matrix end
+  end
+  
+  if not v then 
+    self:log(string.format("No value found for uniform: %s %s", info.glsl, 
+                           i and string.format("%s[%d]", u, i) or u))
+  else
+    if info.kind == vec_kind then 
+      if info.dim == 1 then info.bind(loc, v[1])
+      elseif info.dim == 2 then info.bind(loc, v[1], v[2])
+      elseif info.dim == 3 then info.bind(loc, v[1], v[2], v[3])
+      elseif info.dim == 4 then info.bind(loc, v[1], v[2], v[3], v[4])
+      end
+    elseif info.kind == mat_kind then 
+      local m = ffi.new("GLfloat [?]", info.dim, v) 
+      info.bind(loc, 1, lo.GL_FALSE, m)
+    elseif info.kind == samp_kind then 
+      -- TODO
+    end
+  end 
+end
+
 function lib:effectBindUniforms(effect, estate, cam, o)
   local m2w = o.transform and o.transform.matrix or M4.id ()
   if o.geometry.pre_transform then
     m2w = m2w * o.geometry.pre_transform 
   end
-  
-  for u, uspec in pairs(estate.program.uniforms) do 
-    local loc = uspec.loc
-    local info = uniformTypeInfo[uspec.type]
-    local v = effect.uniform(cam, o, u)
-    if v == nil then v = effect.default_uniforms[u] end
-    
-    -- TODO do we do type checks here ?
-    -- TODO better error if arbitrary objects is passed.
-    local vt = type(v)
-    if vt == "boolean" then v = { v and 1 or 0 } 
-    elseif vt == "number" then v = { v } 
-    elseif vt == "table" then 
-      if v.special_uniform then v = self:getSpecialUniform(v, m2w)
-      elseif v.type == 'four.Transform' then v = v.matrix end
-    end
 
-    if not v then 
-      self:log(string.format("No value found for uniform: %s %s", info.glsl, u))
-    elseif uspec.size ~= 1 then
-      self:log(string.format("Uniform arrays unsupported yet (%s)", u))
-    else
-      if info.kind == vec_kind then 
-        if info.dim == 1 then info.bind(loc, v[1])
-        elseif info.dim == 2 then info.bind(loc, v[1], v[2])
-        elseif info.dim == 3 then info.bind(loc, v[1], v[2], v[3])
-        elseif info.dim == 4 then info.bind(loc, v[1], v[2], v[3], v[4])
-        end
-      elseif info.kind == mat_kind then 
-        local m = ffi.new("GLfloat [?]", info.dim, v) 
-        info.bind(loc, 1, lo.GL_FALSE, m)
-      elseif info.kind == samp_kind then 
-        -- TODO
+  for u, uspec in pairs(estate.program.uniforms) do 
+    if uspec.loc then self:effectBindUniform(effect, m2w, o, uspec, u, nil) else
+      for i, uspec in ipairs(uspec) do
+        self:effectBindUniform(effect, m2w, o, uspec, u, i)
       end
-    end 
+    end
   end
 end
 

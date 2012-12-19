@@ -264,7 +264,7 @@ end
 --[[--
   @Plane(V2(w, h) [, V2(xseg, yseg))@ is an Oxy plane of width @w@ and 
   height @h@ centered on the origin. The plane is divided in @xseg@
-  segments along the x-axis and @yseg@ along the y-axis (both default to @1@). 
+  segments along the x-axis and @yseg@ along the y-axis (both default to @1@).  
 --]]--                                                                
 function lib.Plane(extents, segs)
   local segs = segs or V2(1,1)
@@ -275,14 +275,14 @@ function lib.Plane(extents, segs)
   local x0 = -0.5 * w
   local y0 = -0.5 * h
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
-  local uv = Buffer { dim = 2, scalar_type = Buffer.FLOAT }
+  local tex = Buffer { dim = 2, scalar_type = Buffer.FLOAT }
   local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
 
   -- Vertices
   for y = 0, yseg do 
     for x = 0, xseg do
       vs:push3D(x0 + x * dx, y0 + y * dy, 0) 
-      uv:push2D(x / xseg, y / yseg)
+      tex:push2D(x / xseg, y / yseg)
     end
   end
   
@@ -296,6 +296,6 @@ function lib.Plane(extents, segs)
   end
   
   return lib.new { name = "four.plane", primitive = lib.TRIANGLES,
-                   data = { vertex = vs, uv = uv }, index = is, 
+                   data = { vertex = vs, tex = tex }, index = is, 
                    extents = extents } 
 end

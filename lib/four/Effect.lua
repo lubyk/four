@@ -84,8 +84,9 @@ lib.DEPTH_FUNC_ALWAYS = 8
   @Effect(def)@ is a new effect object. @def@ keys:
   * @default_uniforms@, key/value table, defining default values for uniforms.
   * @uniform@, uniform lookup function invoked before rendering a renderable.
-    defaults to @function(cam, renderable, name) = return renderable[name]@. 
-    If the function returns @nil@, @default_uniforms@ is used.
+    defaults to @function(self, cam, renderable, name) = return 
+    renderable[name]@. If the function returns @nil@, @default_uniforms@ is 
+    used.
   * @vertex@, vertex shader source.
   * @geometry@, geometry shader source (optional).
   * @fragment@, fragment shader source.
@@ -98,7 +99,7 @@ lib.DEPTH_FUNC_ALWAYS = 8
 function lib.new(def)
   local self = 
     { default_uniforms = {},
-      uniform = function(cam, renderable, name) return renderable[name] end,
+      uniform = function(e, cam, renderable, name) return renderable[name] end,
       shaders = 
         { vertex = lib.Shader [[void main() {}]],
           geometry = nil, -- optional
