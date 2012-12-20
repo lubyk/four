@@ -18,6 +18,7 @@ local lo = four.gl.lo
 local Buffer = four.Buffer
 local Geometry = four.Geometry
 local Effect = four.Effect
+local Texture = four.Texture
 local V2 = four.V2
 local V4 = four.V4
 local M4 = four.M4
@@ -29,11 +30,13 @@ function lib.new(super)
   local self = 
     {  super = super,
        limits = { max_vertex_attribs = 0 },
-       buffers = {},    -- Weakly maps Buffers to their buffer object id
+       buffers = {},    -- Weakly maps Buffers to their gl buffer object id
        geometries = {}, -- Weakly maps Geometry object to gl geometry state
-       effects = {},    -- Weakly maps Effects to their shader program id
+       effects = {},    -- Weakly maps Effects to their gl shader program id
+       textures = {},   -- Weakly maps Textures to their gl texture object id
        programs = {}, -- Maps program sources to a weak reference of it program.
        queue = {},    -- Array of maps from effects to lists of renderables
+       next_active_texture = 0,
        world_to_camera = nil,
        camera_to_clip = nil,
        camera_viewport_origin = nil,
@@ -42,6 +45,7 @@ function lib.new(super)
     setmetatable(self.buffers, { __mode = "k"})
     setmetatable(self.geometries, { __mode = "k" })
     setmetatable(self.effects, { __mode = "k"})
+    setmetatable(self.textures, { __mode = "k"})
     setmetatable(self.programs, { __mode = "v"})
     setmetatable(self, lib)
     return self
@@ -86,6 +90,57 @@ local depthFuncGLenum =
     [Effect.DEPTH_FUNC_NOTEQUAL] = lo.GL_NOTEQUAL,
     [Effect.DEPTH_FUNC_GEQUAL] = lo.GL_GEQUAL,
     [Effect.DEPTH_FUNC_ALWAYS] = lo.GL_ALWAYS }
+
+local texTargetGLenum = 
+  { [Texture.TYPE_1D] = lo.GL_TEXTURE_1D,
+    [Texture.TYPE_2D] = lo.GL_TEXTURE_2D,
+    [Texture.TYPE_3D] = lo.GL_TEXTURE_3D }
+
+local texFilterGLenum = 
+  { [Texture.MIN_NEAREST] = lo.GL_NEAREST,
+    [Texture.MIN_LINEAR] = lo.GL_LINEAR,
+    [Texture.MIN_NEAREST_MIPMAP_NEAREST] = lo.GL_NEAREST_MIPMAP_NEAREST,
+    [Texture.MIN_LINEAR_MIPMAP_NEAREST] = lo.GL_LINEAR_MIPMAP_NEAREST,
+    [Texture.MIN_NEAREST_MIPMAP_LINEAR] = lo.GL_NEAREST_MIPMAP_LINEAR,
+    [Texture.MIN_LINEAR_MIPMAP_LINEAR] = lo.GL_LINEAR_MIPMAP_LINEAR,
+    [Texture.MAG_NEAREST] = lo.GL_NEAREST,
+    [Texture.MAG_LINEAR] = lo.GL_LINEAR }
+
+local texWrapGLenum = 
+  { [Texture.WRAP_CLAMP_TO_EDGE] = lo.GL_CLAMP_TO_EDGE,
+    [Texture.WRAP_REPEAT] = lo.GL_REPEAT }
+
+local texInternalFormatGLenum =
+  { [Texture.R_8UN] = lo.GL_R8,
+    [Texture.R_32F] = lo.GL_R32F,
+    [Texture.RG_8UN] = lo.GL_RG8,
+    [Texture.RG_32F] = lo.GL_RG32F,
+    [Texture.RGB_8UN] = lo.GL_RGB8,
+    [Texture.RGB_32F] = lo.GL_RGB32F,
+    [Texture.RGBA_8UN] = lo.GL_RGBA8,
+    [Texture.RGBA_32F] = lo.GL_RGBA32F,
+    [Texture.SRGB_8UN] = lo.GL_SRGB8_ALPHA8,
+    [Texture.SRGBA_8UN] = lo.GL_SRGB8,
+    [Texture.DEPTH_24UN] = lo.GL_DEPTH_COMPONENT24,
+    [Texture.DEPTH_STENCIL_24UN_8UN] = lo.GL_DEPTH24_STENCIL8,
+    [Texture.DEPTH_32F] = lo.GL_DEPTH_COMPONENT32F,
+    [Texture.DEPTH_STENCIL_32F_8UN] = lo.GL_DEPTH32F_STENCIL8 }
+
+local texFormatGLenum =
+  { [Texture.R_8UN] = lo.GL_RED,
+    [Texture.R_32F] = lo.GL_RED,
+    [Texture.RG_8UN] = lo.GL_RG,
+    [Texture.RG_32F] = lo.GL_RG,
+    [Texture.RGB_8UN] = lo.GL_RGB,
+    [Texture.RGB_32F] = lo.GL_RGB,
+    [Texture.RGBA_8UN] = lo.GL_RGBA,
+    [Texture.RGBA_32F] = lo.GL_RGBA,
+    [Texture.SRGB_8UN] = lo.GL_RGB,
+    [Texture.SRGBA_8UN] = lo.GL_RGBA,
+    [Texture.DEPTH_24UN] = lo.GL_DEPTH_COMPONENT,
+    [Texture.DEPTH_STENCIL_24UN_8UN] = lo.GL_DEPTH_STENCIL,
+    [Texture.DEPTH_32F] = lo.GL_DEPTH_COMPONENT,
+    [Texture.DEPTH_STENCIL_32F_8UN] = lo.GL_DEPTH_STENCIL }
 
 local vec_kind = 1
 local mat_kind = 2
@@ -171,21 +226,25 @@ local uniformTypeInfo = {
   [lo.GL_DOUBLE_MAT4x3] = 
     { kind = mat_kind, dim = 12, unsupported = true, glsl = "dmat4x3" },
   [lo.GL_SAMPLER_1D] = 
-    { kind = samp_kind, dim = 1, unsupported = true, glsl = "sampler1D" },
+    { kind = samp_kind, dim = 1, unsupported = false, glsl = "sampler1D" },
   [lo.GL_SAMPLER_2D] = 
-    { kind = samp_kind, dim = 2, unsupported = true, glsl = "sampler2D" },
+    { kind = samp_kind, dim = 2, unsupported = false, glsl = "sampler2D" },
   [lo.GL_SAMPLER_3D] = 
-    { kind = samp_kind, dim = 3, unsupported = true, glsl = "sampler3D" },
+    { kind = samp_kind, dim = 3, unsupported = false, glsl = "sampler3D" },
   [lo.GL_SAMPLER_CUBE] = 
     { kind = samp_kind, dim = 3, unsupported = true, glsl = "samplerCube" },
   [lo.GL_SAMPLER_1D_SHADOW] = 
-    { kind = samp_kind, dim = 1, unsupported = true, glsl = "sampler1DShadow" },
+    { kind = samp_kind, dim = 1, unsupported = true, 
+      glsl = "sampler1DShadow" },
   [lo.GL_SAMPLER_2D_SHADOW] = 
-    { kind = samp_kind, dim = 2, unsupported = true, glsl = "sampler2DShadow" },
+    { kind = samp_kind, dim = 2, unsupported = true, 
+      glsl = "sampler2DShadow" },
   [lo.GL_SAMPLER_1D_ARRAY] = 
-    { kind = samp_kind, dim = 1, unsupported = true, glsl = "sampler1DArray" },
+    { kind = samp_kind, dim = 1, unsupported = true, 
+      glsl = "sampler1DArray" },
   [lo.GL_SAMPLER_2D_ARRAY] = 
-    { kind = samp_kind, dim = 2, unsupported = true, glsl = "sampler2DArray" },
+    { kind = samp_kind, dim = 2, unsupported = true, 
+      glsl = "sampler2DArray" },
   [lo.GL_SAMPLER_1D_ARRAY_SHADOW] = 
     { kind = samp_kind, dim = 1, unsupported = true, 
       glsl = "sampler1DArrayShadow" },
@@ -444,6 +503,61 @@ function lib:geometryStateAllocate(g)
   self.geometries[g] = state
   return state
 end 
+
+function lib:textureStateAllocate(t)
+  local state = self.textures[t]
+  local updated = t.updated or t.data.updated 
+  if state and not updated then return state end
+  
+  local img
+  if state and t.data.updated then 
+    img = self:bufferStateAllocate(t.data, true)
+  end
+
+  if not state then
+    state = { id = gl.hi.glGenTexture() }
+    local function finalize () gl.hi.glDeleteTexture(state.id) end
+    state.finalizer = lk.Finalizer(finalize)
+    self.textures[t] = state
+    assert(t.data)
+    img = self:bufferStateAllocate(t.data, false)
+  end
+
+  lo.glPixelStorei(lo.GL_UNPACK_ALIGNMENT, 1)  
+  lo.glBindBuffer(lo.GL_PIXEL_UNPACK_BUFFER, img.id)
+  local target = texTargetGLenum[t.type] 
+  local w, h, d = four.V3.tuple(t.size)
+  lo.glBindTexture(target, state.id)
+  lo.glTexParameteri(target, lo.GL_TEXTURE_MAG_FILTER, 
+                     texFilterGLenum[t.mag_filter])
+  lo.glTexParameteri(target, lo.GL_TEXTURE_MIN_FILTER, 
+                     texFilterGLenum[t.min_filter])
+  if t.type == Texture.TYPE_1D then 
+    lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_S, texWrapGLenum[t.wrap_s])
+    lo.glTexImage1D(target, 0, texInternalFormatGLenum[t.internal_format],
+                    w, 0, texFormatGLenum[t.internal_format], 
+                    typeGLenum[t.data.scalar_type], nil)
+  elseif t.type == Texture.TYPE_2D then 
+    lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_S, texWrapGLenum[t.wrap_s])
+    lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_T, texWrapGLenum[t.wrap_t])
+    lo.glTexImage2D(target, 0, texInternalFormatGLenum[t.internal_format],
+                    w, h, 0, texFormatGLenum[t.internal_format], 
+                    typeGLenum[t.data.scalar_type], nil)
+  elseif t.type == Texture.TYPE_3D then 
+    lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_S, texWrapGLenum[t.wrap_s])
+    lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_T, texWrapGLenum[t.wrap_t])
+    lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_R, texWrapGLenum[t.wrap_r])
+    lo.glTexImage3D(target, 0, texInternalFormatGLenum[t.internal_format],
+                    w, h, d, 0, texFormatGLenum[t.internal_format], 
+                    typeGLenum[t.data.scalar_type], nil)
+  end
+  if (t.generate_mipmaps) then lo.glGenerateMipmap(target) end
+  lo.glBindTexture(target, 0)
+  lo.glBindBuffer(lo.GL_PIXEL_UNPACK_BUFFER, 0)
+  t.updated = false
+  return state
+end
+
   
 function lib:geometryStateBind(gstate, estate)
   lo.glBindVertexArray(gstate.vao)
@@ -662,7 +776,12 @@ function lib:effectBindUniform(effect, m2w, o, uspec, u, i)
       local m = ffi.new("GLfloat [?]", info.dim, v) 
       info.bind(loc, 1, lo.GL_FALSE, m)
     elseif info.kind == samp_kind then 
-      -- TODO
+      local t = self:textureStateAllocate(v)
+      lo.glActiveTexture(lo.GL_TEXTURE0 + self.next_active_texture)
+      local target = texTargetGLenum[v.type] 
+      lo.glBindTexture(target,t.id)
+      lo.glUniform1i(loc, self.next_active_texture)
+      self.next_active_texture = self.next_active_texture + 1
     end
   end 
 end
@@ -672,7 +791,8 @@ function lib:effectBindUniforms(effect, estate, cam, o)
   if o.geometry.pre_transform then
     m2w = m2w * o.geometry.pre_transform 
   end
-
+  
+  self.next_active_texture = 0
   for u, uspec in pairs(estate.program.uniforms) do 
     if uspec.loc then self:effectBindUniform(effect, m2w, o, uspec, u, nil) else
       for i, uspec in ipairs(uspec) do

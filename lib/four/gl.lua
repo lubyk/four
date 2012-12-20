@@ -89,7 +89,7 @@ end
 
 function hi.glGenBuffer()
   local id = ffi.new ("GLuint[1]", 0)
-  lo.glGenBuffers (1, id)
+  lo.glGenBuffers(1, id)
   return id[0]
 end
 
@@ -100,13 +100,24 @@ end
 
 function hi.glGenVertexArray()
   local id = ffi.new ("GLuint[1]", 0)
-  lo.glGenVertexArrays (1, id)
+  lo.glGenVertexArrays(1, id)
   return id[0]
 end
 
 function hi.glDeleteVertexArray(id)
   local idptr = ffi.new("GLuint[1]", id)
   lo.glDeleteVertexArrays(1, idptr)
+end
+
+function hi.glGenTexture()
+  local id = ffi.new("GLuint[1]", 0) 
+  lo.glGenTextures(1, id)
+  return id[0]
+end
+
+function hi.glDeleteTexture(id)
+  local idptr = ffi.new("GLuint[1]", id) 
+  lo.glDeleteTextures(1, idptr)
 end
 
 -- lo, raw bindings to OpenGL
