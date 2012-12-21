@@ -14,6 +14,7 @@ setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
 lib.TYPE_1D = 1
 lib.TYPE_2D = 2
 lib.TYPE_3D = 3
+lib.TYPE_BUFFER = 4
 -- TODO lib.TYPE_CUBE_MAP = 4 
 
 -- h2. Texture filtering
@@ -65,9 +66,12 @@ lib.DEPTH_STENCIL_32F_8UN = 14
   * @type@, the texture type (defaults to @TYPE_2D@). 
   * @size@, the dimensions of the texture as a V3 vector (width, height, depth).
     *Note* a 1D texture of width @w@ has a size @V3(w, 1, 1)@. 
+    *Note* Irrelevant for @TYPE_BUFFER@.
   * @internal_format@, the internal format (defaults to @RGBA8UI@).
-    Toghether with size implicetly defines the scalar length of data. 
-    Should be number of components * size.x * size.y * size.d.
+    Together with @size@ (if applicable) implicetly defines the scalar 
+    length of data. Should be number of components * size.x * size.y * size.d.
+    *Warning* for @TYPE_BUFFER@, 3 components formats need 
+    @GL_ARB_texture_buffer_object_rgb32@, but seems to work on OSX.
   * @wrap_s@, wrapping behaviour along @s@ dimension 
     (defaults to @WRAP_REPEAT@). 
   * @wrap_t@, wrapping behaviour along @t@ dimension (if applicable, 

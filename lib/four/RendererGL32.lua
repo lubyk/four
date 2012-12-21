@@ -94,7 +94,8 @@ local depthFuncGLenum =
 local texTargetGLenum = 
   { [Texture.TYPE_1D] = lo.GL_TEXTURE_1D,
     [Texture.TYPE_2D] = lo.GL_TEXTURE_2D,
-    [Texture.TYPE_3D] = lo.GL_TEXTURE_3D }
+    [Texture.TYPE_3D] = lo.GL_TEXTURE_3D,
+    [Texture.TYPE_BUFFER] = lo.GL_TEXTURE_BUFFER }
 
 local texFilterGLenum = 
   { [Texture.MIN_NEAREST] = lo.GL_NEAREST,
@@ -260,7 +261,7 @@ local uniformTypeInfo = {
     { kind = samp_kind, dim = 3, unsupported = true, 
       glsl = "samplerCubeShadow" },
   [lo.GL_SAMPLER_BUFFER] = 
-    { kind = samp_kind, dim = 1, unsupported = true, glsl = "samplerBuffer" },
+    { kind = samp_kind, dim = 1, unsupported = false, glsl = "samplerBuffer" },
   [lo.GL_SAMPLER_2D_RECT] = 
     { kind = samp_kind, dim = 2, unsupported = true, glsl = "sampler2DRect" },
   [lo.GL_SAMPLER_2D_RECT_SHADOW] = 
@@ -284,7 +285,7 @@ local uniformTypeInfo = {
    { kind = samp_kind, dim = 2, unsupported = true, 
      glsl = "isampler2DMSArray" },
   [lo.GL_INT_SAMPLER_BUFFER] = 
-    { kind = samp_kind, dim = 1, unsupported = true, glsl = "isamplerBuffer" },
+    { kind = samp_kind, dim = 1, unsupported = false, glsl = "isamplerBuffer" },
   [lo.GL_INT_SAMPLER_2D_RECT] = 
     { kind = samp_kind, dim = 2, unsupported = true, glsl = "isampler2DRect" },
   [lo.GL_UNSIGNED_INT_SAMPLER_1D] = 
@@ -305,7 +306,7 @@ local uniformTypeInfo = {
     { kind = samp_kind, dim = 2, unsupported = true, 
       glsl = "usampler2DMSArray" },
   [lo.GL_UNSIGNED_INT_SAMPLER_BUFFER] = 
-    { kind = samp_kind, dim = 1, unsupported = true, glsl = "usamplerBuffer" },
+    { kind = samp_kind, dim = 1, unsupported = false, glsl = "usamplerBuffer" },
   [lo.GL_UNSIGNED_INT_SAMPLER_2D_RECT] = 
     { kind = samp_kind, dim = 2, unsupported = true, glsl = "usampler2DRect" },
   [lo.GL_IMAGE_1D] = 
@@ -512,6 +513,10 @@ function lib:textureStateAllocate(t)
   local img
   if state and t.data.updated then 
     img = self:bufferStateAllocate(t.data, true)
+    if t.type == Texture.TYPE_BUFFER then 
+      -- No need to respecify the buffer
+      return state 
+    end
   end
 
   if not state then
@@ -528,30 +533,42 @@ function lib:textureStateAllocate(t)
   local target = texTargetGLenum[t.type] 
   local w, h, d = four.V3.tuple(t.size)
   lo.glBindTexture(target, state.id)
-  lo.glTexParameteri(target, lo.GL_TEXTURE_MAG_FILTER, 
-                     texFilterGLenum[t.mag_filter])
-  lo.glTexParameteri(target, lo.GL_TEXTURE_MIN_FILTER, 
-                     texFilterGLenum[t.min_filter])
   if t.type == Texture.TYPE_1D then 
+    lo.glTexParameteri(target, lo.GL_TEXTURE_MAG_FILTER, 
+                       texFilterGLenum[t.mag_filter])
+    lo.glTexParameteri(target, lo.GL_TEXTURE_MIN_FILTER, 
+                       texFilterGLenum[t.min_filter])
     lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_S, texWrapGLenum[t.wrap_s])
     lo.glTexImage1D(target, 0, texInternalFormatGLenum[t.internal_format],
                     w, 0, texFormatGLenum[t.internal_format], 
                     typeGLenum[t.data.scalar_type], nil)
+    if (t.generate_mipmaps) then lo.glGenerateMipmap(target) end
   elseif t.type == Texture.TYPE_2D then 
+    lo.glTexParameteri(target, lo.GL_TEXTURE_MAG_FILTER, 
+                       texFilterGLenum[t.mag_filter])
+    lo.glTexParameteri(target, lo.GL_TEXTURE_MIN_FILTER, 
+                       texFilterGLenum[t.min_filter])
     lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_S, texWrapGLenum[t.wrap_s])
     lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_T, texWrapGLenum[t.wrap_t])
     lo.glTexImage2D(target, 0, texInternalFormatGLenum[t.internal_format],
                     w, h, 0, texFormatGLenum[t.internal_format], 
                     typeGLenum[t.data.scalar_type], nil)
+    if (t.generate_mipmaps) then lo.glGenerateMipmap(target) end
   elseif t.type == Texture.TYPE_3D then 
+    lo.glTexParameteri(target, lo.GL_TEXTURE_MAG_FILTER, 
+                       texFilterGLenum[t.mag_filter])
+    lo.glTexParameteri(target, lo.GL_TEXTURE_MIN_FILTER, 
+                       texFilterGLenum[t.min_filter])
     lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_S, texWrapGLenum[t.wrap_s])
     lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_T, texWrapGLenum[t.wrap_t])
     lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_R, texWrapGLenum[t.wrap_r])
     lo.glTexImage3D(target, 0, texInternalFormatGLenum[t.internal_format],
                     w, h, d, 0, texFormatGLenum[t.internal_format], 
                     typeGLenum[t.data.scalar_type], nil)
+    if (t.generate_mipmaps) then lo.glGenerateMipmap(target) end
+  elseif t.type == Texture.TYPE_BUFFER then 
+    lo.glTexBuffer(target,texInternalFormatGLenum[t.internal_format], img.id)
   end
-  if (t.generate_mipmaps) then lo.glGenerateMipmap(target) end
   lo.glBindTexture(target, 0)
   lo.glBindBuffer(lo.GL_PIXEL_UNPACK_BUFFER, 0)
   t.updated = false

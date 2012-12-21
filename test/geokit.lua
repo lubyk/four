@@ -311,7 +311,7 @@ end
 -- TODO do it directly.
 function lib.trianglesAdjacencyIndex(tris, is) 
   local hds = lib.hdsFromTriangles(tris)
-  lib.trianglesHdsToAdjacencyIndex(hds, is)
+  return lib.trianglesHdsToAdjacencyIndex(hds, is)
 end
 
 

@@ -53,7 +53,7 @@ end
 --]]--
 function lib.bunny (nscale)
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT, data = vdata }
-  local is = Buffer { dim = 1, scalar_type = Buffer.UNSIGNED_INT, data = idata }
+  local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT, data = idata }
   local g = Geometry { name = "Stanford Bunny", primitive = Geometry.TRIANGLES,
                        data = { vertex = vs }, index = is }
 vs.data = {
