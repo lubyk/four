@@ -84,7 +84,9 @@ lib.DEPTH_STENCIL_32F_8UN = 14
     (defaults to @false@). 
   * @data@, a Buffer object with the image data (pixel by pixel in row order, 
     then layer order, the first pixel of the buffer is the image's lower left 
-    frontmost pixel. TODO cube map.
+    frontmost pixel. Can be nil if you don't want to specify image data
+    (e.g. for render to texture) but not for @TYPE_BUFFER@. 
+    TODO if array cube map, images of a cube map in given order.
   * @updated@, if @true@, @data@ will be read again by the renderer. The
     renderer sets the flag to @false@ once he read the data.
 --]]--

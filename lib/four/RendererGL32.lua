@@ -507,11 +507,11 @@ end
 
 function lib:textureStateAllocate(t)
   local state = self.textures[t]
-  local updated = t.updated or t.data.updated 
+  local updated = t.updated or (t.data and t.data.updated)
   if state and not updated then return state end
   
-  local img
-  if state and t.data.updated then 
+  local img = nil
+  if state and (t.data and t.data.updated) then 
     img = self:bufferStateAllocate(t.data, true)
     if t.type == Texture.TYPE_BUFFER then 
       -- No need to respecify the buffer
@@ -524,12 +524,11 @@ function lib:textureStateAllocate(t)
     local function finalize () gl.hi.glDeleteTexture(state.id) end
     state.finalizer = lk.Finalizer(finalize)
     self.textures[t] = state
-    assert(t.data)
-    img = self:bufferStateAllocate(t.data, false)
+    if t.data then img = self:bufferStateAllocate(t.data, false) end
   end
 
   lo.glPixelStorei(lo.GL_UNPACK_ALIGNMENT, 1)  
-  lo.glBindBuffer(lo.GL_PIXEL_UNPACK_BUFFER, img.id)
+  if img then lo.glBindBuffer(lo.GL_PIXEL_UNPACK_BUFFER, img.id) end
   local target = texTargetGLenum[t.type] 
   local w, h, d = four.V3.tuple(t.size)
   lo.glBindTexture(target, state.id)
