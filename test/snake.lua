@@ -3,32 +3,7 @@ require 'lubyk'
 math.randomseed(os.time())
 
 --=============================================== WORLD SETUP
-local broadphase = bt.DbvtBroadphase()
-local collisionConfiguration = bt.DefaultCollisionConfiguration()
-local dispatcher = bt.CollisionDispatcher(collisionConfiguration)
-local solver = bt.SequentialImpulseConstraintSolver()
-local dynamicsWorld = bt.DiscreteDynamicsWorld(dispatcher,broadphase,solver,collisionConfiguration)
-
-dynamicsWorld:setGravity(bt.Vector3(0,-10,0))
-
-local groundShape = bt.StaticPlaneShape(bt.Vector3(0,1,0),1)
-local groundMotionState = bt.DefaultMotionState(
-  bt.Transform(
-    bt.Quaternion(0,0,0,1),
-    bt.Vector3(0,-1,0)
-  )
-)
-
-local groundRigidBodyCI = bt.RigidBody.RigidBodyConstructionInfo(
-  0,
-  groundMotionState,
-  groundShape,
-  bt.Vector3(0,0,0)
-)
-groundRigidBodyCI.m_restitution = 1.0
-
-local groundRigidBody = bt.RigidBody(groundRigidBodyCI)
-dynamicsWorld:addRigidBody(groundRigidBody)
+local dynamicsWorld = bt.World() -- Use defaults
 
 --=============================================== SHAPES
 local snake = {}
