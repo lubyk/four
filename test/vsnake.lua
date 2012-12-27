@@ -64,12 +64,7 @@ for i=1,MAX_BODIES do
   local prev = elem
   elem = {shape = ELEM_SHAPE}
 
-  mstate = bt.MotionState()
-
-  function mstate:getWorldTransform(w)
-    w:setRotation(bt.Quaternion(0, 0, 0, 1))
-    w:setOrigin(bt.Vector3(x, y, z))
-  end
+  mstate = bt.MotionState(bt.Quaternion(0, 0, 0, 1), bt.Vector3(x, y, z))
 
   elem.motion = mstate
 
