@@ -213,16 +213,22 @@ function lib:isRenderable(cam, o)
   return visible and o.geometry and effect
 end
 
+function lib:addRenderable(cam, o)
+  if self:isRenderable(cam, o) and not cam.cull(o) then
+    self:addGeometryStats(o.geometry)
+    self.r:renderQueueAdd(cam, o)
+  end  
+end
+
 -- @render(cam, objs)@ renders the renderables in @objs@ with @cam@.
 function lib:render(cam, objs)
   local now = now () 
   self:_init ()
   self.frame_start_time = now
   self:updateStats(now)
-  for _, o in ipairs(objs) do  
-    if self:isRenderable(cam, o) and not cam.cull(o) then
-      self:addGeometryStats(o.geometry)
-      self.r:renderQueueAdd(cam, o)
+  for _, o in ipairs(objs) do 
+    if not (o.render_list) then self:addRenderable(cam, o) else
+      for _, o in ipairs(o) do self:addRenderable(cam, o) end
     end
   end
   self.r:renderQueueFlush(cam)
