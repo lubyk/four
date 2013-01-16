@@ -137,6 +137,22 @@ function lib.effectCycler(def)
   return next
 end
 
+-- h2. Generic cycler
+
+--[[--
+  @cycle(def)@ is an argument less function calling functions and 
+  returning their result in a cyclic fashion. @def@ keys:
+  * @functions@, an array of argument less functions. 
+--]]--
+function lib.functionCycle(def)
+  local index = -1
+  local functions = def.functions or {} 
+  local function next () 
+    index = (index + 1) % #functions
+    return functions[index + 1] ()
+  end
+  return next
+end
 
 return lib
 
