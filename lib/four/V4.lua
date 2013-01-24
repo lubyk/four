@@ -159,7 +159,7 @@ function lib.mix(u, v, t)
 end
 
 -- @trVec(m, v)@ is the *vector* @v@ transformed by the @M4@ matrix @m@.
-function trVec(m, v) 
+function lib.trVec(m, v) 
   return V4 (m[1] * v[1] + m[5] * v[2] + m[ 9] * v[3] + m[13] * v[4],
              m[2] * v[1] + m[6] * v[2] + m[10] * v[3] + m[14] * v[4],
              m[3] * v[1] + m[7] * v[2] + m[11] * v[3] + m[15] * v[4],

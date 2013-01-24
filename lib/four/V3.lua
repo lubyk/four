@@ -151,17 +151,17 @@ function lib.mix(u, v, t)
 end
 
 -- @trVec(m, v)@ is the *vector* @v@ transformed by the @M4@ matrix @m@.
-function trVec(m, v) 
+function lib.trVec(m, v) 
   return V3 (m[1] * v[1] + m[5] * v[2] + m[ 9] * v[3],
              m[2] * v[1] + m[6] * v[2] + m[10] * v[3],
              m[3] * v[1] + m[7] * v[2] + m[11] * v[3])
 end
 
 -- @trPt(m, pt)@ is the *point* @p@ transformed by the @M4@ matrix @m@.
-function trPt(m, pt) 
-  return V3 (m[1] * v[1] + m[5] * v[2] + m[ 9] * v[3] + m[13],
-             m[2] * v[1] + m[6] * v[2] + m[10] * v[3] + m[14],
-             m[3] * v[1] + m[7] * v[2] + m[11] * v[3] + m[15])
+function lib.trPt(m, pt) 
+  return V3 (m[1] * pt[1] + m[5] * pt[2] + m[ 9] * pt[3] + m[13],
+             m[2] * pt[1] + m[6] * pt[2] + m[10] * pt[3] + m[14],
+             m[3] * pt[1] + m[7] * pt[2] + m[11] * pt[3] + m[15])
 end
 
 
