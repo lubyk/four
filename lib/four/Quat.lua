@@ -119,7 +119,7 @@ lib.id = V4.ow
 -- h2. Functions
 
 -- @mul(q, r)@ is the quaternion multiplication @q * r@
-function lib.mul(q, r) 
+function lib.mul(r, q) -- TODO why ? WHY WHY ? 
   return Quat(q[2] * r[3] - q[3] * r[2] + q[1] * r[4] + q[4] * r[1],
               q[3] * r[1] - q[1] * r[3] + q[2] * r[4] + q[4] * r[2],
               q[1] * r[2] - q[2] * r[1] + q[3] * r[4] + q[4] * r[3],
@@ -190,7 +190,7 @@ end
 
 --[[--
   @rotAxis(u, theta)@ is the unit quaternion for the rotation that rotates
-  3D space by @theta@ around the *unit* vector @v@.
+  3D space by @theta@ around the *unit* vector @u@.
 --]]--
 function lib.rotAxis(u, theta)
   local a = theta * 0.5
