@@ -10,7 +10,7 @@ lib.__index = lib
 four.V3 = lib
 setmetatable(lib, { __call = function(lib, ...) return lib.V3(...) end })
 
--- h2. Constructor and accessors
+-- h2. Constructors and accessors
 
 local meta = {} -- for operators, see at the end of file
 
@@ -150,7 +150,10 @@ function lib.mix(u, v, t)
              u[3] + t * (v[3] - u[3]))
 end
 
--- @trVec(m, v)@ is the *vector* @v@ transformed by the @M4@ matrix @m@.
+--[[--
+  @trVec(m, v)@ is the *vector* @v@ transformed by the @M4@ matrix @m@ 
+  (the translation component of @m@ is ignored).
+--]]--
 function lib.trVec(m, v) 
   return V3 (m[1] * v[1] + m[5] * v[2] + m[ 9] * v[3],
              m[2] * v[1] + m[6] * v[2] + m[10] * v[3],

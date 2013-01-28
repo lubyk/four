@@ -113,7 +113,7 @@ function lib.norm2(v) return v[1] * v[1] + v[2] * v[2] end
 -- @unit(v)@ is the unit vector @v/|v|@.
 function lib.unit(v) return lib.smul(1 / lib.norm(v), v) end
 
--- @homogene(v)@ is the vector @v/V3.z(v)@.
+-- @homogene(v)@ is the vector @v/V2.y(v)@.
 function lib.homogene(v) return V2(v[1] / v[2], 1.0) end
 
 --[[--

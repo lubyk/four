@@ -8,9 +8,9 @@
 local lib = { type = 'four.V4' }
 lib.__index = lib
 four.V4 = lib
-setmetatable(lib, { __call = function(lib, ...) return  lib.V4(...) end })
+setmetatable(lib, { __call = function(lib, ...) return lib.V4(...) end })
 
--- h2. Constructors and accessors
+-- h2. Constructor and accessors
 
 local meta = {} -- for operators, see at the end of file
 
@@ -263,5 +263,3 @@ meta.__add = lib.add
 meta.__sub = lib.sub
 meta.__mul = lib.smul
 meta.__tostring = lib.tostring
-
-
