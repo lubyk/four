@@ -12,8 +12,6 @@ setmetatable(lib, { __call = function(lib, ...) return lib.V3(...) end })
 
 -- h2. Constructors and accessors
 
-local meta = {} -- for operators, see at the end of file
-
 --[[--
   @V3(x, y, z)@ is a vector with the corresponding components.
 
@@ -29,7 +27,7 @@ function lib.V3(x, y, z)
       assert(false, string.format("Cannot convert %s to %s", x.type, lib.type))
     end
   end
-  setmetatable(v, meta)
+  setmetatable(v, lib)
   return v
 end
 
@@ -246,10 +244,10 @@ end
 
 -- h2. Operators
 
-meta.__unm = lib.neg
-meta.__add = lib.add
-meta.__sub = lib.sub
-meta.__mul = lib.smul
-meta.__tostring = lib.tostring
+lib.__unm = lib.neg
+lib.__add = lib.add
+lib.__sub = lib.sub
+lib.__mul = lib.smul
+lib.__tostring = lib.tostring
 
 
