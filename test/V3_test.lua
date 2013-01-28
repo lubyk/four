@@ -4,10 +4,13 @@
 
 require 'lubyk'
 local should = test.Suite("V3")
-
 local V3 = four.V3
 
--- Mostly testing on integers so that arithmetic is exact.
+function should.type()
+  assertEqual('four.V3', V3(0,0,0).type)
+end
+
+-- N.B. mostly testing on integers so that arithmetic is exact.
 
 local EPS = 1e-6
 
