@@ -1,10 +1,11 @@
 --[[--
   four.Color
-  RGBA colors.
+  @V4@ vectors as RGBA colors. 
 
-  *Important@ HSV components are all in the @0@ to @1@ range.
+  Provides a few convenience functions to specify colors in @V4@ vectors.
 
-  *Note@ Colors are @V4@ vectors, you can use the functions of @V4@ on them.
+  *Note* Color values are @V4@ vectors, you can use all the functions of @V4@ 
+  on them.
 --]]--
 
 local lib = { type = 'four.Color' }
@@ -16,8 +17,6 @@ local V4 = four.V4
 
 -- h2. Constructors and accessors
 
-local meta = {} -- for operators, see at the end of file
-
 --[[--
   @Color(r, g, b [,a])@ is a color with the corresponding components.
   @a@ is @1@ if unspecified.
@@ -26,20 +25,19 @@ local meta = {} -- for operators, see at the end of file
   for @o@: none.
 --]]--
 function lib.Color(r, g, b, a) 
-  local c = {} 
-  if g then c = { r, g, b, a or 1 }
+  if g then return V4(r, g, b, a or 1)
   else
-    assert(false, string.format("Cannot convert %s to %s", x.type, lib.type))
+    assert(false, string.format("Cannot convert %s to %s", r.type, V4.type))
   end
-  setmetatable(c, meta)
-  return c
 end
 
 local Color = lib.Color
 
---[[--
-  @HSV(h, s, v [,a])@ is a color with the corresponding hue, staturaton
-  and value components. @a@ is @1@ if unspecified.
+--[[-- 
+  @HSV(h, s, v [,a])@ is an RGBA color with hue @h@, staturation
+  @s@, and value @v@. @a@ is @1@ if unspecified.
+
+  *Important* HSV components are all in the @0@ to @1@ range.
 --]]--
 function lib.HSV(h, s, v, a)
   local r, g, b
@@ -68,7 +66,7 @@ function lib.g(c) return c[2] end
 function lib.b(c) return c[3] end
 
 -- @a(c)@ is the @a@ component of @c@.
-function lib.a(c) return c[3] end
+function lib.a(c) return c[4] end
 
 -- @h(c)@ is the hue component of @c@.
 function lib.h(c) 
@@ -90,9 +88,6 @@ end
 
 
 -- h2. Converters
-
--- @toRGB(c) is V4(r, g, b, a), the RGB components of @c@.
-function lib.toRGB(c) V4(c[1], c[2], c[3], c[4]) end
 
 -- @toHSV(c) is V4(h, s, v, a), the HSV components of @c@. 
 function lib.toHSV(c)
@@ -138,24 +133,13 @@ function lib.black () return Color(0, 0, 0, 1) end
 function lib.white () return Color(1, 1, 1, 1) end
 
 -- @gray(g [,a])@ is @Color(g, g, g, a)@. @a@ is @1@ if unspecified.
-function lib.gray(g, a) return Color(g, g, g, a or 1) end
+function lib.gray(g, a) return Color(g, g, g, a) end
 
 -- @red([,a])@ is @Color(1, 0, 0, a)@. @a@ is @1@ if unspecified.
-function lib.red(a) return Color(1, 0, 0, a or 1) end
+function lib.red(a) return Color(1, 0, 0, a) end
 
 -- @green([,a])@ is @Color(0, 1, 0, a)@. @a@ is @1@ if unspecified.
-function lib.green(a) return Color(0, 1, 0, a or 1) end
+function lib.green(a) return Color(0, 1, 0, a) end
 
 -- @blue([,a])@ is @Color(0, 0, 1, a)@. @a@ is @1@ if unspecified.
-function lib.blue(a) return Color(0, 0, 1, a or 1) end
-
-
--- h2. Operators
-
-meta.__unm = V4.neg
-meta.__add = V4.add
-meta.__sub = V4.sub
-meta.__mul = V4.smul
-meta.__tostring = lib.tostring
-
-
+function lib.blue(a) return Color(0, 0, 1, a) end
