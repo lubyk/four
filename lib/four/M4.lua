@@ -26,9 +26,7 @@ setmetatable(
 
 local V3 = four.V3
 
--- ## Constructors and accessors
-
-local meta = {} -- for operators
+-- ## Constructor and accessors
 
 function lib.M4(e11, e12, e13, e14, -- row 1
                 e21, e22, e23, e24, -- row 2
@@ -38,7 +36,7 @@ function lib.M4(e11, e12, e13, e14, -- row 1
                e12, e22, e32, e42,  -- col 2
                e13, e23, e33, e43,  -- col 3
                e14, e24, e34, e44 } -- col 4
-  setmetatable(o, meta)
+  setmetatable(o, lib)
   return o
 end
 
@@ -197,7 +195,7 @@ end
 
 -- ## 3D space transforms
 
--- translates in 3D space according to `d`
+-- @move(d)@ is a matrix that translates 3D space by the vector @d@.
 function lib.move(d) 
   return M4(1, 0, 0, d[1],
             0, 1, 0, d[2],
@@ -205,10 +203,11 @@ function lib.move(d)
             0, 0, 0, 1)
 end
 
+-- @getMove(m)@ is a vector with the translation component of @m@.
 function lib.getMove(m) return V3(m[13], m[14], m[15]) end
 
--- @rotMap(u, v)@ rotates 3D space to map the *unit* vector @u@ on the 
--- *unit* vector @v@
+-- @rotMap(u, v)@ is a matrix that rotates 3D space to map the *unit* 
+-- vector @u@ on the *unit* vector @v@.
 function lib.rotMap(u, v) 
   local n = V3.cross(u, v)
   local e = V3.dot(u, v)
@@ -225,7 +224,8 @@ function lib.rotMap(u, v)
                         0,             0,              0, 1)
 end
 
--- rotates 3D space by `theta` around the *unit* vector `v`
+-- @rotAxis(v, theta)@ is a matrix that rotates 3D space by @theta@ around 
+-- the *unit* vector @v@.
 function lib.rotAxis(u, theta)
   local xy = u[1] * u[2] 
   local xz = u[1] * u[3] 
@@ -248,8 +248,9 @@ function lib.rotAxis(u, theta)
             0, 0, 0, 1)             -- row 4
 end
 
--- `rot_zyx(V3(x, y, z))` rotates 3D space first by `x` around the x-axis,
--- then by `y` around the y-axis and finally by `z` around the z-axis
+-- `rotZYX(r)` is a matrix that rotates 3D space first by @V3.x(r)@ around 
+-- the x-axis, then by @V3.y(r)@ around the y-axis and finally by @V3.y(r)@ 
+-- around the z-axis
 function lib.rotZYX(r)
   local cz = math.cos(r[3]) local sz = math.sin(r[3])
   local cy = math.cos(r[2]) local sy = math.sin(r[2])
@@ -260,7 +261,8 @@ function lib.rotZYX(r)
                   0,                      0,                      0, 1)
 end
 
--- scales 3D space in the x, y, and z dimensions according to `s`
+-- @scale(s)@ is a matrix that scales 3D space in the x, y, and z dimensions 
+-- according to @s@.
 function lib.scale(s)
   return M4(s[1], 0   , 0   , 0,
             0   , s[2], 0   , 0,
@@ -268,6 +270,8 @@ function lib.scale(s)
             0   , 0   , 0   , 1)
 end
 
+-- @getScale(s)@ is a vector with the scale factors preformed by @m@ in 
+-- each dimension.
 function lib.getScale(m) 
   return V3(math.sqrt(m[1] * m[1] + m[2] * m[2] + m[3] * m[3]),
             math.sqrt(m[5] * m[5] + m[6] * m[6] + m[7] * m[7]),
@@ -275,8 +279,8 @@ function lib.getScale(m)
 end
 
 
--- `rigid(d, axis, theta)` is the rigid body transformation of 3D space
--- that rotates by `axis`,`angle` and then translate by `d`
+-- @rigid(d, axis, theta)@ is the rigid body transform of 3D space
+-- that rotates by @axis@, @angle@ and then translate by @d@.
 function lib.rigid(d, axis, theta) 
   local r = lib.rotAxis(axis, theta)
   r[13] = d[1]; -- set translation in col 4
@@ -286,7 +290,7 @@ function lib.rigid(d, axis, theta)
 end
 
 -- `rigidq(d, q)` is the rigid body transform of 3D space
--- that rotates by the quaternion `q` and then translates by `d`
+-- that rotates by the quaternion `q` and then translates by `d`. 
 function lib.rigidq(d, q)
   local r = four.Quat.toM4(q)
   r[13] = d[1]; -- set translation in col 4
@@ -295,9 +299,9 @@ function lib.rigidq(d, q)
   return r
 end
 
--- `rigidScale(d, axis, theta, scale)` is like `rigid(d, axis, theta)` but 
--- it starts by scaling according to `scale`
-function lib.rigidScale(d, axis, theta, scale)
+-- @rigidScale(d, axis, theta, s)@ is like @rigid(d, axis, theta)@ but 
+-- it starts by scaling according to @s@.
+function lib.rigidScale(d, axis, theta, s)
   local r = lib.rigid(d, axis, theta)
   r[1] = r[1] * s[1] -- scale col 1
   r[2] = r[2] * s[1]  
@@ -311,6 +315,8 @@ function lib.rigidScale(d, axis, theta, scale)
   return r
 end
 
+-- @rigidqScale(d, q, s)@ is like @rigid(d, axis, theta)@ but 
+-- it starts by scaling according to @scale@.
 function lib.rigidqScale(d, q, s)
   local r = lib.rigidq(d, q) 
   r[1] = r[1] * s[1] -- scale col 1
@@ -323,14 +329,6 @@ function lib.rigidqScale(d, q, s)
   r[10] = r[10] * s[3]
   r[11] = r[11] * s[3]
   return r
-end
-
---[[--
-  @lookAt(eye, pos, up)@ is an orientation matrix looking from @eye@ toward
-  @pos@ with @up@ vector. 
---]]--
-function lib.lookAt(eye, pos, up)
-  
 end
 
 -- h2. Projection
@@ -353,8 +351,8 @@ end
 --[[--
   @persp(l, r, b, t, n, f)@ maps the frustum with top of 
   the underlying pyramid at the origin, near plane rectangle
-  corners [(l, b, -n)], [(r, t, -n) and far plane at @-far@ to 
-  the axis aligned cube with corners (-1, -1, -1) and @(1, 1, 1)@.
+  corners @(l, b, -n)@, @(r, t, -n)@ and far plane at @-far@ to 
+  the axis aligned cube with corners @(-1, -1, -1)@ and @(1, 1, 1)@.
 --]]--
 function lib.persp(l, r, b, t, n, f)
   local inv_rl = 1 / (r - l)
@@ -371,7 +369,7 @@ end
 
 -- ## 4D space transformation
 
--- scales 4D space in the x, y, z and w dimensions according to `s`
+-- scales 4D space in the x, y, z and w dimensions according to @s@
 function lib.scale4D(s)
   return M4(s[1],    0,    0,    0,
             0   , s[2],    0,    0,
@@ -470,8 +468,8 @@ function lib.compareF(f, u, v) error ("TODO") end
 
 -- ## Operators
 
-meta.__unm = lib.neg
-meta.__add = lib.add
-meta.__sub = lib.sub
-meta.__mul = lib.mul
-meta.__tostring = lib.tostring
+lib.__unm = lib.neg
+lib.__add = lib.add
+lib.__sub = lib.sub
+lib.__mul = lib.mul
+lib.__tostring = lib.tostring
