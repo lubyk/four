@@ -49,9 +49,9 @@ function should.functions ()
   assertValueEqual(V3.oz (), V3.cross(V3.ox (), V3.oy ()))
   assertValueEqual(1, V3.dot(V3.ox (), V3.ox ())) -- find better example
   assertValueEqual(1, V3.norm(V3.ox ())) -- find better example
-  assertValueEqual(true, math.abs(V3.norm (V3.unit(v1)) - 1) < EPS)
+  assertValueEqual(1, V3.norm (V3.unit(v1)), EPS)
   assertValueEqual(V3(2, 3, 1), V3.homogene (v5))
-  assertValueEqual(V3.oz (), V3.sphereUnit(0.5 * math.pi, 0)) -- brittle test
+  assertValueEqual(V3.oz (), V3.sphereUnit(0.5 * math.pi, 0), EPS)
   assertValueEqual(V3(1, 4, 6), V3.mix(V3(-2, 2, 4), V3(4, 6, 8), 0.5))
 --  assertError("TODO", function () ltr(nil, v1) end)
 --  assertError("TODO", function () tr(nil, v1) end)
