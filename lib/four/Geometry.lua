@@ -1,9 +1,9 @@
 --[[--
   h1. four.Geometry
 
-  A geometry object is the atomic geometrical rendering unit. It
-  defines the stream of vertex data for the vertex shader and the
-  stream of primitives for the geometry shader.
+  A geometry object is an atomic geometrical rendering unit. It
+  defines the input stream of vertex data for the vertex shader and
+  the input primitive for the geometry shader.
 --]]--
 
 -- Module definition
@@ -47,8 +47,9 @@ lib.TRIANGLES_ADJACENCY = 11
   * @name@, a user defined way of naming the geometry (may be used by
     the renderer to report errors about the object).
 
-  *Note* Once a geometry object was rendered it must be considered 
-  as immutable. The data of the underlying buffers may however change.
+  *Warning* Once a geometry object was rendered its structure is
+  immutable: the buffers referenced by @data@ keys and @index@ cannot
+  change. However the actual data of the buffers may change.
 --]]--
 function lib.new(def)
   local self = 
@@ -70,18 +71,10 @@ function lib:set(def)
   if def.index ~= nil then self.index = def.index
   else error ("index is a required Geometry initialization key") end
   if def.pre_transform ~= nil then self.pre_transform = def.pre_transform end
-  if def.immutable ~= nil then self.immutable = def.immutable end
   if def.name ~= nil then self.name = def.name end
 end
 
 -- h2. Geometry operations
-
--- @disposeBuffers()@ disposes buffers that @self.index@ and @self.data@ to 
--- @{}@. The renderer calls this function if @self.immutable@ is @true@.
-function lib:disposeBuffers() 
-  for _, b in pairs(self.data) do b:disposeBuffer() end
-  self.index:disposeBuffer()
-end
 
 --[[-- 
   @computeBoundsRadius()@ computes the radius of the bounding sphere 
