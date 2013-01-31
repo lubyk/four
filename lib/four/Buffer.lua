@@ -78,7 +78,7 @@ end
 
 function lib:length() return (#self.data / self.dim) end
 function lib:scalarLength() return #self.data end
-function lib:disposeBuffer() if self.disposable then self.data = {} end end
+function lib:disposeBuffer() self.data = {} end
 
 -- h2. Getters 
 

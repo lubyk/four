@@ -453,6 +453,7 @@ function lib:bufferStateAllocate(b, update)
   lo.glBufferData(lo.GL_ARRAY_BUFFER, bytes, data, 
                   bufferUsageHintType[b.update])
   b.updated = false
+  if b.disposable then b:disposeBuffer() end
   return state
 end
 
