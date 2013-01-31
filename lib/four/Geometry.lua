@@ -1,9 +1,9 @@
 --[[--
   h1. four.Geometry
 
-  A geometry object is an atomic geometrical rendering unit. It
-  defines the input stream of vertex data for the vertex shader and
-  the input primitive for the geometry shader.
+  A geometry object defines geometrical primitives that can be
+  rendered by the GPU. It defines the input stream of vertex data for
+  the vertex shader and the input primitive for the geometry shader.
 --]]--
 
 -- Module definition
@@ -18,7 +18,7 @@ local V2 = four.V2
 local V3 = four.V3
 
 -- h2. Primitive constants
--- Defines how the vertex stream is interpreted
+-- Defines how the vertex stream is interpreted.
 
 lib.POINTS = 1
 lib.LINE_STRIP = 2
@@ -40,8 +40,9 @@ lib.TRIANGLES_ADJACENCY = 11
   * @data@, table of named @Buffer@s all of the same size defining per vertex
     data. Table key names are used to bind to the corresponding vertex shader 
     inputs.
-  * @index@, @Buffer@ of ints (any dim), indexing into @data@ to define the 
-    actual sequence of primitives. *WARNING* indices are zero-based.
+  * @index@, @Buffer@ of *unsigned* ints or bytes (any dim), 
+    indexing into @data@ to define the actual sequence of primitives. 
+    *WARNING* indices are zero-based.
   * @pre_transform@, an M4 matrix that the renderer pre-multiplies to the 
     renderable's transform.
   * @name@, a user defined way of naming the geometry (may be used by
@@ -125,7 +126,6 @@ function lib:computeVertexNormals (force)
 end
 
 -- h2. Predefined geometries
-
 
 --[[--
   @Cuboid(w, h, d)@ or @Cuboid(V3(w, h, d))@ is a cuboid centered on the 
