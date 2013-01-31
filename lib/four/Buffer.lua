@@ -17,7 +17,7 @@ local V4 = four.V4
 
 --[[--
    h2. Buffer element type 
-   Defines how the data will be stored on the gpu and how the shader will 
+   Defines how the data will be stored on the GPU and how the shader will 
    view the data.
 --]]--
 
@@ -37,16 +37,18 @@ lib.UPDATE_NEVER = 1
 lib.UPDATE_SOMETIMES = 2
 lib.UPDATE_OFTEN = 3
 
+-- h2. Constructor
+
 --[[--
   @Buffer(def)@ is a new buffer object. @def@ keys:
   * @dim@, the vectors dimension (defaults to @3@).
   * @scalar_type@, the vector's element type (defaults to @lib.FLOAT@).
   * @data@, an array of numbers (defaults to @{}@)
-  * @normalize@, @true@ if the data should be normalized by the gpu (defaults
+  * @normalize@, @true@ if the data should be normalized by the GPU (defaults
     to @false@).
   * @update@, the update frequency (defaults to @UPDATE_NEVER@)
-  * @disposable@, if @true@, @data@ may be disposed by the renderer (defaults 
-    to @true@).
+  * @disposable@, if @true@, @data@ is disposed by the renderer once
+    uploaded to the GPU (defaults to @true@).
   * @updated@, if @true@, @data@ will be read again by the renderer. The
     renderer sets the flag back to @false@ once it read the data.
 --]]--
@@ -128,6 +130,7 @@ function lib:setScalar(i, x)
   self.updated = true
   self.data[i] = x 
 end
+
 function lib:set1D(i, x)
   self.updated = true
   local b = (i - 1) * self.dim 
@@ -161,10 +164,16 @@ function lib:set4D(i, x, y, z, w)
   t[b + 4] = w;
 end
 
+function lib:setV2(i, v) 
+  self.updated = true
+  self:set2D(i, V2.tuple(v)) 
+end
+
 function lib:setV3(i, v) 
   self.updated = true
   self:set3D(i, V3.tuple(v)) 
 end
+
 function lib:setV4(i, v) 
   self.updated = true
   self:set4D(i, V4.tuple(v)) 
