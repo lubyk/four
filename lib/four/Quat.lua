@@ -146,7 +146,7 @@ function lib.sub(q, r)
 end
 
 -- @mul(q, r)@ is the quaternion multiplication @q * r@
-function lib.mul(r, q) -- TODO why ? WHY WHY ? 
+function lib.mul(q, r)
   return Quat(q[2] * r[3] - q[3] * r[2] + q[1] * r[4] + q[4] * r[1],
               q[3] * r[1] - q[1] * r[3] + q[2] * r[4] + q[4] * r[2],
               q[1] * r[2] - q[2] * r[1] + q[3] * r[4] + q[4] * r[3],
