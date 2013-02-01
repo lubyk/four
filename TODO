@@ -7,17 +7,17 @@
   was camera following object etc... Should we remove it and leave
   that to the client of the library ? 
 
-
 * Camera, implement simple orientation facilities (lookat) .
 * Buffer
 ** Switch to zero-based indexing RAPIDLY (before too much code gets
    written), it's too confusing when you implement algorithms.
-** Add support so that Buffer can just wrap a malloced block of 
-   memory.
+** Add support so that Buffer can just wrap a malloced block of memory.
 
+* Allow to bind keyed tables for uniforms, map them to GLSL structs. 
 * Improve M4 documentation.
 * Implement M2, M3. 
 * Finish V3_test.lua (mostly done).
 * Implement {V4,V2,M4,Color}_test.lua.
 * Cleanup demos.
+* Cleanup predifined geometry/effects
 * Grep TODO

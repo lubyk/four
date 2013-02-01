@@ -37,7 +37,7 @@ lib.TRIANGLES_ADJACENCY = 11
 --[[-- 
   @Geometry(def)@ is a new geometry object. @def@ keys:
   * @primitive@, the geometrical primitive (defaults to @Geometry.TRIANGLES@).
-  * @data@, table of named @Buffer@s all of the same size defining per vertex
+  * @data@, table of named @Buffer@s all of the same length defining per vertex
     data. Table key names are used to bind to the corresponding vertex shader 
     inputs.
   * @index@, @Buffer@ of *unsigned* ints or bytes (any dim), 
