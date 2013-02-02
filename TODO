@@ -20,4 +20,6 @@
 * Implement {V4,V2,M4,Color}_test.lua.
 * Cleanup demos.
 * Cleanup predifined geometry/effects
+* Make definitive shaders for Wireframe, Normals, Points, Lines, Bezier. 
+* Implement better manipulators, orienters in 3D space.
 * Grep TODO

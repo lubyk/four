@@ -1,25 +1,28 @@
 -- Gooch effect
 
-local lib = {}
-
 require 'lubyk'
+
+local lib = {}
 local Effect = four.Effect
 local V3 = four.V3
 
-function lib.effect () return Effect
+function lib.effect (def) return Effect
 {
+  rasterization = def and def.rasterization,
+  depth = def and def.depth,
+  opaque = def and def.opaque,
   default_uniforms = 
     { model_to_cam = Effect.MODEL_TO_CAMERA,
       normal_to_cam = Effect.MODEL_NORMAL_TO_CAMERA,
       camera_to_clip = Effect.CAMERA_TO_CLIP,
-      light_pos = V3(0, 10, 4),
-      surf_color = V3(0.75, 0.75, 075),
-      warm_color = V3(0.6, 0.6, 0.0),
-      cool_color = V3(0.0, 0.0, 0.6),
-      diffuse_warm = 0.45,
-      diffuse_cool = 0.45 },
+      light_pos = def and def.light_pos or V3(0, 10, 4),
+      surf_color = def and def.surf_color or V3(0.75, 0.75, 075),
+      warm_color = def and def.warm_color or V3(0.6, 0.6, 0.0),
+      cool_color = def and def.cool_color or V3(0.0, 0.0, 0.6),
+      diffuse_warm = def and def.diffuse_warm or 0.45,
+      diffuse_cool = def and def.diffuse_cool or 0.45 },
       
-   vertex = Effect.Shader [[
+   vertex = def and def.vertex or Effect.Shader [[
      uniform mat4 model_to_cam; 
      uniform mat3 normal_to_cam;
      uniform mat4 camera_to_clip;
@@ -41,7 +44,7 @@ function lib.effect () return Effect
      }
    ]],  
 
-  fragment = Effect.Shader [[
+  fragment = def and def.fragment or Effect.Shader [[
     uniform vec3 surf_color;
     uniform vec3 warm_color;
     uniform vec3 cool_color;

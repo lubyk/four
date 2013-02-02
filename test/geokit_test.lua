@@ -65,25 +65,44 @@ function should.planeHDS()
 end
 
 function should.planeTrianglesAdjacency()
-  local p = Geometry.Plane(V2(1,2))
+  local p = Geometry.Plane(V2(1,2), V2(1, 2))
+  local i = p.index
+
+  assertValueEqual(V3(0, 1, 3), p.index:getV3(1))
+  assertValueEqual(V3(0, 3, 2), p.index:getV3(2))
+  assertValueEqual(V3(2, 3, 5), p.index:getV3(3))
+  assertValueEqual(V3(2, 5, 4), p.index:getV3(4))
+
   local hds = Geokit.hdsFromTriangles(p.index)
   local i = Geokit.trianglesHdsToAdjacencyIndex(hds)
 
-  -- TODO plane index generation changed
-  
-  -- assertEqual(i:getScalar(1), 0)
-  -- assertEqual(i:getScalar(2), 0)
-  -- assertEqual(i:getScalar(3), 1)
-  -- assertEqual(i:getScalar(4), 1)
-  -- assertEqual(i:getScalar(5), 2)
-  -- assertEqual(i:getScalar(6), 3)
+  assertEqual(i:getScalar(1), 0)
+  assertEqual(i:getScalar(2), 0)
+  assertEqual(i:getScalar(3), 1)
+  assertEqual(i:getScalar(4), 1)
+  assertEqual(i:getScalar(5), 3)
+  assertEqual(i:getScalar(6), 2)
 
-  -- assertEqual(i:getScalar(7), 0)
-  -- assertEqual(i:getScalar(8), 1)
-  -- assertEqual(i:getScalar(9), 2)
-  -- assertEqual(i:getScalar(10), 2)
-  -- assertEqual(i:getScalar(11), 3)
-  -- assertEqual(i:getScalar(12), 3)
+  assertEqual(i:getScalar(7), 0)
+  assertEqual(i:getScalar(8), 1)
+  assertEqual(i:getScalar(9), 3)
+  assertEqual(i:getScalar(10), 5)
+  assertEqual(i:getScalar(11), 2)
+  assertEqual(i:getScalar(12), 2)
+
+  assertEqual(i:getScalar(13), 2)
+  assertEqual(i:getScalar(14), 0)
+  assertEqual(i:getScalar(15), 3)
+  assertEqual(i:getScalar(16), 3)
+  assertEqual(i:getScalar(17), 5)
+  assertEqual(i:getScalar(18), 4)
+
+  assertEqual(i:getScalar(19), 2)
+  assertEqual(i:getScalar(20), 3)
+  assertEqual(i:getScalar(21), 5)
+  assertEqual(i:getScalar(22), 5)
+  assertEqual(i:getScalar(23), 4)
+  assertEqual(i:getScalar(24), 4)
 end
 
 

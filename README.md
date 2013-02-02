@@ -164,7 +164,7 @@ function triangle () -- Geometry object for a triangle inside clip space
 
   is:push3D(0, 1, 2)              -- Index for a single triangle
 
-  return Geometry { primitive = Geometry.TRIANGLE, 
+  return Geometry { primitive = Geometry.TRIANGLES, 
                     index = is, data = { vertex = vs, color = cs}}
 end
 ```
@@ -229,7 +229,7 @@ reuse shader functions from other modules.
 
 ### Uniforms lookup
 
-Shaders may declare uniforms varibales. When an effect `e` is used the
+Shaders may declare uniforms variables. When an effect `e` is used the
 actual value bound to the uniform is determined as follows. Given an
 uniform named `u`:
 

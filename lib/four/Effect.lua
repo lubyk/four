@@ -147,7 +147,7 @@ function lib.Shader(src)
 end
 
 
--- h2. Special Uniforms
+-- h2. Special uniform values
 
 lib.MODEL_TO_WORLD = { special_uniform = true } 
 lib.MODEL_TO_CAMERA = { special_uniform = true } 
