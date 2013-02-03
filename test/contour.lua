@@ -133,46 +133,8 @@ local nextEffect = Demo.effectCycler { effects = effects }
 
 -- Geometry
 
--- In contrast to Geometry.Cuboid, this cuboid doesn't duplicate
--- vertices, adjacency information can thus be computed.
--- Normals computed by Geometry are however incorrect.
-function Cuboid(w, h, d)
-  local extents = w
-  if h then extents = V3(extents, h, d) end
-  local x, y, z = V3.tuple(0.5 * extents)
-  local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
-  local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
-  local vertices = { V3(-x, -y,  z),
-                     V3( x, -y,  z),
-                     V3(-x,  y,  z),
-                     V3( x,  y,  z),
-                     V3(-x, -y, -z),
-                     V3( x, -y, -z),
-                     V3(-x,  y, -z),
-                     V3( x,  y, -z) }
-
-  for _, v in ipairs(vertices) do vs:pushV3(v) end
-  is:push3D(0, 3, 2)    -- Faces (triangles)
-  is:push3D(0, 1, 3)
-  is:push3D(0, 5, 1)
-  is:push3D(0, 4, 5)
-  is:push3D(0, 6, 4)
-  is:push3D(0, 2, 6)
-  is:push3D(1, 7, 3)
-  is:push3D(1, 5, 7)
-  is:push3D(2, 7, 6)
-  is:push3D(2, 3, 7)
-  is:push3D(4, 7, 5)
-  is:push3D(4, 6, 7)
-
-  return Geometry ({ name = "silhouette.cuboid", 
-                     primitive = Geometry.TRIANGLES, 
-                     data = { vertex = vs }, index = is, 
-                     extents = extents })
-end
-
 local geometries = 
-  { function () return Cuboid(V3(1,1,1)) end,
+  { function () return Geometry.Cube(1, true) end,
     function () return Geometry.Sphere(0.5, 4) end,
     function () return Models.bunny(1) end }
   

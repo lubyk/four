@@ -99,7 +99,7 @@ end
   *WARNING* works only with @Geometry.TRIANGLE@ primitive. Does nothing
   if @data.normal@ exists and force is @false@ (default).
 --]]--
-function lib:computeVertexNormals (force)
+function lib:computeVertexNormals(force)
   if self.data.normal and not force then return end
   local vertex = self.data.vertex 
   local index = self.index
@@ -128,61 +128,96 @@ end
 -- h2. Predefined geometries
 
 --[[--
-  @Cuboid(w, h, d)@ or @Cuboid(V3(w, h, d))@ is a cuboid centered on the 
-  origin with the given extents.
+  @Cuboid(V3(w, h, d) [, no_dups])@ is a cuboid centered on the 
+  origin with the given extents. If [no_dups] is @true@ vertices
+  in the mesh are not duplicated, better for computational geometry 
+  but implies that normals do not define facets. 
 --]]--
-function lib.Cuboid(w, h, d)
-  local extents = w
-  if h then extents = V3(extents, h, d) end
+function lib.Cuboid(extents, no_dups)
+  local no_dups = no_dups or false
   local x, y, z = V3.tuple(0.5 * extents)
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
+  local g = lib.new ({ name = "", primitive = lib.TRIANGLES, 
+                       data = { vertex = vs }, index = is, 
+                       extents = extents })
   
-  vs.data = { -x, -y,  z, -- Front
-               x, -y,  z,
-               x,  y,  z,
-              -x,  y,  z,
-              -x, -y,  z, -- Bottom
-               x, -y,  z,
-               x, -y, -z,
-              -x, -y, -z,
-              -x, -y,  z, -- Left
-              -x, -y, -z,
-              -x,  y, -z,
-              -x,  y,  z,
-               x, -y,  z, -- Right
-               x, -y, -z,
-               x,  y, -z,
-               x,  y,  z,
-               x,  y,  z, -- Top
-               x,  y, -z,
-              -x,  y, -z,
-              -x,  y,  z,
-              -x,  y, -z, -- Rear
-              -x, -y, -z,
-               x, -y, -z,
-               x,  y, -z }
+  if no_dups then 
+    g.name = "four.cuboid.no_dups"
+    vs.data = { -x, -y,  z,
+                 x, -y,  z,
+                -x,  y,  z,
+                 x,  y,  z,
+                -x, -y, -z,
+                 x, -y, -z,
+                -x,  y, -z,
+                 x,  y, -z  }
 
-  is:push3D(0, 2, 3)    -- Front 
-  is:push3D(0, 1, 2)
-  is:push3D(4, 7, 6)    -- Bottom
-  is:push3D(4, 6, 5)
-  is:push3D(8, 11, 10)  -- Left
-  is:push3D(8, 10, 9)
-  is:push3D(12, 14, 15) -- Right
-  is:push3D(12, 13, 14)
-  is:push3D(16, 17, 18) -- Top
-  is:push3D(16, 18, 19)
-  is:push3D(20, 23, 22) -- Rear
-  is:push3D(20, 22, 21)
+    is:push3D(0, 3, 2)    -- Faces (triangles)
+    is:push3D(0, 1, 3)
+    is:push3D(0, 5, 1)
+    is:push3D(0, 4, 5)
+    is:push3D(0, 6, 4)
+    is:push3D(0, 2, 6)
+    is:push3D(1, 7, 3)
+    is:push3D(1, 5, 7)
+    is:push3D(2, 7, 6)
+    is:push3D(2, 3, 7)
+    is:push3D(4, 7, 5)
+    is:push3D(4, 6, 7)
 
-  return lib.new ({ name = "four.cuboid", primitive = lib.TRIANGLES, 
-                    data = { vertex = vs }, index = is, 
-                    extents = extents })
+    function g:computeVertexNormals(force) -- avoids normal skews due to tess.
+      if self.data.normal and not force then return end
+      local vertex = self.data.vertex 
+      local ns = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
+      for i = 1, vertex:length() do ns:pushV3(V3.unit(vertex:getV3(i))) end
+      self.data.normal = ns
+    end
+  else
+    g.name = "four.cuboid.dups"
+    vs.data = { -x, -y,  z, -- Front
+                 x, -y,  z,
+                 x,  y,  z,
+                -x,  y,  z,
+                -x, -y,  z, -- Bottom
+                 x, -y,  z,
+                 x, -y, -z,
+                -x, -y, -z,
+                -x, -y,  z, -- Left
+                -x, -y, -z,
+                -x,  y, -z,
+                -x,  y,  z,
+                 x, -y,  z, -- Right
+                 x, -y, -z,
+                 x,  y, -z,
+                 x,  y,  z,
+                 x,  y,  z, -- Top
+                 x,  y, -z,
+                -x,  y, -z,
+                -x,  y,  z,
+                -x,  y, -z, -- Rear
+                -x, -y, -z,
+                 x, -y, -z,
+                 x,  y, -z }
+
+    is:push3D(0, 2, 3)    -- Front 
+    is:push3D(0, 1, 2)
+    is:push3D(4, 7, 6)    -- Bottom
+    is:push3D(4, 6, 5)
+    is:push3D(8, 11, 10)  -- Left
+    is:push3D(8, 10, 9)
+    is:push3D(12, 14, 15) -- Right
+    is:push3D(12, 13, 14)
+    is:push3D(16, 17, 18) -- Top
+    is:push3D(16, 18, 19)
+    is:push3D(20, 23, 22) -- Rear
+    is:push3D(20, 22, 21)
+  end
+  return g; 
 end
 
--- @Cube(s)@ is a cube with side length @s@ centered on the origin.
-function lib.Cube(s) return lib.Cuboid(s, s, s) end
+-- @Cube(s [, no_dups])@ is @Cuboid(V3(s, s, s) [, no_dups])
+function lib.Cube(s, no_dups) return lib.Cuboid(V3(s, s, s), no_dups) end
 
 --[[--
   @Sphere(r[,level])@ is a sphere of radius @r@ centered on the origin.

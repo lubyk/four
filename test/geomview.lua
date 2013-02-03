@@ -37,8 +37,8 @@ function WireHiQAndNormals()
 end
 
 local effects = 
-  { WireHiQ,
-    WireHiQAndNormals,
+  { WireHiQAndNormals,
+    WireHiQ,
     Effect.Normals,
     Effect.Wireframe,
     Gooch.effect }  
@@ -46,8 +46,15 @@ local effects =
 local nextEffect = Demo.effectCycler { effects = effects } 
 
 -- World
+local geometries = 
+    { function () return Geometry.Cube(1) end,
+      function () return Geometry.Sphere(0.5, 4) end,
+      function () return Geometry.Plane(four.V2(1,1)) end,
+      function () return Models.bunny(1) end, 
+      function () return Geometry.Cube(1, true) end }
 
-local nextGeometry = Demo.geometryCycler { normals = true }
+local nextGeometry = Demo.geometryCycler { geometries = geometries, 
+                                           normals = true }
 local angle = math.pi / 4
 
 local obj = 
