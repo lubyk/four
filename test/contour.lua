@@ -19,7 +19,7 @@ local Models = require 'Models'
 -- Effects and shaders
 
 local gooch = Gooch.effect()
- 
+local wireframe = Effect.Wireframe { adjacency = true }  
 local contour_world_tris = Effect 
 {
   rasterization = { cull_face = Effect.CULL_BACK },
@@ -74,7 +74,7 @@ local contour_world_tris = Effect
       // Extrudes a trapezoid along the edge normals (triangle strip CCW).
       //          p0  p1
       //          x-----x
-      //        /        \
+      //        /____--- \
       //       x----------x p1 + n1 * contour_width
       //       p0 + n0 * contour_width 
 
@@ -126,7 +126,8 @@ local contour_world_tris = Effect
 
 local effects = 
   { function () return contour_world_tris end,
-    function () return { gooch, contour_world_tris } end }
+    function () return { gooch, contour_world_tris } end, 
+    function () return { wireframe, contour_world_tris } end }
 
 local nextEffect = Demo.effectCycler { effects = effects } 
 
