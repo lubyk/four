@@ -52,7 +52,7 @@ end
   http://graphics.stanford.edu/data/3Dscanrep/
 --]]--
 function lib.bunny (nscale)
-  local b = yaml.load(lk.readAll('models/bunny.yml'))
+  local b = yaml.load(lk.readAll(lk.scriptDir() .. '/models/bunny.yml'))
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT, data = b.vertex }
   local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT, 
                      data = b.index }

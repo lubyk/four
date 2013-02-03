@@ -4,6 +4,7 @@ require 'lubyk'
 local Demo = require 'demo'
 local Gooch = require 'gooch'
 local Manip = require 'manip'
+local Models = require 'models'
 
 local V2 = four.V2
 local V3 = four.V3
