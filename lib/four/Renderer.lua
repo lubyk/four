@@ -87,57 +87,51 @@ function lib:stats() return self.stats end
 
 function lib.statsTable () 
   return 
-    { frame_stamp = nil,          -- start time of last frame
-      sample_stamp = nil,         -- start time of sample 
+    { frame_stamp = nil,          -- start time of current frame
+      frame_time = 0,             -- duration of last frame
+      max_frame_time = -math.huge,     
+      min_frame_time = math.huge,
+      vertices = 0,               -- vertex count of last frame
+      max_vertices = -math.huge,
+      faces = 0,                  -- face count of last frame
+      max_faces = -math.huge,
+      sample_stamp = now (),      -- start time of sample 
       sample_frame_count = 0,     -- number of frames in sample
       frame_hz = 0,               -- frame rate
       max_frame_hz = -math.huge,
-      min_frame_hz = math.huge,
-      frame_time = 0,            -- duration of last frame
-      max_frame_time = -math.huge,     
-      min_frame_time = math.huge,
-      vertices = 0,              -- vertex count of last frame
-      _vertices = 0,             -- vertex count of current frame
-      max_vertices = -math.huge,
-      min_vertices = math.huge,
-      faces = 0,                 -- face count of last frame
-      _faces = 0,                -- vertex count of current frame
-      max_faces = -math.huge,
-      min_faces = math.huge }
+      min_frame_hz = math.huge }
 end
 
 function lib:resetStats() self.stats = lib.statsTable () end
-function lib:updateStats(now) 
+function lib:beginStats(now)
   local stats = self.stats
-  stats.vertices = stats._vertices
-  stats.faces = stats._faces
+  stats.frame_stamp = now
+  stats.vertices = 0;
+  stats.faces = 0; 
+end
+
+function lib:endStats()
+  local now = now () 
+  local stats = self.stats
+  stats.frame_time = now - stats.frame_stamp
+  stats.max_frame_time = math.max(stats.frame_time, stats.max_frame_time)
+  stats.min_frame_time = math.min(stats.frame_time, stats.min_frame_time)
   stats.max_vertices = math.max(stats.vertices, stats.max_vertices)
-  stats.min_vertices = math.min(stats.vertices, stats.min_vertices)
   stats.max_faces = math.max(stats.faces, stats.max_faces)
-  stats.min_faces = math.min(stats.faces, stats.min_faces)
-  stats._vertices = 0;
-  stats._faces = 0;
-  if not stats.frame_stamp then 
-    stats.frame_stamp = now
+
+  local sample_duration = now - stats.sample_stamp 
+  stats.sample_frame_count = stats.sample_frame_count + 1; 
+  if sample_duration > 1000 then 
+    stats.frame_hz = (stats.sample_frame_count / sample_duration) * 1000
+    stats.max_frame_hz = math.max(stats.frame_hz, stats.max_frame_hz)
+    stats.min_frame_hz = math.min(stats.frame_hz, stats.min_frame_hz)
+    stats.sample_frame_count = 0
     stats.sample_stamp = now
-  else 
-    local sample_duration = now - stats.sample_stamp
-    stats.sample_frame_count = stats.sample_frame_count + 1;
-    if sample_duration >= 1000 then 
-      stats.frame_hz = (stats.sample_frame_count / sample_duration) * 1000
-      stats.max_frame_hz = math.max(stats.frame_hz, stats.max_frame_hz)
-      stats.min_frame_hz = math.min(stats.frame_hz, stats.min_frame_hz)
-      stats.sample_frame_count = 0;
-      stats.sample_stamp = now
-    end
-    stats.frame_time = now - stats.frame_stamp
-    stats.max_frame_time = math.max(stats.frame_time, stats.max_frame_time)
-    stats.min_frame_time = math.min(stats.frame_time, stats.min_frame_time)
-    stats.frame_stamp = now
-  end
+  end  
 end
 
 function lib:addGeometryStats(g)
+  -- TODO this doesn't work once data was uploaded on the GPU.
   local stats = self.stats
   local v_count = g.index:scalarLength()
   local f_count = 0
@@ -148,8 +142,8 @@ function lib:addGeometryStats(g)
   elseif g.primitive == Geometry.TRIANGLE_STRIP_ADJACENCY then 
     fcount = v_count / 2 - 4
   end
-  stats._vertices = stats._vertices + v_count
-  stats._faces = stats._faces + f_count
+  stats.vertices = stats.vertices + v_count
+  stats.faces = stats.faces + f_count
 end
 
 -- h2. Renderer log
@@ -184,12 +178,9 @@ function lib:logStats()
              stats.min_frame_hz, stats.max_frame_hz))
   self:log(s("+ %.1fms frame time (%.1f/%.1f)", 
              stats.frame_time, stats.min_frame_time, stats.max_frame_time))
-  self:log(s("+ %d frame vertices (%d/%d)", 
-             stats.vertices, stats.min_vertices, stats.max_vertices))
-  self:log(s("+ %d frame faces (%d/%d)", 
-             stats.faces, stats.min_faces, stats.max_faces))
+  self:log(s("+ %d frame vertices (-/%d)", stats.vertices, stats.max_vertices))
+  self:log(s("+ %d frame faces (-/%d)", stats.faces, stats.max_faces))
 end
-
 
 -- h2. Screen coordinates
 
@@ -222,14 +213,15 @@ end
 
 -- @render(cam, objs)@ renders the renderables in @objs@ with @cam@.
 function lib:render(cam, objs)
-  local now = now () 
+  local now = now ()
+  self:beginStats(now)
   self:_init ()
   self.frame_start_time = now
-  self:updateStats(now)
   for _, o in ipairs(objs) do 
     if not (o.render_list) then self:addRenderable(cam, o) else
       for _, o in ipairs(o) do self:addRenderable(cam, o) end
     end
   end
   self.r:renderQueueFlush(cam)
+  self:endStats()
 end
