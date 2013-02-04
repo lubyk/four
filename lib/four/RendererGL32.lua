@@ -663,23 +663,24 @@ function lib:setProgramInfo(pstate)
     lo.glGetActiveUniform(p, i, max_len, len, size, type, s)
     local name = ffi.string (s, len[0])
     local type = type[0]
-    local type_info = uniformTypeInfo[type]
+    local info = uniformTypeInfo[type]
     local size = size[0]
-    if type_info == nil or type_info.unsupported then 
-      self:log(string.format("Unsupported uniform type: %s", type_info.glsl))
+    if info == nil or info.unsupported then 
+      self:log(string.format("Unsupported uniform type: %s", info.glsl))
     else
       if string.find(name, "%[%d%]") == nil then
+        assert(size == 1)
         local loc = lo.glGetUniformLocation(p, name)
-        pstate.uniforms[name] = { loc = loc, type = type, size = size }
+        pstate.uniforms[name] = { loc = loc, info = info }
       else
         -- Array of uniforms
-        local n, _ = string.gsub(name, "%[%d%]", "")
-        pstate.uniforms[n] = {} 
+        local locs = {}
         for i = 1,size do 
           local aname = string.gsub(name, "%d", i - 1)
-          local loc = lo.glGetUniformLocation(p, aname)
-          pstate.uniforms[n][i] = { loc = loc, type = type, size = 1 }
+          locs[i] = lo.glGetUniformLocation(p, aname)
         end
+        local n, _ = string.gsub(name, "%[%d%]", "")
+        pstate.uniforms[n] = { locs = locs, info = info } 
       end
     end
   end
@@ -769,59 +770,52 @@ function lib:getSpecialUniform(u, m2w)
   return nil
 end
 
-function lib:effectBindUniform(effect, m2w, o, uspec, u, i)
-  local loc = uspec.loc
-  local info = uniformTypeInfo[uspec.type]
-  local v = effect.uniform(effect, cam, o, u)
-  if v == nil then v = effect.default_uniforms[u] end
-  if v and i then v = v[i] end -- TODO better error if v is not array.
-
-  -- TODO do we do type checks here ?
-  -- TODO better error if arbitrary objects is passed.
-  local vt = type(v)
-  if vt == "boolean" then v = { v and 1 or 0 } 
-  elseif vt == "number" then v = { v } 
-  elseif vt == "table" then 
-    if v.special_uniform then v = self:getSpecialUniform(v, m2w)
-    elseif v.type == 'four.Transform' then v = v.matrix end
-  end
-  
-  if not v then 
-    self:log(string.format("No value found for uniform: %s %s", info.glsl, 
-                           i and string.format("%s[%d]", u, i) or u))
-  else
-    if info.kind == vec_kind then 
-      if info.dim == 1 then info.bind(loc, v[1])
-      elseif info.dim == 2 then info.bind(loc, v[1], v[2])
-      elseif info.dim == 3 then info.bind(loc, v[1], v[2], v[3])
-      elseif info.dim == 4 then info.bind(loc, v[1], v[2], v[3], v[4])
-      end
-    elseif info.kind == mat_kind then 
-      local m = ffi.new("GLfloat [?]", info.dim, v) 
-      info.bind(loc, 1, lo.GL_FALSE, m)
-    elseif info.kind == samp_kind then 
-      local t = self:textureStateAllocate(v)
-      lo.glActiveTexture(lo.GL_TEXTURE0 + self.next_active_texture)
-      local target = texTargetGLenum[v.type] 
-      lo.glBindTexture(target,t.id)
-      lo.glUniform1i(loc, self.next_active_texture)
-      self.next_active_texture = self.next_active_texture + 1
-    end
-  end 
-end
-
 function lib:effectBindUniforms(effect, estate, cam, o)
   local m2w = o.transform and o.transform.matrix or M4.id ()
-  if o.geometry.pre_transform then
-    m2w = m2w * o.geometry.pre_transform 
-  end
+  if o.geometry.pre_transform then m2w = m2w * o.geometry.pre_transform end
   
   self.next_active_texture = 0
   for u, uspec in pairs(estate.program.uniforms) do 
-    if uspec.loc then self:effectBindUniform(effect, m2w, o, uspec, u, nil) else
-      for i, uspec in ipairs(uspec) do
-        self:effectBindUniform(effect, m2w, o, uspec, u, i)
-      end
+    local uval = effect.uniform(effect, cam, o, u)
+    if uval == nil then uval = effect.default_uniforms[u] end
+
+    local info = uspec.info
+    local locs = uspec.locs or { uspec.loc } 
+    local uvals = uspec.locs and uval or { uval }
+
+    for i, loc in ipairs(locs) do 
+      local v = uvals[i]
+      local vt = type(v)
+      if vt == "boolean" then v = { v and 1 or 0 } 
+      elseif vt == "number" then v = { v } 
+      elseif vt == "table" then 
+        if v.special_uniform then v = self:getSpecialUniform(v, m2w)
+        elseif v.type == 'four.Transform' then v = v.matrix end
+      end    
+      if not v then 
+        self:log(string.format("No value found for uniform: %s %s", 
+                               info.glsl, 
+                               uspec.locs and 
+                                 string.format("%s[%d]", u, i) or u))
+      else
+        if info.kind == vec_kind then 
+          if info.dim == 1 then info.bind(loc, v[1])
+          elseif info.dim == 2 then info.bind(loc, v[1], v[2])
+          elseif info.dim == 3 then info.bind(loc, v[1], v[2], v[3])
+          elseif info.dim == 4 then info.bind(loc, v[1], v[2], v[3], v[4])
+          end
+        elseif info.kind == mat_kind then 
+          local m = ffi.new("GLfloat [?]", info.dim, v) 
+          info.bind(loc, 1, lo.GL_FALSE, m)
+        elseif info.kind == samp_kind then 
+          local t = self:textureStateAllocate(v)
+          lo.glActiveTexture(lo.GL_TEXTURE0 + self.next_active_texture)
+          local target = texTargetGLenum[v.type] 
+          lo.glBindTexture(target,t.id)
+          lo.glUniform1i(loc, self.next_active_texture)
+          self.next_active_texture = self.next_active_texture + 1
+        end
+      end 
     end
   end
 end
