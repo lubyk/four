@@ -1017,7 +1017,7 @@ static const GLenum GL_TIMEOUT_EXPIRED = 0x911B;
 static const GLenum GL_CONDITION_SATISFIED = 0x911C;
 static const GLenum GL_WAIT_FAILED = 0x911D;
 static const GLenum GL_SYNC_FLUSH_COMMANDS_BIT = 0x00000001;
-// FIXME luajit doesn't like this 
+// TODO luajit doesn't like this 
 // static const GLuint64 GL_TIMEOUT_IGNORED = 0xFFFFFFFFFFFFFFFF;
 
 static const GLenum GL_SAMPLE_POSITION = 0x8E50;
@@ -2206,7 +2206,7 @@ GLsync glCreateSyncFromCLeventARB (struct _cl_context * context, struct _cl_even
 
 void glDebugMessageControlARB (GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled);
 void glDebugMessageInsertARB (GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf);
-// FIXME GLDEBUGPROCARB undefined
+// TODO GLDEBUGPROCARB undefined
 // void glDebugMessageCallbackARB (GLDEBUGPROCARB callback, const GLvoid *userParam);
 GLuint glGetDebugMessageLogARB (GLuint count, GLsizei bufsize, GLenum *sources, GLenum *types, GLuint *ids, GLenum *severities, GLsizei *lengths, GLchar *messageLog);
 
@@ -2254,7 +2254,7 @@ void glTextureStorage3DEXT (GLuint texture, GLenum target, GLsizei levels, GLenu
 
 void glDebugMessageControl (GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled);
 void glDebugMessageInsert (GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf);
-// FIXME GLDEBUGPROC undefined
+// TODO GLDEBUGPROC undefined
 // void glDebugMessageCallback (GLDEBUGPROC callback, const void *userParam);
 GLuint glGetDebugMessageLog (GLuint count, GLsizei bufsize, GLenum *sources, GLenum *types, GLuint *ids, GLenum *severities, GLsizei *lengths, GLchar *messageLog);
 void glPushDebugGroup (GLenum source, GLuint id, GLsizei length, const GLchar *message);

@@ -854,7 +854,7 @@ function lib:setupEffect(effect, estate)
   local program = estate.program.id
   if program == -1 then return false end
 
-  -- FIXME if all these GL calls are too expensive track current state in 
+  -- TODO if all these GL calls are too expensive track current state in 
   -- the renderer. Same goes for setupXXState()
   lo.glUseProgram(program)
   self:setupRasterizationState(effect.rasterization)
