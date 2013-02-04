@@ -699,6 +699,13 @@ function lib:programStateAllocate(effect)
                   attribs = {},  -- maps active attrib names to loc/type/siz
                   uniforms = {}} -- maps active uniform names to loc/type/siz
   local function finalize () 
+    -- TODO it seems that Lua will sometime call the finalizer while 
+    -- state is still available in the weak table self.programs[fullsrc]. 
+    -- This may lead another effect to pick it up and use it even though 
+    -- it's no longer valid for OpenGL. We therefore clean the weaktable here.
+    -- Something seems very broken and rotten (behaviour happens at least 
+    -- in Luajit 2.0.0).
+    self.programs[fullsrc] = nil
     if state.id ~= -1 then lo.glDeleteProgram(state.id) end
   end
   state.finalizer = lk.Finalizer(finalize) 
