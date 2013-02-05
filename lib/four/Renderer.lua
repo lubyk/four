@@ -91,6 +91,8 @@ function lib.statsTable ()
       frame_time = 0,             -- duration of last frame
       max_frame_time = -math.huge,     
       min_frame_time = math.huge,
+      renderables = 0,            -- renderables count of last frame
+      max_renderables = -math.huge, 
       vertices = 0,               -- vertex count of last frame
       max_vertices = -math.huge,
       faces = 0,                  -- face count of last frame
@@ -106,8 +108,9 @@ function lib:resetStats() self.stats = lib.statsTable () end
 function lib:beginStats(now)
   local stats = self.stats
   stats.frame_stamp = now
-  stats.vertices = 0;
-  stats.faces = 0; 
+  stats.renderables = 0
+  stats.vertices = 0
+  stats.faces = 0
 end
 
 function lib:endStats()
@@ -116,6 +119,7 @@ function lib:endStats()
   stats.frame_time = now - stats.frame_stamp
   stats.max_frame_time = math.max(stats.frame_time, stats.max_frame_time)
   stats.min_frame_time = math.min(stats.frame_time, stats.min_frame_time)
+  stats.max_renderables = math.max(stats.renderables, stats.max_renderables)
   stats.max_vertices = math.max(stats.vertices, stats.max_vertices)
   stats.max_faces = math.max(stats.faces, stats.max_faces)
 
@@ -144,6 +148,7 @@ function lib:addGeometryStats(g)
   end
   stats.vertices = stats.vertices + v_count
   stats.faces = stats.faces + f_count
+  stats.renderables = stats.renderables + 1
 end
 
 -- h2. Renderer log
@@ -178,6 +183,8 @@ function lib:logStats()
              stats.min_frame_hz, stats.max_frame_hz))
   self:log(s("+ %.1fms frame time (%.1f/%.1f)", 
              stats.frame_time, stats.min_frame_time, stats.max_frame_time))
+  self:log(s("+ %d frame renderables (-/%d)", stats.renderables, 
+             stats.max_renderables))
   self:log(s("+ %d frame vertices (-/%d)", stats.vertices, stats.max_vertices))
   self:log(s("+ %d frame faces (-/%d)", stats.faces, stats.max_faces))
 end
