@@ -161,7 +161,7 @@ end
 function lib:log(msg) print(msg) end
 function lib:logInfo(verbose)
   local info = self:info() 
-  local verbose = long and true
+  local verbose = verbose and true
   if not verbose then 
     local msg = string.format("Renderer OpenGL %s / GLSL %s\n         %s", 
                               info.version, info.shading_language_version, 
