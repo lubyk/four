@@ -765,10 +765,13 @@ function lib:getSpecialUniform(u, m2w)
   elseif u == Effect.CAMERA_RESOLUTION then 
     return self.camera_resolution
   elseif u == Effect.RENDER_FRAME_START_TIME then 
-    return { self.super.frame_start_time }
+    return self.super.frame_start_time
   end
   return nil
 end
+
+local str = string.format
+local GLFloatPtr = ffi.typeof("GLfloat [?]")
 
 function lib:effectBindUniforms(effect, estate, cam, o)
   local m2w = o.transform and o.transform.matrix or M4.id ()
@@ -776,38 +779,77 @@ function lib:effectBindUniforms(effect, estate, cam, o)
   
   self.next_active_texture = 0
   for u, uspec in pairs(estate.program.uniforms) do 
-    local uval = effect.uniform(effect, cam, o, u)
-    if uval == nil then uval = effect.default_uniforms[u] end
-
     local info = uspec.info
-    local locs = uspec.locs or { uspec.loc } 
-    local uvals = uspec.locs and uval or { uval }
+    local uv = effect.uniform(effect, cam, o, u)
+    uv = uv or effect.default_uniforms[u]
 
-    for i, loc in ipairs(locs) do 
-      local v = uvals[i]
-      local vt = type(v)
-      if vt == "boolean" then v = { v and 1 or 0 } 
-      elseif vt == "number" then v = { v } 
-      elseif vt == "table" then 
-        if v.special_uniform then v = self:getSpecialUniform(v, m2w)
-        elseif v.type == 'four.Transform' then v = v.matrix end
-      end    
-      if not v then 
-        self:log(string.format("No value found for uniform: %s %s", 
-                               info.glsl, 
-                               uspec.locs and 
-                                 string.format("%s[%d]", u, i) or u))
-      else
-        if info.kind == vec_kind then 
-          if info.dim == 1 then info.bind(loc, v[1])
-          elseif info.dim == 2 then info.bind(loc, v[1], v[2])
-          elseif info.dim == 3 then info.bind(loc, v[1], v[2], v[3])
-          elseif info.dim == 4 then info.bind(loc, v[1], v[2], v[3], v[4])
+    if uv == nil then
+      local name = uspec.locs and str("%s[%d]", u, #uspec.locs) or u
+      self:log(str("Uniform value %s %s: not found", info.glsl, name))
+    elseif uspec.locs and type(uv) ~= "table" then
+      local name = str("%s[%d]", u, #uspec.locs)
+      self:log(str("Uniform value %s %s: found %s instead of table", 
+                   info.glsl, name, type(uv)))
+                     
+    elseif uspec.locs and #uv ~= #uspec.locs then 
+      local name = str("%s[%d]", u, #uspec.locs)
+      self:log(str("Uniform value %s %s: table too short (%d)", 
+                   info.glsl, name, #uv))
+    else
+      local uvals = uspec.locs and uv or { uv }
+      local locs = uspec.locs or { uspec.loc } 
+      if info.kind == vec_kind then 
+        if info.dim == 1 then
+          for i, loc in ipairs(locs) do 
+            local v = uvals[i]
+            if type(v) == "table" and v.special_uniform then 
+              v = self:getSpecialUniform(v, m2w)
+            end
+            info.bind(loc, v)
           end
-        elseif info.kind == mat_kind then 
-          local m = ffi.new("GLfloat [?]", info.dim, v) 
+        elseif info.dim == 2 then 
+          for i, loc in ipairs(locs) do 
+            local v = uvals[i]
+            if type(v) == "table" and v.special_uniform then 
+              v = self:getSpecialUniform(v, m2w)
+            end
+            info.bind(loc, v[1], v[2])
+          end
+        elseif info.dim == 3 then 
+          for i, loc in ipairs(locs) do 
+            local v = uvals[i]
+            if type(v) == "table" and v.special_uniform then 
+              v = self:getSpecialUniform(v, m2w)
+            end
+            info.bind(loc, v[1], v[2], v[3])
+          end
+        elseif info.dim == 4 then
+          for i, loc in ipairs(locs) do 
+            local v = uvals[i]
+            if type(v) == "table" and v.special_uniform then 
+              v = self:getSpecialUniform(v, m2w)
+            end
+            info.bind(loc, v[1], v[2], v[3], v[4])
+          end
+        else assert(false) 
+        end
+      elseif info.kind == mat_kind then 
+        for i, loc in ipairs(locs) do 
+          local v = uvals[i]
+          if type(v) == "table" and v.special_uniform then 
+            v = self:getSpecialUniform(v, m2w)
+          elseif v.type == 'four.Transform' then 
+            v = v.matrix 
+          end
+          local m = GLFloatPtr(info.dim, v)
           info.bind(loc, 1, lo.GL_FALSE, m)
-        elseif info.kind == samp_kind then 
+        end
+      elseif info.kind == samp_kind then 
+        for i, loc in ipairs(locs) do 
+          local v = uvals[i]
+          if type(v) == "table" and v.special_uniform then 
+            v = getSpecialUniform(v, m2w)
+          end
           local t = self:textureStateAllocate(v)
           lo.glActiveTexture(lo.GL_TEXTURE0 + self.next_active_texture)
           local target = texTargetGLenum[v.type] 
@@ -815,7 +857,7 @@ function lib:effectBindUniforms(effect, estate, cam, o)
           lo.glUniform1i(loc, self.next_active_texture)
           self.next_active_texture = self.next_active_texture + 1
         end
-      end 
+      end
     end
   end
 end
