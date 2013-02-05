@@ -987,7 +987,7 @@ function lib:renderQueueAdd(cam, o)
   addPasses(effect)
 end
 
-function lib:renderBatch(effect, batch) 
+function lib:renderBatch(cam, effect, batch) 
   local estate = self.effects[effect] 
   if self:setupEffect(effect, estate) then
     for _, o in ipairs(batch) do
@@ -1006,8 +1006,8 @@ function lib:renderQueueFlush(cam)
   self:setupCameraParameters(cam)
   self:clearFramebuffer(cam)
   for _, pass in ipairs(self.queue) do 
-    for e, batch in pairs(pass.opak) do self:renderBatch(e, batch) end
-    for e, batch in pairs(pass.nopak) do self:renderBatch(e, batch) end
+    for e, batch in pairs(pass.opak) do self:renderBatch(cam, e, batch) end
+    for e, batch in pairs(pass.nopak) do self:renderBatch(cam, e, batch) end
   end
   self.queue = {}
   if self.super.debug then self:logGlError() end
