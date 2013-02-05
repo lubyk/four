@@ -1,5 +1,5 @@
 --[[--
-  # four.M4
+  h1. four.M4
   4x4 float matrices 
 
   We write aij the element of a located at the ith one-based row
@@ -11,33 +11,34 @@
   column-major order.
 --]]--
 
--- Module definition  
-
 local lib = { type = 'four.M4' }
 lib.__index = lib
 four.M4 = lib
-setmetatable(
-  lib, 
-  { __call = function(lib, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, 
-                      a13, a14, a15, a16) 
-      return lib.M4(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, 
-                      a13, a14, a15, a16) end 
-})
+setmetatable(lib, { __call = function(lib, ...) return lib.M4(...) end })
 
 local V3 = four.V3
 
--- ## Constructor and accessors
+-- h2. Constructor and accessors
 
 function lib.M4(e11, e12, e13, e14, -- row 1
                 e21, e22, e23, e24, -- row 2
                 e31, e32, e33, e34, -- row 3
                 e41, e42, e43, e44) -- row 4
-  local o =  { e11, e21, e31, e41,  -- col 1
-               e12, e22, e32, e42,  -- col 2
-               e13, e23, e33, e43,  -- col 3
-               e14, e24, e34, e44 } -- col 4
-  setmetatable(o, lib)
-  return o
+  local m 
+  if e12 then 
+    m = { e11, e21, e31, e41,  -- col 1
+          e12, e22, e32, e42,  -- col 2
+          e13, e23, e33, e43,  -- col 3
+          e14, e24, e34, e44 } -- col 4
+  else
+    if e11.type == "bt.Transform" then m = e11:toM4() 
+    else
+      assert(false, string.format("Cannot convert %s to %s", e11.type, 
+                                  lib.type))
+    end
+  end
+  setmetatable(m, lib)
+  return m
 end
 
 local M4 = lib.M4
@@ -48,7 +49,7 @@ function lib.col(m, i)
   return four.V4(m[b + 1], m[b + 2], m[b + 3], m[b + 4])
 end
 
--- ## Converters
+-- h2. Converters
 
 function lib.ofRows(r1, r2, r3, r4) 
   return M4(r1[1], r1[2], r1[3], r1[4],
@@ -72,7 +73,7 @@ function lib.tostring(m)
                        m[4], m[8], m[12], m[16])
 end
 
--- ## Constants 
+-- h2. Constants 
 
 function lib.zero() 
   return M4(0, 0, 0, 0,
@@ -88,7 +89,7 @@ function lib.id()
             0, 0, 0, 1)
 end
 
--- ## Functions
+-- h2. Functions
 
 function lib.neg(a)
   local r = {} for i in 1, 16 do r[i] = -a[i] end return r
@@ -193,7 +194,7 @@ function lib.inv(a)
              -m03 / det,  m13 / det, -m23 / det,  m33 / det)
 end
 
--- ## 3D space transforms
+-- h2. 3D space transforms
 
 -- @move(d)@ is a matrix that translates 3D space by the vector @d@.
 function lib.move(d) 
@@ -367,7 +368,7 @@ function lib.persp(l, r, b, t, n, f)
 end 
 
 
--- ## 4D space transformation
+-- h2. 4D space transformation
 
 -- scales 4D space in the x, y, z and w dimensions according to @s@
 function lib.scale4D(s)
@@ -377,7 +378,7 @@ function lib.scale4D(s)
             0   ,    0,    0,  s[4])
 end
 
--- ## Traversal
+-- h2. Traversal
 
 function lib.map(f, m)
   local r = {} 
@@ -429,7 +430,7 @@ function lib.iter(f, m)
   end
 end
 
--- ## Predicates
+-- h2. Predicates
 
 function lib.forAll(p, m)
   local r = true 
@@ -466,7 +467,7 @@ end
 function lib.compare(u, v) error ("TODO") end
 function lib.compareF(f, u, v) error ("TODO") end
 
--- ## Operators
+-- h2. Operators
 
 lib.__unm = lib.neg
 lib.__add = lib.add
