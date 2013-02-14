@@ -27,7 +27,9 @@ function lib.__newindex(t, k, v)
     local shaders = t.shaders
     shaders[k] = v 
     t.program_changed = true
-  else t[k] = v end
+  else
+    rawset(t, k, v)
+  end
 end
 
 setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
