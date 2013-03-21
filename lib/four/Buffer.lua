@@ -1,13 +1,8 @@
 --[[--
   # four.Buffer
 
-  A buffer holds 1D to 4D int/float vectors in a linear lua array. See #new for
-  usage.
-
-  ## Tutorial
-
-  See [SimpleShader](tutorial.four.SimpleShader.html) which uses buffers with
-  a simple renderable.
+  A buffer holds 1D to 4D int/float vectors in a linear lua array. For usage,
+  see #new or the [SimpleShader](tutorial.four.SimpleShader.html) example.
 
 --]]--
 -- doc:loose
@@ -41,18 +36,18 @@ lib.UPDATE_OFTEN = 3
 -- # Constructor
 
 --[[--
-  Create a four.Buffer with parameters defined in @def@. Possible keys are:
+  Create a four.Buffer with parameters defined in `def`. Possible keys are:
 
-  + dim:         the vectors dimension (defaults to @3@).
-  + scalar_type: the vector's element type (defaults to @lib.FLOAT@).
-  + data:        an array of numbers (defaults to @{}@)
-  + normalize:   @true@ if the data should be normalized by the GPU (defaults
-                 to @false@).
-  + update:      the update frequency (defaults to @UPDATE_NEVER@)
-  + disposable:  if @true@, @data@ is disposed by the renderer once
-                 uploaded to the GPU (defaults to @true@).
-  + updated:     if @true@, @data@ will be read again by the renderer. The
-                 renderer sets the flag back to @false@ once it read the data.
+  + dim:         the vectors dimension (defaults to `3`).
+  + scalar_type: the vector's element type (defaults to `lib.FLOAT`).
+  + data:        an array of numbers (defaults to `{}`)
+  + normalize:   `true` if the data should be normalized by the GPU (defaults
+                 to `false`).
+  + update:      the update frequency (defaults to `UPDATE_NEVER`)
+  + disposable:  if `true`, `data` is disposed by the renderer once
+                 uploaded to the GPU (defaults to `true`).
+  + updated:     if `true`, `data` will be read again by the renderer. The
+                 renderer sets the flag back to `false` once it read the data.
 
   Usage examples:
 
@@ -255,7 +250,7 @@ end
 
 -- # Swapping and deleting
 
--- Swap elements @i@ and @j@. 
+-- Swap elements `i` and `j`. 
 function lib:swap(i,j)
   self.updated = true
   local dim = self.dim 
@@ -271,7 +266,7 @@ function lib:swap(i,j)
   end
 end
  
--- Delete element @i@.
+-- Delete element `i`.
 -- *Warning*: does not preserve the order of elements in the array.
 function lib:delete(i)
  self.updated = true
@@ -368,10 +363,10 @@ end
 --[[--
   # Sorting
   
-  Sorting methods use custom comparison function @cmp(x,y)@ which should return:
-  * @-1@ if @x@ is smaller than @y@
-  * @0@ if @x@ equals @y@
-  * @1@ if @x@ is greater than @y@
+  Sorting methods use custom comparison function `cmp(x,y)` which should return:
+  * `-1` if `x` is smaller than `y`
+  * `0` if `x` equals `y`
+  * `1` if `x` is greater than `y`
 --]]--
 
 local function generic_sort_order(b, cmp, get)
@@ -437,17 +432,16 @@ local sort_get = { lib.get1D, lib.getV2, lib.getV3, lib.getV4 }
 local sort_set = { lib.set1D, lib.setV2, lib.setV3, lib.setV4 }
 
 --[[--
-  Sort the elements of the buffer in place using @cmp@ as a comparison
+  Sort the elements of the buffer in place using `cmp` as a comparison
   function.
-  @cmp@ is given objects returned by optional @get@ function.
-  (defaults depends on @self.dim@, number for @1@, V2 for @2@, V3 for @3@, 
-   V4 for @4@)
+  `cmp` is given objects returned by optional `get` function.
+  (defaults depends on `self.dim`, number for `1`, V2 for `2`, V3 for `3`, 
+   V4 for `4`)
 --]]--
 function lib:sort(cmp, get)  
   local set = sort_set[self.dim]
-  -- FIXME: This does not correspond to documentation (param @get@ never used).
-  local get = sort_get[self.dim]
   local cget = get or sort_get[self.dim]
+  local get = sort_get[self.dim]
   generic_sort_inplace(self, cmp, cget, get, set)
 end
 
@@ -460,8 +454,8 @@ end
 
 -- # Data properties 
 
--- Returns a table of size @self.dim@ containing tables with the minimal and
--- maximal scalar values for each dimension in to form @{min = ..., max = ...}@.
+-- Returns a table of size `self.dim` containing tables with the minimal and
+-- maximal scalar values for each dimension in to form `{min = ..., max = ...}`.
 function lib:dimExtents()
   local dim = self.dim 
   local t = self.data 
