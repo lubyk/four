@@ -1,26 +1,30 @@
 --[[--
-  h1. four.Buffer
+  # four.Buffer
 
-  A buffer holds 1D to 4D int/float vectors in a linear lua array.
+  A buffer holds 1D to 4D int/float vectors in a linear lua array. See #new for
+  usage.
+
+  ## Tutorial
+
+  See [SimpleShader](tutorial.four.SimpleShader.html) which uses buffers with
+  a simple renderable.
+
 --]]--
+-- doc:loose
 
 -- Module definition
 
-local lib = { type = 'four.Buffer' }
-lib.__index = lib
-four.Buffer = lib
-setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
+local lib = class 'four.Buffer'
 
 local V2 = four.V2
 local V3 = four.V3
 local V4 = four.V4
 
---[[--
-   h2. Buffer element type 
-   Defines how the data will be stored on the GPU and how the shader will 
-   view the data.
---]]--
-
+-- # Constants
+--
+-- ## Buffer element type 
+-- Defines how the data will be stored on the GPU and how the shader will 
+-- view the data.
 lib.FLOAT = 1
 lib.DOUBLE = 2
 lib.INT = 3
@@ -28,29 +32,44 @@ lib.UNSIGNED_INT = 4
 lib.BYTE = 5
 lib.UNSIGNED_BYTE = 6
 
---[[--
-  h2. Buffer usage hints
-  Defines how the data will be updated (hint for renderer).
---]]--
-
+-- ## Buffer usage hints
+-- Defines how the data will be updated (hint for renderer).
 lib.UPDATE_NEVER = 1
 lib.UPDATE_SOMETIMES = 2
 lib.UPDATE_OFTEN = 3
 
--- h2. Constructor
+-- # Constructor
 
 --[[--
-  @Buffer(def)@ is a new buffer object. @def@ keys:
-  * @dim@, the vectors dimension (defaults to @3@).
-  * @scalar_type@, the vector's element type (defaults to @lib.FLOAT@).
-  * @data@, an array of numbers (defaults to @{}@)
-  * @normalize@, @true@ if the data should be normalized by the GPU (defaults
-    to @false@).
-  * @update@, the update frequency (defaults to @UPDATE_NEVER@)
-  * @disposable@, if @true@, @data@ is disposed by the renderer once
-    uploaded to the GPU (defaults to @true@).
-  * @updated@, if @true@, @data@ will be read again by the renderer. The
-    renderer sets the flag back to @false@ once it read the data.
+  Create a four.Buffer with parameters defined in @def@. Possible keys are:
+
+  + dim:         the vectors dimension (defaults to @3@).
+  + scalar_type: the vector's element type (defaults to @lib.FLOAT@).
+  + data:        an array of numbers (defaults to @{}@)
+  + normalize:   @true@ if the data should be normalized by the GPU (defaults
+                 to @false@).
+  + update:      the update frequency (defaults to @UPDATE_NEVER@)
+  + disposable:  if @true@, @data@ is disposed by the renderer once
+                 uploaded to the GPU (defaults to @true@).
+  + updated:     if @true@, @data@ will be read again by the renderer. The
+                 renderer sets the flag back to @false@ once it read the data.
+
+  Usage examples:
+
+  Vertex buffer (3 values = xyz).
+
+    local vb = four.Buffer { dim = 3,
+               scalar_type = four.Buffer.FLOAT } 
+
+  Color buffer (4 values = rgba)
+
+    local cb = four.Buffer { dim = 4,
+               scalar_type = four.Buffer.FLOAT }
+
+  Index buffer (how values are used is defined in four.Geometry#primitive).
+
+    local ib = four.Buffer { dim = 1,
+               scalar_type = four.Buffer.UNSIGNED_INT }
 --]]--
 function lib.new(def)
   local self = 
@@ -80,7 +99,7 @@ function lib:length() return (#self.data / self.dim) end
 function lib:scalarLength() return #self.data end
 function lib:disposeBuffer() self.data = {} end
 
--- h2. Getters 
+-- # Getters 
 
 function lib:getScalar(i) return self.data[i] end
 function lib:get1D(i)
@@ -124,7 +143,7 @@ function lib:getV4(i)
             self.data[b + 4])
 end
 
--- h2. Setters
+-- # Setters
 
 function lib:setScalar(i, x) 
   self.updated = true
@@ -179,11 +198,9 @@ function lib:setV4(i, v)
   self:set4D(i, V4.tuple(v)) 
 end
 
---[[--
-   h2. Append 
-   *Note*, appending just add elements at the end of the data, it 
-   doesn't care about buffer dimension.
---]]--
+-- # Append 
+-- *Note*: appending just adds elements at the end of the data, it 
+-- does not care about buffer dimension.
 
 function lib:push(...)
   self.updated = true
@@ -236,9 +253,9 @@ function lib:pushV4(v)
 end
 
 
--- h2. Swapping and deleting
+-- # Swapping and deleting
 
--- @self:swap(i,j)@ swaps the element @i@ and @j@ in self. 
+-- Swap elements @i@ and @j@. 
 function lib:swap(i,j)
   self.updated = true
   local dim = self.dim 
@@ -254,10 +271,8 @@ function lib:swap(i,j)
   end
 end
  
---[[--
-  @self:delete(i)@, deletes the element of @self@ at @i@.x
-  *Warning* Does not preserve the order of elements in the array.
---]]--
+-- Delete element @i@.
+-- *Warning*: does not preserve the order of elements in the array.
 function lib:delete(i)
  self.updated = true
  local dim = self.dim
@@ -266,13 +281,14 @@ function lib:delete(i)
 
  if len == 1 then self.data = {} 
  else 
+   -- TODO: Could greatly optimize by using table.remove (this would also preserve order).
    if i ~= len then self:swap(i, len) end
    local lb = (len - 1) * dim
    for d = 1, dim do t[lb + d] = nil end
  end
 end
 
--- h2. Traversing
+-- # Traversing
 
 function lib:foldScalars(f, acc)
   local t = self.data 
@@ -350,12 +366,12 @@ function lib:foldV4(f, acc)
 end
 
 --[[--
-  h2. Sorting
+  # Sorting
   
-  Sorting methods use custom comparison function @cmp@. @cmp(x,y)@ is:
-  * -1 if @x@ is smaller than @y@
-  * 0, if @x@ equals @y@
-  * 1 if @x@ is greater than @y@
+  Sorting methods use custom comparison function @cmp(x,y)@ which should return:
+  * @-1@ if @x@ is smaller than @y@
+  * @0@ if @x@ equals @y@
+  * @1@ if @x@ is greater than @y@
 --]]--
 
 local function generic_sort_order(b, cmp, get)
@@ -421,35 +437,31 @@ local sort_get = { lib.get1D, lib.getV2, lib.getV3, lib.getV4 }
 local sort_set = { lib.set1D, lib.setV2, lib.setV3, lib.setV4 }
 
 --[[--
-  @self:sort(cmp [, get])@ sorts the elements of the buffer in place using
-  @cmp@ as a comparison function. @cmp@ is given objects returned by @get@
+  Sort the elements of the buffer in place using @cmp@ as a comparison
+  function.
+  @cmp@ is given objects returned by optional @get@ function.
   (defaults depends on @self.dim@, number for @1@, V2 for @2@, V3 for @3@, 
    V4 for @4@)
 --]]--
 function lib:sort(cmp, get)  
   local set = sort_set[self.dim]
+  -- FIXME: This does not correspond to documentation (param @get@ never used).
   local get = sort_get[self.dim]
   local cget = get or sort_get[self.dim]
   generic_sort_inplace(self, cmp, cget, get, set)
 end
 
---[[--
-  @self:sortOrder(cmp [, get])@ is like @self:sort@ excepts elements of 
-  the buffer are kept in place and an array of indexes defining 
-  the order is returned. 
---]]--
+-- This is like #sort except elements of the buffer are kept in place and an
+-- array of indexes defining the order is returned. 
 function lib:sortOrder(cmp, get)
   local get = get or sort_get[self.dim]
   return generic_sort_order(self, cmp, get)
 end
 
--- h2. Data properties 
+-- # Data properties 
 
---[[--
- @self:dimExtents()@ is a table of size @self.dim@ each index
- storing a table @{min = ..., max = ... }@ corresponding to 
- the minimal and maximal scalar value in that dimension.
---]]--
+-- Returns a table of size @self.dim@ containing tables with the minimal and
+-- maximal scalar values for each dimension in to form @{min = ..., max = ...}@.
 function lib:dimExtents()
   local dim = self.dim 
   local t = self.data 
