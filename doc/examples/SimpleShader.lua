@@ -130,7 +130,7 @@ effect.vertex = four.Effect.Shader [[
     // v_color  = color;
     gl_Position = vertex;
   }
-]],
+]]
   
 -- Define the fragment shader. This shader simply creates periodic colors
 -- based on pixel position and time.
