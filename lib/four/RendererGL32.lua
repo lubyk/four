@@ -994,8 +994,14 @@ function lib:renderBatch(cam, effect, batch)
       self:effectBindUniforms(effect, estate, cam, o)
       local gstate = self.geometries[o.geometry]
       self:geometryStateBind(gstate, estate)
-      lo.glDrawElements(gstate.primitive, gstate.index_length, 
-                        gstate.index_scalar_type, nil)
+      if (o.instance_count) then
+        lo.glDrawElementsInstanced(gstate.primitive, gstate.index_length,
+                                   gstate.index_scalar_type, nil, 
+                                   o.instance_count)
+      else
+        lo.glDrawElements(gstate.primitive, gstate.index_length, 
+                          gstate.index_scalar_type, nil)
+      end
       lo.glBindVertexArray(0)
     end
   end

@@ -283,6 +283,7 @@ simply ignored. The following keys are interpreted by the renderer:
 * `effect`, the effect with which `geometry` should be rendered. 
 * `transform` (optional), a transform object defining a transform to 
   apply to `geometry`, in other words, a world transform.  
+* `instance_count`, the number of instances to render. 
 * `visible` (optional), if present and `false` disables the rendering
   of the renderable.
  
