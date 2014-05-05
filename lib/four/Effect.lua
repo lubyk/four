@@ -4,9 +4,9 @@
   An effect defines either a configuration of the graphics pipeline 
   or a list of Effects for rendering a Geometry object.
 --]]--
-
-local lib = { type = 'four.Effect' }
-four.Effect = lib
+local lub  = require 'lub'
+local four = require 'four'
+local lib  = lub.class 'four.Effect'
 
 local Color = four.Color
 local Effect = lib
@@ -142,9 +142,9 @@ end
 -- h2. Shader constructor
 
 function lib.Shader(src) 
-  local trace = lk.split(debug.traceback(),'\n\t')[3]
+  local trace = lub.split(debug.traceback(),'\n\t')[3]
   local file, last_line = string.match(trace, '^([^:]+):([^:]+):')
-  local src_line_count = #lk.split(src, '\n')  
+  local src_line_count = #lub.split(src, '\n')  
   return { file = file, line = last_line - src_line_count, fragment = src }
 end
 
@@ -389,3 +389,4 @@ return Effect
 }
 end
 
+return lib

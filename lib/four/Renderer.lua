@@ -5,17 +5,18 @@
 --]]--
 
 -- Module definition
+local lub  = require 'lub'
+local four = require 'four'
+local ffi  = require 'ffi'
+local lens = require 'lens'
 
-local ffi = require 'ffi'
-local lib = { type = 'four.Renderer' }
-lib.__index = lib
-four.Renderer = lib
-setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end })
+local lib = lub.class 'four.Renderer'
 
 local V2 = four.V2
 local V4 = four.V4
 local Buffer = four.Buffer
 local Geometry = four.Geometry
+local elapsed  = lens.elapsed
 
 -- h2. Renderer backends
 
@@ -97,7 +98,7 @@ function lib.statsTable ()
       max_vertices = -math.huge,
       faces = 0,                  -- face count of last frame
       max_faces = -math.huge,
-      sample_stamp = now (),      -- start time of sample 
+      sample_stamp = elapsed(),   -- start time of sample 
       sample_frame_count = 0,     -- number of frames in sample
       frame_hz = 0,               -- frame rate
       max_frame_hz = -math.huge,
@@ -114,7 +115,7 @@ function lib:beginStats(now)
 end
 
 function lib:endStats()
-  local now = now () 
+  local now = elapsed() 
   local stats = self.stats
   stats.frame_time = now - stats.frame_stamp
   stats.max_frame_time = math.max(stats.frame_time, stats.max_frame_time)
@@ -220,7 +221,7 @@ end
 
 -- @render(cam, objs)@ renders the renderables in @objs@ with @cam@.
 function lib:render(cam, objs)
-  local now = now ()
+  local now = elapsed()
   self:beginStats(now)
   self:_init ()
   self.frame_start_time = now
@@ -232,3 +233,5 @@ function lib:render(cam, objs)
   self.r:renderQueueFlush(cam)
   self:endStats()
 end
+
+return lib

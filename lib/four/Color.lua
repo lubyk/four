@@ -7,11 +7,9 @@
   *Note* Color values are @V4@ vectors, you can use all the functions of @V4@ 
   on them.
 --]]--
-
-local lib = { type = 'four.Color' }
-lib.__index = lib
-four.Color = lib
-setmetatable(lib, { __call = function(lib, ...) return  lib.Color(...) end })
+local lub  = require 'lub'
+local four = require 'four'
+local lib  = lub.class 'four.Color'
 
 local V4 = four.V4
 
@@ -24,14 +22,14 @@ local V4 = four.V4
   @Color(o)@ is a color converted from the object @o@. Supported types
   for @o@: none.
 --]]--
-function lib.Color(r, g, b, a) 
+function lib.new(r, g, b, a) 
   if g then return V4(r, g, b, a or 1)
   else
     assert(false, string.format("Cannot convert %s to %s", r.type, V4.type))
   end
 end
 
-local Color = lib.Color
+local Color = lib.new
 
 --[[-- 
   @HSV(h, s, v [,a])@ is an RGBA color with hue @h@, staturation
@@ -143,3 +141,5 @@ function lib.green(a) return Color(0, 1, 0, a) end
 
 -- @blue([,a])@ is @Color(0, 0, 1, a)@. @a@ is @1@ if unspecified.
 function lib.blue(a) return Color(0, 0, 1, a) end
+
+return lib

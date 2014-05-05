@@ -3,11 +3,9 @@
 --]]--
 
 -- Module definition
-
-local lib = { type = 'four.Texture' }
-lib.__index = lib
-four.Texture = lib
-setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
+local lub  = require 'lub'
+local four = require 'four'
+local lib  = lub.class 'four.Texture'
 
 -- h2. Texture type
 
@@ -125,3 +123,5 @@ function lib:set(def)
   if def.data ~= nil then self.data = def.data end
   if def.updated ~= nil then self.updated = def.updated end
 end
+
+return lib

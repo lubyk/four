@@ -4,11 +4,9 @@
 
   Given a vector @v@ we denote by @vi@ its one-based @i@th component.
 --]]--
-
-local lib = { type = 'four.V2' }
-lib.__index = lib
-four.V2 = lib
-setmetatable(lib, { __call = function(lib, ...) return lib.V2(...) end })
+local lub  = require 'lub'
+local four = require 'four'
+local lib  = lub.class 'four.V2'
 
 -- h2. Constructor and accessors
 
@@ -18,7 +16,7 @@ setmetatable(lib, { __call = function(lib, ...) return lib.V2(...) end })
   @V2(o)@ is a vector converted from the object @o@. Supported types
   for @o@: @bt.Vector3@.
 --]]--
-function lib.V2(x, y) 
+function lib.new(x, y) 
   local v = {}
   if y then v = {x, y}  
   else
@@ -31,7 +29,7 @@ function lib.V2(x, y)
   return v
 end
 
-local V2 = lib.V2
+local V2 = lib.new
 
 -- @x(v)@ is the @x@ component of @v@.
 function lib.x(v) return v[1] end
@@ -212,4 +210,4 @@ lib.__sub = lib.sub
 lib.__mul = lib.smul
 lib.__tostring = lib.tostring
 
-
+return lib

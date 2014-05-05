@@ -7,11 +7,9 @@
 --]]--
 
 -- Module definition
-
-local lib = { type = 'four.Geometry' }
-lib.__index = lib
-four.Geometry = lib
-setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end})
+local lub  = require 'lub'
+local four = require 'four'
+local lib  = lub.class 'four.Geometry'
 
 local Buffer = four.Buffer
 local V2 = four.V2
@@ -327,3 +325,5 @@ function lib.Plane(extents, segs)
                    data = { vertex = vs, tex = tex }, index = is, 
                    extents = extents } 
 end
+
+return lib

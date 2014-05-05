@@ -8,8 +8,9 @@
 -- doc:loose
 
 -- Module definition
-
-local lib = class 'four.Buffer'
+local lub  = require 'lub'
+local four = require 'four'
+local lib  = lub.class 'four.Buffer'
 
 local V2 = four.V2
 local V3 = four.V3
@@ -471,3 +472,5 @@ function lib:dimExtents()
   end
   return exts
 end
+
+return lib

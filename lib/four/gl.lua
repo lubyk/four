@@ -2,8 +2,9 @@
   h1. four.gl
   Luajit bindings to OpenGL.
 --]]--
+local four = require 'four'
+local ffi  = require 'ffi'
 
-local ffi = require( "ffi" )
 local libs = 
   { OSX = { x86 = "OpenGL.framework/OpenGL", x64 = "OpenGL.framework/OpenGL" },
     Windows = { x86 = "OPENGL32.DLL", x64 = "OPENGL32.DLL" },
@@ -12,11 +13,11 @@ local libs =
     POSIX = { x86 = "libGL.so", x64 = "libGL.so" },
     Other = { x86 = "libGL.so", x64 = "libGL.so" }}
   
-local lib = libs[ffi.os][ffi.arch]
-local lo = ffi.load(lib)
+local lo_lib = libs[ffi.os][ffi.arch]
+local lo = ffi.load(lo_lib)
 local hi = {}
 
-four.gl = { lo = lo, hi = hi }
+local lib = { lo = lo, hi = hi }
 
 -- hi, sligthly higher level interface to gl for some calls.
 
@@ -2323,3 +2324,5 @@ void glVertexArrayVertexAttribLFormatEXT (GLuint vaobj, GLuint attribindex, GLin
 void glVertexArrayVertexAttribBindingEXT (GLuint vaobj, GLuint attribindex, GLuint bindingindex);
 void glVertexArrayVertexBindingDivisorEXT (GLuint vaobj, GLuint bindingindex, GLuint divisor);
 ]]
+
+return lib

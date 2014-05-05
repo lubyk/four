@@ -2,9 +2,9 @@
   h1 four.Camera
   A camera defines a view volume of world space.
 --]]--
-
-local lib = { type = 'four.Camera' }
-four.Camera = lib
+local lub  = require 'lub'
+local four = require 'four'
+local lib  = lub.class 'four.Camera'
 
 local V2 = four.V2
 local V3 = four.V3
@@ -152,3 +152,5 @@ function lib:screenToDevice(pos)
   local nvp = V2.div(pos - self.viewport.origin, self.viewport.size)
   return 2 * nvp - V2(1,1)
 end
+
+return lib

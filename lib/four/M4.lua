@@ -10,17 +10,15 @@
   code properly. Elements are stored and iterated over in
   column-major order.
 --]]--
-
-local lib = { type = 'four.M4' }
-lib.__index = lib
-four.M4 = lib
-setmetatable(lib, { __call = function(lib, ...) return lib.M4(...) end })
+local lub  = require 'lub'
+local four = require 'four'
+local lib  = lub.class 'four.M4'
 
 local V3 = four.V3
 
 -- h2. Constructor and accessors
 
-function lib.M4(e11, e12, e13, e14, -- row 1
+function lib.new(e11, e12, e13, e14, -- row 1
                 e21, e22, e23, e24, -- row 2
                 e31, e32, e33, e34, -- row 3
                 e41, e42, e43, e44) -- row 4
@@ -41,7 +39,7 @@ function lib.M4(e11, e12, e13, e14, -- row 1
   return m
 end
 
-local M4 = lib.M4
+local M4 = lib.new
 
 function lib.row(m, i) return four.V4(m[i], m[4 + i], m[8 + i], m[12 + i]) end
 function lib.col(m, i)
@@ -474,3 +472,5 @@ lib.__add = lib.add
 lib.__sub = lib.sub
 lib.__mul = lib.mul
 lib.__tostring = lib.tostring
+
+return lib

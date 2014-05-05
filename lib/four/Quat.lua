@@ -7,11 +7,9 @@
   a 4D vector whose components @x, y, z, w@ represent the quaternion
   @xi + yj + zk + w@.
 --]]--
-
-local lib = { type = 'four.Quat' }
-lib.__index = lib
-four.Quat = lib
-setmetatable(lib, { __call = function(lib, ...) return lib.Quat(...) end })
+local lub  = require 'lub'
+local four = require 'four'
+local lib  = lub.class 'four.Quat'
 
 local V3 = four.V3
 local V4 = four.V4
@@ -25,7 +23,7 @@ local M4 = four.M4
   @Quat(o)@ is a quaternion converted from the object @o@. Supported
   types for @o@: @bt.Quaternion@.
 --]]--
-function lib.Quat(x, y, z, w) 
+function lib.new(x, y, z, w) 
   local q = {} 
   if y then q = { x, y, z, w }    
   else
@@ -39,7 +37,7 @@ function lib.Quat(x, y, z, w)
   return q
 end
 
-local Quat = lib.Quat
+local Quat = lib.new
 
 -- @x(v)@ is the @x@ component of @v@.
 function lib.x(q) return q[1] end
@@ -301,3 +299,5 @@ lib.__add = lib.add
 lib.__sub = lib.sub
 lib.__mul = lib.mul
 lib.__tostring = lib.tostring
+
+return lib

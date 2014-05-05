@@ -7,9 +7,9 @@
   *Note*, the transform decomposition scales, rotates and
   then translates.
 --]]--
-
-local lib = { type = 'four.Transform' }
-four.Transform = lib
+local lub  = require 'lub'
+local four = require 'four'
+local lib  = lub.class 'four.Transform'
 
 local Quat = four.Quat
 local V3 = four.V3
@@ -126,3 +126,5 @@ end
 function lib:lookAt(t, up)
   
 end
+
+return lib

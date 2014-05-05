@@ -6,13 +6,13 @@
 --]]--
 
 -- Module definition 
+local lub  = require 'lub'
+local four = require 'four'
+local ffi  = require 'ffi'
+local lens = require 'lens'
 
-local lib = { type = 'four.RendererGL32' }
-lib.__index = lib
-four.RendererGL32 = lib
-setmetatable(lib, { __call = function(lib, ...) return lib.new(...) end })
+local lib = lub.class 'four.RendererGL32'
 
-local ffi = require 'ffi'
 local gl = four.gl
 local lo = four.gl.lo
 local Buffer = four.Buffer
@@ -438,7 +438,7 @@ function lib:bufferStateAllocate(b, update)
   if not state then 
     state = { id = gl.hi.glGenBuffer() }
     local function finalize () gl.hi.glDeleteBuffer(state.id) end
-    state.finalizer = lk.Finalizer(finalize)
+    state.finalizer = lens.Finalizer(finalize)
     self.buffers[b] = state
   end
 
@@ -479,7 +479,7 @@ function lib:geometryStateAllocate(g)
                             -- for binding the buffer object 
             data_loc = {}}  -- maps g.data keys to current binding index
   function finalize () gl.hi.glDeleteVertexArray(state.vao) end
-  state.finalizer = lk.Finalizer(finalize)
+  state.finalizer = lens.Finalizer(finalize)
 
   lo.glBindVertexArray(state.vao)
 
@@ -523,7 +523,7 @@ function lib:textureStateAllocate(t)
   if not state then
     state = { id = gl.hi.glGenTexture() }
     local function finalize () gl.hi.glDeleteTexture(state.id) end
-    state.finalizer = lk.Finalizer(finalize)
+    state.finalizer = lens.Finalizer(finalize)
     self.textures[t] = state
     if t.data then img = self:bufferStateAllocate(t.data, false) end
   end
@@ -606,7 +606,7 @@ function lib:geometryStateBind(gstate, estate)
 end
 
 function lib:rewriteShaderInfoLog(src, log)
-  local lines = lk.split(log,'\n')
+  local lines = lub.split(log,'\n')
   for i, l in ipairs(lines) do
     local function rewrite(pre, f, post)      
       local file = tonumber(f)
@@ -709,7 +709,7 @@ function lib:programStateAllocate(effect)
     self.programs[fullsrc] = nil
     if state.id ~= -1 then lo.glDeleteProgram(state.id) end
   end
-  state.finalizer = lk.Finalizer(finalize) 
+  state.finalizer = lens.Finalizer(finalize) 
 
   -- Compile and link program
   local vid = self:compileShader(vsrc, lo.GL_VERTEX_SHADER)
@@ -1018,3 +1018,5 @@ function lib:renderQueueFlush(cam)
   self.queue = {}
   if self.super.debug then self:logGlError() end
 end
+
+return lib
