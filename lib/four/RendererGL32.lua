@@ -392,7 +392,7 @@ function lib:dlog(s) if self.super.debug then self.super:log(s) end end
 function lib:logGlError(loc)
   local e = lo.glGetError ()
   local loc = loc or ""
-  if e ~= lo.GL_NO_ERROR then self:log(loc .. " GL error:" .. err_gl(e)) end
+  if e ~= lo.GL_NO_ERROR then self:log(loc .. " GL error: " .. err_gl(e)) end
 end
 
 function lib:initGlState()  
