@@ -219,8 +219,8 @@ function lib:addRenderable(cam, o)
   end  
 end
 
--- @render(cam, objs)@ renders the renderables in @objs@ with @cam@.
-function lib:render(cam, objs)
+-- @render(cam, objs [, framebuffer])@ renders the renderables in @objs@ with @cam@.
+function lib:render(cam, objs, framebuffer)
   local now = elapsed()
   self:beginStats(now)
   self:_init ()
@@ -230,7 +230,7 @@ function lib:render(cam, objs)
       for _, o in ipairs(o) do self:addRenderable(cam, o) end
     end
   end
-  self.r:renderQueueFlush(cam)
+  self.r:renderQueueFlush(cam, framebuffer)
   self:endStats()
 end
 

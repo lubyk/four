@@ -121,6 +121,17 @@ function hi.glDeleteTexture(id)
   lo.glDeleteTextures(1, idptr)
 end
 
+function hi.glGenFramebuffer()
+  local id = ffi.new("GLuint[1]", 0) 
+  lo.glGenFramebuffers(1, id)
+  return id[0]
+end
+
+function hi.glDeleteFramebuffer(id)
+  local idptr = ffi.new("GLuint[1]", id) 
+  lo.glDeleteFramebuffers(1, idptr)
+end
+
 -- lo, raw bindings to OpenGL
 
 --[[--

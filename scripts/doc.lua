@@ -7,7 +7,7 @@ lut.Doc.make {
     'four',
     {'doc', prepend = 'example/four'},
   },
-  copy = { 'doc', prepend = 'example/four', filter = '%.lua' },
+  copy = { 'doc', prepend = 'example/four', filter = {'%.lua', '%.png'} },
   target = 'html',
   format = 'html',
   header = [[<h1><a href='http://lubyk.org'>Lubyk</a> documentation</h1> ]],

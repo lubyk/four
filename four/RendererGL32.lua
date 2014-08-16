@@ -23,6 +23,8 @@ local V2 = four.V2
 local V4 = four.V4
 local M4 = four.M4
 
+local sm, WeakKey, WeakValue = setmetatable, {__mode = 'k'}, {__mode = 'v'}
+
 -- h2. Constructor
 
 -- @RendererGL32(super)@ is a new GL32 renderer, @super@ is a @Renderer@ object.
@@ -30,11 +32,12 @@ function lib.new(super)
   local self = 
     {  super = super,
        limits = { max_vertex_attribs = 0 },
-       buffers = {},    -- Weakly maps Buffers to their gl buffer object id
-       geometries = {}, -- Weakly maps Geometry object to gl geometry state
-       effects = {},    -- Weakly maps Effects to their gl shader program id
-       textures = {},   -- Weakly maps Textures to their gl texture object id
-       programs = {}, -- Maps program sources to a weak reference of it program.
+       buffers      = sm({}, WeakKey),   -- Weakly maps Buffers to their gl buffer object id
+       geometries   = sm({}, WeakKey),   -- Weakly maps Geometry object to gl geometry state
+       effects      = sm({}, WeakKey),   -- Weakly maps Effects to their gl shader program id
+       textures     = sm({}, WeakKey),   -- Weakly maps Textures to their gl texture object id
+       framebuffers = sm({}, WeakKey),   -- Weakly maps Textures to their gl texture object id
+       programs     = sm({}, WeakValue), -- Maps program sources to a weak reference of it program.
        queue = {},    -- Array of maps from effects to lists of renderables
        next_active_texture = 0,
        world_to_camera = nil,
@@ -42,11 +45,6 @@ function lib.new(super)
        camera_viewport_origin = nil,
        camera_resolution = nil
     }
-    setmetatable(self.buffers, { __mode = "k"})
-    setmetatable(self.geometries, { __mode = "k" })
-    setmetatable(self.effects, { __mode = "k"})
-    setmetatable(self.textures, { __mode = "k"})
-    setmetatable(self.programs, { __mode = "v"})
     setmetatable(self, lib)
     return self
 end
@@ -563,9 +561,16 @@ function lib:textureStateAllocate(t)
                        texFilterGLenum[t.min_filter])
     lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_S, texWrapGLenum[t.wrap_s])
     lo.glTexParameteri(target, lo.GL_TEXTURE_WRAP_T, texWrapGLenum[t.wrap_t])
+    local scalar_type
+    if t.data then
+      scalar_type = typeGLenum[t.data.scalar_type]
+    else
+      scalar_type = lo.GL_UNSIGNED_BYTE
+    end
+      
     lo.glTexImage2D(target, 0, texInternalFormatGLenum[t.internal_format],
                     w, h, 0, texFormatGLenum[t.internal_format], 
-                    typeGLenum[t.data.scalar_type], nil)
+                    scalar_type, nil)
     if (t.generate_mipmaps) then lo.glGenerateMipmap(target) end
   elseif t.type == Texture.TYPE_3D then 
     lo.glTexParameteri(target, lo.GL_TEXTURE_MAG_FILTER, 
@@ -588,6 +593,23 @@ function lib:textureStateAllocate(t)
   return state
 end
 
+function lib:framebufferStateAllocate(t)
+  local state = self.framebuffers[t]
+  local updated = t.updated
+  if state and not updated then return state end
+  
+  if not state then
+    state = { id = gl.hi.glGenFramebuffer() }
+    local function finalize() gl.hi.glDeleteFramebuffer(state.id) end
+    state.finalizer = lens.Finalizer(finalize)
+    self.framebuffers[t] = state
+  end
+
+  local texture = self:textureStateAllocate(t.texture)
+  lo.glFramebufferTexture2D(lo.GL_FRAMEBUFFER, lo.GL_COLOR_ATTACHMENT0, lo.GL_TEXTURE_2D, texture.id, 0)
+  t.updated = false
+  return state
+end
   
 function lib:geometryStateBind(gstate, estate)
   lo.glBindVertexArray(gstate.vao)
@@ -960,6 +982,9 @@ function lib:setupCameraParameters(cam)
   self.camera_resolution = V2.mul(cam.viewport.size, wsize)
 end
 
+function lib:setupFramebuffer(t)
+end
+
 -- Renderer interface implementation
 
 function lib:init()
@@ -1021,8 +1046,12 @@ function lib:renderBatch(cam, effect, batch)
 end
 
 
-function lib:renderQueueFlush(cam)
+function lib:renderQueueFlush(cam, framebuffer)
   self:setupCameraParameters(cam)
+  if framebuffer then
+    local state = self:framebufferStateAllocate(framebuffer)
+    lo.glBindFramebuffer(lo.GL_FRAMEBUFFER, state.id)
+  end
   self:clearFramebuffer(cam)
   for _, pass in ipairs(self.queue) do 
     for e, batch in pairs(pass.opak) do self:renderBatch(cam, e, batch) end
