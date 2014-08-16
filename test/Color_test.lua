@@ -1,12 +1,17 @@
---[[--
-  four.Color test
---]]--
+--[[------------------------------------------------------
 
-require 'lubyk'
-local should = test.Suite("Color")
-local Color = four.Color
-local V4 = four.V4
+  # four.Color test
 
-function should.beV4()
-  assertEqual(V4.type, Color(1,1,1,1).type)
+--]]------------------------------------------------------
+local lub    = require 'lub'
+local lut    = require 'lut'
+
+local four   = require  'four'
+local should = lut.Test 'four.Color'
+local Color  = four.Color
+
+function should.haveType()
+  assertEqual('four.Color', Color(1,1,1,1).type)
 end
+
+should:test()

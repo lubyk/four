@@ -1,12 +1,17 @@
---[[--
-  four.Quat test
---]]--
+--[[------------------------------------------------------
 
-require 'lubyk'
-local should = test.Suite("Quat")
-local Quat = four.Quat
+  # four.Quat test
 
-function should.type()
+--]]------------------------------------------------------
+local lub    = require 'lub'
+local lut    = require 'lut'
+
+local four   = require  'four'
+local should = lut.Test 'four.Quat'
+local Quat   = four.Quat
+
+
+function should.haveType()
   assertEqual('four.Quat', Quat.id().type)
 end
 

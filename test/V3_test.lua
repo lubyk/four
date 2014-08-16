@@ -1,13 +1,18 @@
---[[--
-  four.V3 test
---]]--
+--[[------------------------------------------------------
 
-require 'lubyk'
-local should = test.Suite("V3")
-local V3 = four.V3
+  # four.V3 test
 
-function should.type()
-  assertEqual('four.V3', V3(0,0,0).type)
+--]]------------------------------------------------------
+local lub    = require 'lub'
+local lut    = require 'lut'
+
+local four   = require  'four'
+local should = lut.Test 'four.V3'
+local V3     = four.V3
+
+
+function should.haveType()
+  assertEqual('four.V3', V3(0,0).type)
 end
 
 -- N.B. mostly testing on integers so that arithmetic is exact.
@@ -74,3 +79,6 @@ function should.operators()
   assertValueEqual(V3(-1, -2, -3), -v1)
   assertValueEqual("(1 2 3)", tostring(v1))
 end
+
+should:test()
+

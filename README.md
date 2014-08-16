@@ -1,3 +1,17 @@
+four [![Build Status](https://travis-ci.org/lubyk/four.png)](https://travis-ci.org/lubyk/four)
+===
+
+Lightweight OpenGL rendering engine. Basic abstraction layer for
+compositional GLSL shader programming and rendering.
+
+[Documentation](http://doc.lubyk.org/four.html).
+
+install
+-------
+
+    luarocks install four
+
+
 Four
 ====
 
@@ -356,3 +370,4 @@ For a renderable `r` verify the following
 ### GL error: invalid enum
 
 Ensure that `geometry.primitive`, `buffer.type` is not `nil`.
+

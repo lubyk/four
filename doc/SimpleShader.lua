@@ -2,28 +2,32 @@
 
   # Simple fullscreen effect
 
-  In this tutorial, we create a simple animation with
-  [mimas](mimas.html) and [four](four.html), showing how to connect all
+  In this tutorial, we create a simple animation with [lens](lens.html),
+  [lui](lui.html) and [four](four.html), showing how to connect all
   the pieces together from window declaration and callbacks to timers,
   geometry and effects.
 
-  ![effect screenshot](img/four_simple.png)
+  ![effect screenshot](example/four/img/four_simple.png)
 
   Note that you must run this example with `luajit` since plain lua is not
   supported by four.
 
   ## Download source
 
-  [SimpleShader.lua](examples/SimpleShader.lua)
+  [SimpleShader.lua](example/four/SimpleShader.lua)
 
 --]]------------------------------------------------------
 -- doc:lit
 
 -- # Require
 --
--- Every script must start by requiring lubyk to setup file paths, load some
--- globals such as "class" or "lk" and setup auto-loading of dependencies.
-require 'lubyk'
+-- We need the scheduling library 'lens' and window setup 'lui'.
+local lens = require 'lens'
+local lui  = require 'lui'
+local four = require 'four'
+
+-- Autoload this script.
+lens.run(function() lens.FileWatch() end)
 
 -- Declare some constants.
 local WIN_SIZE   = {w = 400, h = 400}
@@ -172,19 +176,16 @@ obj = {
 
 -- # Window
 --
--- We create an OpenGL window with mimas.GLWindow, set the size and position.
-win = mimas.GLWindow()
-win:resize(WIN_SIZE.w, WIN_SIZE.h)
-win:move(WIN_POS.x, WIN_POS.y)
+-- We create an OpenGL window with lui.View, set the size and position.
+if not win then
+  win = lui.View()
+  win:resize(WIN_SIZE.w, WIN_SIZE.h)
+  win:move(WIN_POS.x, WIN_POS.y)
+end
 
--- We then setup some simple keyboard actions to toggle fullscreen with
--- the space bar.
---
--- Only react to key press (press = true).
-function win:keyboard(key, press)
-  if key == mimas.Key_Space and press then
-    win:swapFullScreen()
-  end
+-- Swap fullscreen on mouse down.
+function win:mouseDown()
+  win:swapFullScreen()
 end
 
 -- In case we resize the window, we want our content to scale so we need to
@@ -193,38 +194,44 @@ function win:resized(w, h)
   renderer.size = four.V2(w, h)
 end
 
--- OpenGL initialize function is called only once. We simply use it to log
--- render engine information.
-function win:initializeGL()
-  renderer:logInfo()
-end  
-
--- The window's paint function calls four.Renderer.render with our camera
--- and object.
-function win:paintGL()
+-- The window's draw function calls four.Renderer.render with our camera
+-- and object and then swaps OpenGL buffers.
+function win:draw()
   renderer:render(camera, {obj})
+  self:swapBuffers()
 end
 
 -- Show the window once all the the callbacks are in place.
 win:show()
 
+renderer:logInfo()
+
+
 -- # Runtime
 
 -- ## Timer
 -- Since our effect is a function of time, we update at 60 Hz. For this we
--- create a timer that asks the window to update every few milliseconds.
+-- create a timer to update window content every few milliseconds.
 --
 -- We also change the uniform's saturation with a random value between
 -- [0, 0.8] for a stupid blink effect.
-timer = lk.Timer(1/60, function()
-  win:update()
-  obj.saturation = math.random() * 0.8
-end)
+timer = timer or lens.Timer(200)
+
+function timer:timeout()
+  win:draw()
+  obj.saturation = math.sin(lens.elapsed()) * 0.8
+end
+timer:setInterval(1/60)
 
 -- Start the timer.
-timer:start()
+if not timer:running() then
+  timer:start(1)
+end
 
--- ## Run
---
--- And finally, run the scheduler (enter main loop).
-run()
+
+--[[
+  ## Download source
+
+  [SimpleShader.lua](example/four/SimpleShader.lua)
+--]]
+
