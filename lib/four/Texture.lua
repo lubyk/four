@@ -59,6 +59,8 @@ lib.DEPTH_STENCIL_24UN_8UN = 12
 lib.DEPTH_32F = 13
 lib.DEPTH_STENCIL_32F_8UN = 14
 
+lib.BGRA_8UN = 15
+
 --[[--
   @Texture(def)@ is a new texture object. @def@ keys:
   * @type@, the texture type (defaults to @TYPE_2D@). 

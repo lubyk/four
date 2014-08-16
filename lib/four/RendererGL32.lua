@@ -125,7 +125,9 @@ local texInternalFormatGLenum =
     [Texture.DEPTH_24UN] = lo.GL_DEPTH_COMPONENT24,
     [Texture.DEPTH_STENCIL_24UN_8UN] = lo.GL_DEPTH24_STENCIL8,
     [Texture.DEPTH_32F] = lo.GL_DEPTH_COMPONENT32F,
-    [Texture.DEPTH_STENCIL_32F_8UN] = lo.GL_DEPTH32F_STENCIL8 }
+    [Texture.DEPTH_STENCIL_32F_8UN] = lo.GL_DEPTH32F_STENCIL8,
+    [Texture.BGRA_8UN] = lo.GL_RGBA8,
+  }
 
 local texFormatGLenum =
   { [Texture.R_8UN] = lo.GL_RED,
@@ -141,7 +143,9 @@ local texFormatGLenum =
     [Texture.DEPTH_24UN] = lo.GL_DEPTH_COMPONENT,
     [Texture.DEPTH_STENCIL_24UN_8UN] = lo.GL_DEPTH_STENCIL,
     [Texture.DEPTH_32F] = lo.GL_DEPTH_COMPONENT,
-    [Texture.DEPTH_STENCIL_32F_8UN] = lo.GL_DEPTH_STENCIL }
+    [Texture.DEPTH_STENCIL_32F_8UN] = lo.GL_DEPTH_STENCIL,
+    [Texture.BGRA_8UN] = lo.GL_BGRA,
+  }
 
 local vec_kind = 1
 local mat_kind = 2
@@ -442,11 +446,20 @@ function lib:bufferStateAllocate(b, update)
     self.buffers[b] = state
   end
 
-  local len = b:scalarLength()
-  local gltype = typeGLenum[b.scalar_type]
   local spec = bufferSpecForScalarType[b.scalar_type]
+
+  local data, len
+  local cdata = b.cdata
+  if cdata then
+    data = cdata()
+    len  = b.csize()
+  else
+    len = b:scalarLength()
+    data = ffi.new(spec.ffi_spec, len, b.data)
+  end
+
+  local gltype = typeGLenum[b.scalar_type]
   local bytes = spec.byte_count * len
-  local data = ffi.new(spec.ffi_spec, len, b.data)
   lo.glBindBuffer(lo.GL_ARRAY_BUFFER, state.id)
   
   -- TODO if we don't change size use glSubBufferData

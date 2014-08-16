@@ -89,6 +89,8 @@ function lib:set(def)
   if def.update ~= nil then self.update = def.update end
   if def.disposable ~= nil then self.disposable = def.disposable end
   if def.updated ~= nil then self.updated = def.updated end
+  if def.cdata ~= nil then self.cdata = def.cdata end
+  if def.csize ~= nil then self.csize = def.csize end
 end
 
 function lib:length() return (#self.data / self.dim) end
