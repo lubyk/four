@@ -631,8 +631,6 @@ function lib:framebufferStateAllocate(t)
     self.framebuffers[t] = state
   end
 
-  local texture = self:textureStateAllocate(t.texture)
-  lo.glFramebufferTexture2D(lo.GL_FRAMEBUFFER, lo.GL_COLOR_ATTACHMENT0, lo.GL_TEXTURE_2D, texture.id, 0)
   t.updated = false
   return state
 end
@@ -1077,7 +1075,15 @@ function lib:renderQueueFlush(cam, framebuffer)
   if framebuffer then
     local state = self:framebufferStateAllocate(framebuffer)
     lo.glBindFramebuffer(lo.GL_FRAMEBUFFER, state.id)
+    local texture = self:textureStateAllocate(framebuffer.texture)
+    lo.glFramebufferTexture2D(lo.GL_FRAMEBUFFER, lo.GL_COLOR_ATTACHMENT0, lo.GL_TEXTURE_2D, texture.id, 0)
+    self.had_framebuffer = true
+  elseif self.had_framebuffer then
+    self.had_framebuffer = nil
+    -- bind back to screen
+    lo.glBindFramebuffer(lo.GL_FRAMEBUFFER, 0)
   end
+
   self:clearFramebuffer(cam)
   for _, pass in ipairs(self.queue) do 
     for e, batch in pairs(pass.opak) do self:renderBatch(cam, e, batch) end

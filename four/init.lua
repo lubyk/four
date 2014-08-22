@@ -28,11 +28,11 @@ lib.DEPENDS = { -- doc
   -- Compatible with LuaJIT (uses ffi for OpenGL bindings).
   "lua >= 5.1, < 5.3",
   -- Uses [Lubyk base library](http://doc.lubyk.org/lub.html)
-  'lub >= 1.0.3, < 1.1',
+  'lub >= 1.0.3, < 2',
   -- Uses [Lubyk networking and realtime](http://doc.lubyk.org/lens.html)
-  'lens >= 1.0.0, < 1.1',
+  'lens >= 1.0.0, < 2',
   -- Uses [Lubyk simple UI](http://doc.lubyk.org/lui.html)
-  'lui >= 1.0.0, < 1.1',
+  'lui >= 1.0.0, < 2',
 }
 
 -- nodoc
