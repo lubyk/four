@@ -123,22 +123,19 @@ function lib:computeVertexNormals(force)
   self.data.normal = ns
 end
 
--- h2. Predefined geometries
+-- # Predefined geometries
 
---[[--
-  @Cuboid(V3(w, h, d) [, no_dups])@ is a cuboid centered on the 
-  origin with the given extents. If [no_dups] is @true@ vertices
-  in the mesh are not duplicated, better for computational geometry 
-  but implies that normals do not define facets. 
---]]--
-function lib.Cuboid(extents, no_dups)
+-- Return a cuboid centered on the origin with the given `half_extents`. If
+-- `no_dups` is `true` vertices in the mesh not duplicated, better for
+-- computational geometry but implies that normals do not define facets. 
+function lib.Cuboid(half_extents, no_dups)
   local no_dups = no_dups or false
-  local x, y, z = V3.tuple(0.5 * extents)
+  local x, y, z = V3.tuple(half_extents)
   local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
   local g = lib.new ({ name = "", primitive = lib.TRIANGLES, 
                        data = { vertex = vs }, index = is, 
-                       extents = extents })
+                       half_extents = half_extents })
   
   if no_dups then 
     g.name = "four.cuboid.no_dups"
@@ -220,7 +217,7 @@ function lib.Cube(s, no_dups) return lib.Cuboid(V3(s, s, s), no_dups) end
 --[[--
   @Sphere(r[,level])@ is a sphere of radius @r@ centered on the origin.
   The optional parameter @level@ defines the subdivision level (defaults
-  to @10@. Number of triangles is @4^level * 8@
+  to @4@. Number of triangles is @4^level * 8@
 --]]--                                                                
 function lib.Sphere(r, level)
   local ra = r / math.sqrt(2)
@@ -283,47 +280,44 @@ function lib.Sphere(r, level)
 
   return lib.new({ name = "four.sphere", primitive = lib.TRIANGLES,
                    data = { vertex = vs }, index = is, 
-                   extents = extents })
+                   half_extents = half_extents })
 end
 
 
---[[--
-  @Plane(V2(w, h) [, V2(xseg, yseg))@ is an Oxy plane of width @w@ and 
-  height @h@ centered on the origin. The plane is divided in @xseg@
-  segments along the x-axis and @yseg@ along the y-axis (both default to @1@).  
---]]--                                                                
-function lib.Plane(extents, segs)
+-- Create an 0xz plane (ground orientation) of four.V2 `half_extents` and optional
+-- four.V2 `segs` (segment count).
+function lib.Plane(half_extents, segs)
   local segs = segs or V2(1,1)
-  local w, h = V2.tuple(extents)
-  local xseg, yseg = V2.tuple(segs)
+  local w, l = 2 * V2.tuple(half_extents)
+  local xseg, zseg = V2.tuple(segs)
   local dx = w / xseg
-  local dy = h / yseg
+  local dz = l / zseg
   local x0 = -0.5 * w
-  local y0 = -0.5 * h
-  local vs = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
+  local z0 = -0.5 * l
+  local vs  = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   local tex = Buffer { dim = 2, scalar_type = Buffer.FLOAT }
-  local is = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
+  local is  = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }
 
   -- Vertices
-  for y = 0, yseg do 
+  for z = 0, zseg do 
     for x = 0, xseg do
-      vs:push3D(x0 + x * dx, y0 + y * dy, 0) 
-      tex:push2D(x / xseg, y / yseg)
+      vs:push3D(x0 + x * dx, 0, z0 + z * dz) 
+      tex:push2D(x / xseg, z / zseg)
     end
   end
   
   -- Index (zero-based)
-  local function vindex(x, y) return y * (xseg + 1) + x end
-  for y = 0, yseg - 1 do 
+  local function vindex(x, z) return z * (xseg + 1) + x end
+  for z = 0, zseg - 1 do 
     for x = 0, xseg - 1 do 
-      is:push3D(vindex(x, y), vindex(x + 1, y), vindex(x + 1, y + 1))
-      is:push3D(vindex(x, y), vindex(x + 1, y + 1), vindex(x, y + 1))
+      is:push3D(vindex(x, z), vindex(x + 1, z), vindex(x + 1, z + 1))
+      is:push3D(vindex(x, z), vindex(x + 1, z + 1), vindex(x, z + 1))
     end
   end
   
   return lib.new { name = "four.plane", primitive = lib.TRIANGLES,
                    data = { vertex = vs, tex = tex }, index = is, 
-                   extents = extents } 
+                   half_extents = half_extents } 
 end
 
 return lib
