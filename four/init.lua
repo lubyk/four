@@ -51,4 +51,12 @@ lib.BUILD = {
   pure_lua  = true,
 }
 
+-- Enable crash on error debugging.
+--
+-- WARN: This has a *HUGE* performance cost and should only be called during
+-- development.
+function lib.debug()
+  require('four.RendererGL32').debug()
+end
+
 return lib

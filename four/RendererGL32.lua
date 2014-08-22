@@ -389,6 +389,32 @@ local function err_gl(e)
   end
 end
 
+function lib.debug()
+  local lob,   glGetError,    GL_NO_ERROR =
+        lo, lo.glGetError, lo.GL_NO_ERROR
+  local function gldebug(func_name)
+    local e = glGetError ()
+    local loc = loc or ""
+    if e ~= GL_NO_ERROR then
+      error(" GL error in '"..func_name.."' " .. err_gl(e))
+    end
+  end
+    
+  lo = setmetatable({}, {
+    __index = function(_, k)
+      local v = lob[k]
+      if type(v):match('cdata') then
+        return function(...)
+          local res = v(...)
+          gldebug(k)
+          return res
+        end
+      end
+      return lob[k]
+    end
+  })
+end
+
 function lib:log(s) self.super:log(s) end
 function lib:dlog(s) if self.super.debug then self.super:log(s) end end
 function lib:logGlError(loc)
