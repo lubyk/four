@@ -225,13 +225,13 @@ function lib.rotAxis(u, theta)
   return Quat(s * u[1], s * u[2], s * u[3], math.cos(a))
 end
 
--- @rotZYX(r)@ is the unit quaternion that rotates 3D space 
+-- @rotXYZ(r)@ is the unit quaternion that rotates 3D space 
 -- first by @V3.x(r)@ around the x-axis, then by @V3.y(r)@ around the y-axis 
 -- and finally by @V3.z(r)@ around the z-axis.
-function  lib.rotZYX(r)
-  local hz = r[3] * 0.5
-  local hy = r[2] * 0.5
+function  lib.rotXYZ(r)
   local hx = r[1] * 0.5
+  local hy = r[2] * 0.5
+  local hz = r[3] * 0.5
   local cz = math.cos(hz) local sz = math.sin(hz)
   local cy = math.cos(hy) local sy = math.sin(hy)
   local cx = math.cos(hx) local sx = math.sin(hx)
@@ -243,9 +243,9 @@ function  lib.rotZYX(r)
               cycz * cx + sysz * sx)
 end
 
--- @toZYX(q)@ is a vector with the @x@, @y@ and @z@ axis angles of the *unit* 
+-- @toXZY(q)@ is a vector with the @x@, @y@ and @z@ axis angles of the *unit* 
 -- quaternion @q@.
-function lib.toZYX(q)
+function lib.toXZY(q)
     local xx = q[1] * q[1] local yy = q[2] * q[2] local zz = q[3] * q[3]
     local ww = q[4] * q[4] 
     local wx = q[4] * q[1] local wy = q[4] * q[2] local wz = q[4] * q[3]
