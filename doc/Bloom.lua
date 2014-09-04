@@ -23,6 +23,7 @@
 local lens = require 'lens'
 local lui  = require 'lui'
 local four = require 'four'
+local sfun = require 'buma.ShadingFun'
 
 -- Autoload this script.
 lens.run(function() lens.FileWatch() end)
@@ -31,6 +32,9 @@ lens.run(function() lens.FileWatch() end)
 local WIN_SIZE   = {w = 400, h = 400}
 local WIN_POS    = {x = 10 , y = 10 }
 local SATURATION = 0.4
+
+-- Enable debugging (crash on gl errors)
+--four.debug()
 
 -- # Geometry
 --
@@ -101,14 +105,14 @@ end
 -- # Renderer
 --
 -- Create the renderer with four.Renderer.
-renderer = four.Renderer {
+renderer = renderer or four.Renderer {
   size = four.V2(WIN_SIZE.w, WIN_SIZE.h),
 }
 
 -- # Camera
 --
 -- Use four.Camera to create a simple camera.
-camera = four.Camera {
+camera = camera or four.Camera {
   transform = four.Transform {
     pos = four.V3(0, 0, 5)
   }
@@ -125,7 +129,7 @@ camera = four.Camera {
 --
 -- The special value [RENDER_FRAME_START_TIME](four.Effect.html#RENDER_FRAME_START_TIME) set for `time` will
 -- give use the current time in seconds (0 = script start).
-local bloom = four.Effect {
+bloom = bloom or four.Effect {
   default_uniforms = {
     time = four.Effect.RENDER_FRAME_START_TIME,
   },
@@ -137,7 +141,6 @@ bloom.vertex = four.Effect.Shader [[
   in vec4 vertex;
   in vec4 color;
   out vec4 v_vertex;
-  out vec4 v_color;
 
   in  vec2 tex;
   out vec2 v_tex;
@@ -146,7 +149,6 @@ bloom.vertex = four.Effect.Shader [[
   {
     v_tex    = tex;
     v_vertex = vertex;
-    v_color  = color;
     gl_Position = vertex;
   }
 ]]
@@ -156,7 +158,6 @@ bloom.vertex = four.Effect.Shader [[
 bloom.fragment = four.Effect.Shader [[
   in vec2 v_tex;
   in vec4 v_vertex;
-  in vec4 v_color;
 
   uniform sampler2D cube_image;
   uniform float time;
@@ -165,9 +166,9 @@ bloom.fragment = four.Effect.Shader [[
   out vec4 color;
 
   void main() {
-    vec4 v = 140 * (v_vertex + vec4(sin(t/8), sin(t/20), sin(t/30), 0.0));
-    vec4 img = texture(cube_image, v_tex + 0.05*vec2(v_vertex.x*sin(t), v_vertex.y * sin(t/2)));
-
+    vec4 img = texture(cube_image, v_tex + vec2(0.2, 0.2));
+    //vec4 img2 = texture(cube_image, v_tex + vec2(0.2, 0.2));
+    //color = vec4(img.r + img2.r, img.g, img.b, 1);
     color = vec4(img.r, img.g, img.b, 1);
   }
 ]]
@@ -178,22 +179,107 @@ bloom.fragment = four.Effect.Shader [[
 cube_image = cube_image or four.Texture {
   type = four.Texture.TYPE_2D, 
   internal_format = four.Texture.RGBA_8UN,
-  size = four.V3(256, 256, 1),
+  size = four.V3(1024, 1024, 1),
   wrap_s = four.Texture.WRAP_CLAMP_TO_EDGE,
   wrap_t = four.Texture.WRAP_CLAMP_TO_EDGE,
   mag_filter = four.Texture.MAG_LINEAR,
   min_filter = four.Texture.MIN_LINEAR_MIPMAP_LINEAR,
+  generate_mipmaps = true,
 }
+
+if not img then
+  img = four.Buffer { dim = 4, scalar_type = four.Buffer.UNSIGNED_BYTE } 
+  for y = 0, 1023 do 
+    for x = 0, 1023 do 
+      local xm = bit.band(x, 8) == 0 and 1 or 0 
+      local ym = bit.band(y, 8) == 0 and 1 or 0
+      local I =  bit.bxor(xm, ym) * 255 
+      img:push4D(I, I, I, 255)
+    end
+  end
+  cube_image.data = img
+end
 
 cube_frame = cube_frame or four.Framebuffer {
   texture = cube_image,
+}
+
+-- # Cube effect
+cubefx = cubefx or four.Effect { }
+
+cubefx.default_uniforms = {
+  time = four.Effect.RENDER_FRAME_START_TIME,
+  model_to_clip = four.Effect.MODEL_TO_CLIP,
+}
+
+cubefx.vertex = four.Effect.Shader [[
+  uniform mat4 model_to_clip;
+  in vec4 vertex;
+  out vec4 v_base;
+  out vec4 v_vertex;
+  void main() {
+    v_vertex = vertex;
+    v_base   = vertex;
+    gl_Position = model_to_clip * vertex;
+  }
+]]
+  
+-- Define the fragment shader. This shader simply creates periodic colors
+-- based on pixel position and time.
+cubefx.fragment = {
+  sfun.smoothcut,
+  four.Effect.Shader [[
+  in vec4 v_vertex;
+  in vec4 v_base;
+
+  uniform float time;
+  float t = time;
+
+  out vec4 color;
+
+  void main() {
+    float radius = 10 + 10 * sin(t);
+    vec2 range = vec2(0.3, 0.9);
+    vec4 v = vec4(
+      v_base.x,
+      v_base.y,
+      v_base.z,
+      1
+      );
+    float dist = 0.1 + (0.1 + 0.1 * sin(t/20));
+    vec3 centers = vec3(
+      (v.x - dist * floor(v.x / dist)) - dist/2,
+      (v.y - dist * floor(v.y / dist)) - dist/2,
+      (v.z - dist * floor(v.z / dist)) - dist/2
+    );
+
+
+    float d = sqrt(
+      centers.x * centers.x +
+      centers.y * centers.y +
+      centers.z * centers.z
+      );
+    float r = cos(100*d);
+    float g = cos(102*d);
+    float b = cos((50 + 50 * sin(t/3))*d);
+
+    color = vec4(
+      smoothcut(0.3, 0.9, r),
+      smoothcut(0.2, 0.8, g),
+      smoothcut(0.1, 0.9, b),
+      1
+    );
+    // color = vec4(r, g, b, 1);
+    // color = vec4(r, g, b, 1);
+  }
+]],
 }
 
 -- # Renderable
 
 -- Draw a cube during first pass
 local angle = math.pi/4
-cube_obj = {
+cube_obj = cube_obj or {
   transform = four.Transform {
     rot = four.Quat.rotZYX(four.V3(angle, angle, 0))
   },
@@ -205,6 +291,8 @@ cube_obj = {
   },
 }
 
+cube_obj.effect = cubefx
+
 -- Draw the bloom effect during second pass. The 'cube_image' texture is the result
 -- from the first pass.
 bloom_obj = bloom_obj or {
@@ -212,6 +300,8 @@ bloom_obj = bloom_obj or {
   effect     = bloom,
   cube_image = cube_image,
 }
+
+bloom_obj.effect = bloom
 
 -- # Window
 --
@@ -237,10 +327,14 @@ end
 -- and object and then swaps OpenGL buffers.
 function win:draw()
   -- First render to framebuffer
-  renderer:render(camera, {cube_obj}, cube_frame)
+  if false then
+    renderer:render(camera, {cube_obj}, cube_frame)
+    -- Render bloom effect to screen
+    renderer:render(camera, {bloom_obj})
+  else
+    renderer:render(camera, {cube_obj})--, cube_frame)
 
-  -- Render bloom effect to screen
-  renderer:render(camera, {bloom_obj})
+  end
   self:swapBuffers()
 end
 
@@ -261,6 +355,11 @@ renderer:logInfo()
 timer = timer or lens.Timer(200)
 
 function timer:timeout()
+  local angle = lens.elapsed() / 8;
+  cube_obj.transform = four.Transform {
+    rot = four.Quat.rotZYX(four.V3(angle / 1.2, angle, 0))
+  }
+  
   win:draw()
 end
 timer:setInterval(1/60)

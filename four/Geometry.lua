@@ -288,12 +288,12 @@ end
 -- four.V2 `segs` (segment count).
 function lib.Plane(half_extents, segs)
   local segs = segs or V2(1,1)
-  local w, l = 2 * V2.tuple(half_extents)
+  local hw, hl = V2.tuple(half_extents)
   local xseg, zseg = V2.tuple(segs)
-  local dx = w / xseg
-  local dz = l / zseg
-  local x0 = -0.5 * w
-  local z0 = -0.5 * l
+  local dx = 2 * hw / xseg
+  local dz = 2 * hl / zseg
+  local x0 = - hw
+  local z0 = - hl
   local vs  = Buffer { dim = 3, scalar_type = Buffer.FLOAT } 
   local tex = Buffer { dim = 2, scalar_type = Buffer.FLOAT }
   local is  = Buffer { dim = 3, scalar_type = Buffer.UNSIGNED_INT }

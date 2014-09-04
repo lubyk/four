@@ -193,13 +193,13 @@ end
 -- h2. Screen coordinates
 
 --[[--
-  @r:normalizeScreenPos(pos [,noflip])@ is the normalized position of 
-  @pos@ expressed relative to the top left (bottom left if @noflip@ is true)
+  @r:normalizeScreenPos(pos [,flip])@ is the normalized position of 
+  `pos` expressed relative to the bottom left (top left if `flip` is true)
   corner of the rendering surface.
 --]]--
-function lib:normalizeScreenPos(pos, noflip)  
+function lib:normalizeScreenPos(pos, flip)  
   local np = V2.div (pos, self.size)
-  if not noflip then np[2] = 1 - np[2] end
+  if flip then np[2] = 1 - np[2] end
   return np
 end
 

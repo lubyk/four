@@ -14,9 +14,9 @@ description = {
 
 dependencies = {
   "lua >= 5.1, < 5.3",
-  "lub >= 1.0.3, < 1.1",
-  "lens >= 1.0.0, < 1.1",
-  "lui >= 1.0.0, < 1.1",
+  "lub >= 1.0.3, < 2",
+  "lens >= 1.0.0, < 2",
+  "lui >= 1.0.0, < 2",
 }
 build = {
   type = 'builtin',

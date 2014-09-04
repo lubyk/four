@@ -50,7 +50,7 @@ function lib.__index(t, k)
 end
 
 function lib.__newindex(t, k, v) 
-  if not is_projection_key[k] then t[k] = v 
+  if not is_projection_key[k] then rawset(t,k,v)
   else
     local tv = t.tv 
     if k == "projection_matrix" then

@@ -839,8 +839,11 @@ function lib:effectBindUniforms(effect, estate, cam, o)
   self.next_active_texture = 0
   for u, uspec in pairs(estate.program.uniforms) do 
     local info = uspec.info
-    local uv = effect.uniform(effect, cam, o, u)
-    uv = uv or effect.default_uniforms[u]
+    
+    
+    -- FIXME: performance issue ?
+    -- local uv = effect.uniform(effect, cam, o, u)
+    uv = o[u] or cam[u] or effect.default_uniforms[u]
 
     if uv == nil then
       local name = uspec.locs and str("%s[%d]", u, #uspec.locs) or u

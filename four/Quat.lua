@@ -228,10 +228,15 @@ end
 -- @rotXYZ(r)@ is the unit quaternion that rotates 3D space 
 -- first by @V3.x(r)@ around the x-axis, then by @V3.y(r)@ around the y-axis 
 -- and finally by @V3.z(r)@ around the z-axis.
-function  lib.rotXYZ(r)
-  local hx = r[1] * 0.5
-  local hy = r[2] * 0.5
-  local hz = r[3] * 0.5
+function  lib.rotXYZ(x, y, z)
+  if not y then
+    y = x[2]
+    z = x[3]
+    x = x[1]
+  end
+  local hx = x * 0.5
+  local hy = y * 0.5
+  local hz = z * 0.5
   local cz = math.cos(hz) local sz = math.sin(hz)
   local cy = math.cos(hy) local sy = math.sin(hy)
   local cx = math.cos(hx) local sx = math.sin(hx)
